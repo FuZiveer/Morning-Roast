@@ -35,12 +35,12 @@
             <span>edpi calculator</span>
           </button>
 
-          <!-- <button class="button" onclick="switchTab(event, 'helper-tab')">
+          <button class="button" onclick="switchTab(event, 'aim-training-tab')">
             <div class="icon-container">
               <i class="ri-calculator-line"></i>
             </div>
-            <span>Helper</span>
-          </button> -->
+            <span>aim trainer</span>
+          </button>
         </div>
       </nav>
 
@@ -331,17 +331,33 @@
             <div class="box-holder">
               <p class="preset-title">PRO PRESETS</p>
               <div class="preset-grid">
-                <button class="preset-btn" onclick="applyEdpiPreset('CS2', 800, 0.7)">NiKo (CS2)</button>
-                <button class="preset-btn" onclick="applyEdpiPreset('CS2', 400, 3.09)">s1mple (CS2)</button>
-                <button class="preset-btn" onclick="applyEdpiPreset('Valorant', 1600, 0.1)">Demon1 (VAL)</button>
-                <button class="preset-btn" onclick="applyEdpiPreset('Valorant', 800, 0.4)">Aspas (VAL)</button>
+                <button class="preset-btn" onclick="applyEdpiPreset('Valorant', 1600, 0.1)">Demon1</button>
+                <button class="preset-btn" onclick="applyEdpiPreset('Valorant', 800, 0.4)">Primmie</button>
+                <button class="preset-btn" onclick="applyEdpiPreset('Valorant', 400, 2.3)">ScreaM</button>
+                <button class="preset-btn" onclick="applyEdpiPreset('CS2', 800, 1.25)">Donk</button>
+                <button class="preset-btn" onclick="applyEdpiPreset('CS2', 1600, 0.74)">EliGE</button>
+                <button class="preset-btn" onclick="applyEdpiPreset('CS2', 800, 0.7)">NiKo</button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- <div class="section" id="helper-tab"></div> -->
+      <div class="section" id="aim-training-tab" style="display: none; flex-direction: column; align-items: center; gap: 15px">
+        <div id="trainer-controls" style="display: flex; gap: 10px; align-items: center; background: rgba(255, 255, 255, 0.05); padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1)">
+          <label style="color: rgba(255, 255, 255, 0.6); font-size: 12px; font-weight: bold; letter-spacing: 1px">MODE:</label>
+          <select id="trainer-mode" style="background: #0d1117; color: white; border: 1px solid #ff4655; padding: 5px 10px; border-radius: 4px; font-family: &quot;Inter&quot;, sans-serif; cursor: pointer; outline: none">
+            <option value="static">STATIC TARGETS</option>
+            <option value="shrinking">SHRINKING TARGETS</option>
+            <option value="tracking">TRACKING (SMOOTH)</option>
+          </select>
+        </div>
+
+        <div class="flick-trainer-container" style="position: relative; width: 100%; max-width: 800px; aspect-ratio: 16/9">
+          <canvas id="aimCanvas" style="width: 100%; height: 100%; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); display: block"></canvas>
+          <button id="fullscreen-trainer" class="button" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 15px 30px; font-weight: bold; letter-spacing: 1px">ENTER FULLSCREEN TO START</button>
+        </div>
+      </div>
 
       <div id="sens-suggestion">
         <div class="advice-header">
