@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sensitivity Converter</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.8.0/fonts/remixicon.css" rel="stylesheet" />
+
+    <link rel="stylesheet" href="style.css" />
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="script.js"></script>
+  </head>
+  <body>
+    <div class="app">
+      <nav class="nav-bar">
+        <img class="logo-container" onclick="$('#sensitivity-converter-button')[0].click()" src="https://u.cubeupload.com/MargotRobbie/30bUntitleddesign1.png" alt="Logo" />
+
+        <div class="button-container">
+          <button class="button active" onclick="switchTab(event, 'sensitivity-converter-tab')" id="sensitivity-converter-button">
+            <div class="icon-container">
+              <i class="ri-exchange-2-line"></i>
+            </div>
+            <span>sensitivity converter</span>
+          </button>
+
+          <button class="button" onclick="switchTab(event, 'edpi-calculator-tab')">
+            <div class="icon-container">
+              <i class="ri-calculator-line"></i>
+            </div>
+            <span>edpi calculator</span>
+          </button>
+
+          <!-- <button class="button" onclick="switchTab(event, 'helper-tab')">
+            <div class="icon-container">
+              <i class="ri-calculator-line"></i>
+            </div>
+            <span>Helper</span>
+          </button> -->
+        </div>
+      </nav>
+
+      <div class="section" id="sensitivity-converter-tab" style="display: flex">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mouse-icon-wired">
+                <path d="M12 2V0" />
+                <rect x="5" y="4" width="14" height="18" rx="7" />
+                <path d="M12 8v4" />
+              </svg>
+            </div>
+            <span>Mouse Sensitivity Converter</span>
+          </div>
+          <div class="description">One sensitivity. Every game. Pure consistency.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder" id="from-container">
+              <label>From Game</label>
+              <div class="custom-dropdown">
+                <div class="selected-view" id="from-trigger">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="hsl(344, 99%, 47%)" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <div class="input-wrapper">
+                    <input type="text" class="game-search" id="from-search" placeholder="Select game" autocomplete="off" />
+                    <button type="button" id="from-clear" class="clear-btn">&times;</button>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2">
+                    <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                    <path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" />
+                  </svg>
+                </div>
+
+                <div class="dropdown-list hidden" id="from-list">
+                  <div class="game-option" data-game="Rust" data-id="Facepunch-01">
+                    <span class="game-name">Rust</span>
+                    <span class="game-id">(Facepunch-01)</span>
+                  </div>
+                  <div class="game-option" data-game="Valorant" data-id="Riot-02">
+                    <span class="game-name">Valorant</span>
+                    <span class="game-id">(Riot-02)</span>
+                  </div>
+                  <div class="game-option" data-game="CS2" data-id="Valve-03">
+                    <span class="game-name">CS2</span>
+                    <span class="game-id">(Valve-03)</span>
+                  </div>
+                  <div class="game-option" data-game="Rainbow Six Siege" data-id="Ubi-04">
+                    <span class="game-name">Rainbow Six Siege</span>
+                    <span class="game-id">(Ubi-04)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button id="swap-btn" class="swap-button" title="Swap Games">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 16h5v5M3 3v5h5" />
+              </svg>
+            </button>
+
+            <div class="box-holder" id="to-container">
+              <label>To Game</label>
+              <div class="custom-dropdown">
+                <div class="selected-view" id="to-trigger">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="hsl(344, 99%, 47%)" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <div class="input-wrapper">
+                    <input type="text" class="game-search" id="to-search" placeholder="Select game" autocomplete="off" />
+                    <button type="button" id="to-clear" class="clear-btn">&times;</button>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2">
+                    <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                    <path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" />
+                  </svg>
+                </div>
+
+                <div class="dropdown-list hidden" id="to-list">
+                  <div class="game-option" data-game="Rust" data-id="Facepunch-01">
+                    <span class="game-name">Rust</span>
+                    <span class="game-id">(Facepunch-01)</span>
+                  </div>
+                  <div class="game-option" data-game="Valorant" data-id="Riot-02">
+                    <span class="game-name">Valorant</span>
+                    <span class="game-id">(Riot-02)</span>
+                  </div>
+                  <div class="game-option" data-game="CS2" data-id="Valve-03">
+                    <span class="game-name">CS2</span>
+                    <span class="game-id">(Valve-03)</span>
+                  </div>
+                  <div class="game-option" data-game="Rainbow Six Siege" data-id="Ubi-04">
+                    <span class="game-name">Rainbow Six Siege</span>
+                    <span class="game-id">(Ubi-04)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder">
+              <label>From Sensitivity</label>
+              <div class="input-container-inner">
+                <svg class="icon-sens" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="9" stroke="hsl(344, 99%, 47%)" stroke-width="2" />
+                  <circle cx="12" cy="12" r="2" fill="hsl(344, 99%, 47%)" />
+                  <path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <input type="number" id="base-sens" class="game-input-style" placeholder="Sensitivity" />
+              </div>
+            </div>
+
+            <div class="box-holder">
+              <label>From DPI</label>
+              <div class="input-container-inner">
+                <svg class="icon-dpi" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 8H10" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M4 12H12" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+                  <path d="M2 16H10" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M15 8L19 12L15 16" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="19" cy="12" r="1.5" fill="hsl(344, 99%, 47%)" />
+                </svg>
+                <input type="number" id="from-dpi" class="game-input-style" placeholder="DPI" value="800" />
+              </div>
+            </div>
+
+            <div class="box-holder">
+              <label>To DPI</label>
+              <div class="input-container-inner">
+                <svg class="icon-dpi" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 8H10" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M4 12H12" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+                  <path d="M2 16H10" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M15 8L19 12L15 16" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="19" cy="12" r="1.5" fill="hsl(344, 99%, 47%)" />
+                </svg>
+                <input type="number" id="to-dpi" class="game-input-style" placeholder="DPI" value="800" />
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="result-container">
+              <div class="result-label">To Sensitivity</div>
+              <div class="result-display">
+                <div class="value" id="new-sens-value">0.00</div>
+                <div class="unit">cm/360</div>
+
+                <button id="reset-btn" class="reset-button">
+                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 11V17M15 11V17" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" />
+                    <path d="M3 7H21" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>RESET</span>
+                </button>
+
+                <button id="copy-btn" class="copy-button">
+                  <svg class="icon-copy" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 15H7C5.89543 15 5 14.1046 5 13V5C5 3.89543 5.89543 3 7 3H13C14.1046 3 15 3.89543 15 5V7" stroke="hsl(344, 99%, 47%)" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+                    <rect x="9" y="9" width="10" height="12" rx="2" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" />
+                    <path d="M12 13H16M12 17H14" stroke="hsl(344, 99%, 47%)" stroke-width="1.5" stroke-linecap="round" />
+                  </svg>
+                  <span>COPY</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="edpi-calculator-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 3L11 21L13.5 13.5L21 11L4 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" fill="none" />
+                <circle cx="4" cy="3" r="1" fill="currentColor" />
+              </svg>
+            </div>
+            <span>Mouse EDPI calculator</span>
+          </div>
+          <div class="description">Measure your true performance. Find your edge.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder" id="edpi-game-container">
+              <label>Game</label>
+              <div class="custom-dropdown">
+                <div class="selected-view" id="edpi-game-trigger">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="hsl(344, 99%, 47%)" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <div class="input-wrapper">
+                    <input type="text" class="game-search" id="edpi-game-search" placeholder="Select game" autocomplete="off" />
+                    <button type="button" id="edpi-game-clear" class="clear-btn">&times;</button>
+                  </div>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2">
+                    <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                    <path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" />
+                  </svg>
+                </div>
+
+                <div class="dropdown-list hidden" id="edpi-game-list">
+                  <div class="game-option" data-game="Valorant" data-id="Riot-01">
+                    <span class="game-name">Valorant</span>
+                    <span class="game-id">(Riot-01)</span>
+                  </div>
+                  <div class="game-option" data-game="CS2" data-id="Valve-02">
+                    <span class="game-name">CS2</span>
+                    <span class="game-id">(Valve-02)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="flex-direction-column">
+              <div class="box-holder">
+                <label>DPI</label>
+                <div class="input-container-inner">
+                  <input type="text" id="edpi-dpi" class="bottom-input" placeholder="DPI" autocomplete="off" />
+                </div>
+              </div>
+
+              <div class="box-holder">
+                <label>Sensitivity</label>
+                <div class="input-container-inner">
+                  <input type="text" id="edpi-sens" class="bottom-input" placeholder="Sensitivity" autocomplete="off" />
+                </div>
+              </div>
+            </div>
+
+            <div class="result-container">
+              <div class="result-display">
+                <span class="result-label">Total EDPI</span>
+                <span id="edpi-value" class="value">0</span>
+
+                <div class="edpi-info-row">
+                  <span id="edpi-rank"></span>
+                  <div id="pro-comparison">Similar To: <span id="pro-name"></span></div>
+                </div>
+              </div>
+
+              <div class="spectrum-container">
+                <div class="spectrum-bar"></div>
+                <div id="spectrum-pointer"></div>
+              </div>
+
+              <button id="edpi-reset" class="reset-button">
+                <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" />
+                  <path d="M9 11V17M15 11V17" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" />
+                  <path d="M3 7H21" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" />
+                  <path d="M9 7L9.55556 4H14.4444L15 7" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <span>RESET</span>
+              </button>
+
+              <button id="edpi-copy" class="copy-button">
+                <svg class="icon-copy" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 15H7C5.89543 15 5 14.1046 5 13V5C5 3.89543 5.89543 3 7 3H13C14.1046 3 15 3.89543 15 5V7" stroke="hsl(344, 99%, 47%)" stroke-width="1.5" stroke-linecap="round" opacity="0.4" />
+                  <rect x="9" y="9" width="10" height="12" rx="2" stroke="hsl(344, 99%, 47%)" stroke-width="2" stroke-linecap="round" />
+                  <path d="M12 13H16M12 17H14" stroke="hsl(344, 99%, 47%)" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <span>COPY</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder">
+              <p class="preset-title">PRO PRESETS</p>
+              <div class="preset-grid">
+                <button class="preset-btn" onclick="applyEdpiPreset('CS2', 800, 0.7)">NiKo (CS2)</button>
+                <button class="preset-btn" onclick="applyEdpiPreset('CS2', 400, 3.09)">s1mple (CS2)</button>
+                <button class="preset-btn" onclick="applyEdpiPreset('Valorant', 1600, 0.1)">Demon1 (VAL)</button>
+                <button class="preset-btn" onclick="applyEdpiPreset('Valorant', 800, 0.4)">Aspas (VAL)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- <div class="section" id="helper-tab"></div> -->
+
+      <div id="sens-suggestion">
+        <div class="advice-header">
+          <div id="advice-dot"></div>
+          <span>Tactical Advice</span>
+        </div>
+        <span id="suggestion-text"></span>
+      </div>
+    </div>
+  </body>
+</html>
