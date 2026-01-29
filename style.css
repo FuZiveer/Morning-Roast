@@ -713,6 +713,11 @@ input[type=number] {
   margin-left: 0.5rem;
 }
 
+#trainer-controls {
+  display: flex;
+  flex-direction: column;
+}
+
 #start-trainer {
   width: 100%;
   max-width: 200px;
@@ -756,7 +761,7 @@ input[type=number] {
   right: 0;
   display: flex;
   align-items: center;
-  padding: 0 0.5rem;
+  justify-content: center;
   border: none;
   outline: none;
   text-transform: uppercase;

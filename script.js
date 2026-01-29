@@ -53,13 +53,6 @@ const aimTrainer = {
     this.ctx = this.canvas.getContext("2d");
     this.canvas.style.cursor = "none";
 
-    const modeSelect = document.getElementById("trainer-mode");
-    if (modeSelect) {
-      modeSelect.addEventListener("change", (e) => {
-        this.mode = e.target.value;
-      });
-    }
-
     const requestLock = () => {
       if (document.pointerLockElement !== this.canvas) {
         this.canvas.requestPointerLock();
@@ -84,6 +77,20 @@ const aimTrainer = {
       }
     });
 
+    this.canvas.addEventListener("mousemove", (e) => {
+      if (this.showResults && !document.pointerLockElement) {
+        const rect = this.canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+        const my = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+        const b = this.restartButton;
+        if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+          this.canvas.style.cursor = "pointer";
+        } else {
+          this.canvas.style.cursor = "default";
+        }
+      }
+    });
+
     window.addEventListener("mouseup", () => {
       this.isMouseDown = false;
     });
@@ -94,6 +101,7 @@ const aimTrainer = {
       if (document.fullscreenElement) {
         if (fsBtn) fsBtn.style.display = "none";
         if (modeContainer) modeContainer.style.display = "none";
+        this.showResults = false;
         this.handleResize();
       } else {
         if (fsBtn) fsBtn.style.display = "block";
@@ -105,6 +113,7 @@ const aimTrainer = {
 
     document.addEventListener("pointerlockchange", () => {
       if (document.pointerLockElement === this.canvas) {
+        this.showResults = false;
         if (!this.active && !this.isCountingDown) this.startCountdown();
       } else {
         if (this.active) this.endGame();
@@ -157,10 +166,14 @@ const aimTrainer = {
     this.render();
   },
   handleCamera(e) {
-    const sens = parseFloat(document.getElementById("edpi-sens")?.value) || 1.0;
-    const sensMultiplier = 0.0006;
-    this.camera.yaw += e.movementX * sens * sensMultiplier;
-    this.camera.pitch -= e.movementY * sens * sensMultiplier;
+    const sensInput = document.getElementById("canvas-sens");
+    const dpiInput = document.getElementById("canvas-dpi");
+    const sens = sensInput ? parseFloat(sensInput.value.replace(",", ".")) : 1.0;
+    const dpi = dpiInput ? parseFloat(dpiInput.value) : 800;
+    const mYaw = 0.022;
+    const scale = 0.1;
+    this.camera.yaw += e.movementX * sens * (dpi / 800) * mYaw * scale;
+    this.camera.pitch -= e.movementY * sens * (dpi / 800) * mYaw * scale;
     const limit = Math.PI / 2.5;
     this.camera.pitch = Math.max(-limit, Math.min(limit, this.camera.pitch));
     this.render();
@@ -185,7 +198,6 @@ const aimTrainer = {
     this.active = true;
     this.startTime = performance.now();
     this.timeLeft = 30;
-
     if (this.mode === "tracking") {
       this.spawnTarget();
       this.targets[0].vx = 0.005;
@@ -194,7 +206,6 @@ const aimTrainer = {
     } else {
       for (let i = 0; i < this.maxTargets; i++) this.spawnTarget();
     }
-
     if (this.timerId) clearInterval(this.timerId);
     this.timerId = setInterval(() => {
       const elapsed = (performance.now() - this.startTime) / 1000;
@@ -332,7 +343,6 @@ const aimTrainer = {
     const focalLength = this.canvas.width / ((this.fov * Math.PI) / 180);
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.drawRoom(cx, cy, focalLength);
-
     if (!document.fullscreenElement) {
       this.canvas.style.cursor = "default";
       this.ctx.fillStyle = "rgba(5, 8, 12, 0.8)";
@@ -346,9 +356,7 @@ const aimTrainer = {
       this.ctx.fillText("CLICK THE BUTTON BELOW TO TRAIN", cx, cy + 20);
       return;
     }
-
     if (this.showResults) {
-      this.canvas.style.cursor = "default";
       this.ctx.fillStyle = "rgba(5, 8, 12, 0.95)";
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.fillStyle = "white";
@@ -377,17 +385,15 @@ const aimTrainer = {
       this.ctx.fillText("START NEW SESSION", cx, b.y + 28);
       return;
     }
-
     if (this.isCountingDown) {
       this.ctx.fillStyle = "rgba(0,0,0,0.6)";
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.fillStyle = "#ff4655";
+      this.ctx.fillStyle = "white";
       this.ctx.font = "bold 40px Inter";
       this.ctx.textAlign = "center";
       this.ctx.fillText("READY?", cx, cy);
       return;
     }
-
     if (!this.active && document.pointerLockElement !== this.canvas) {
       this.canvas.style.cursor = "default";
       this.ctx.fillStyle = "rgba(0,0,0,0.6)";
@@ -398,14 +404,13 @@ const aimTrainer = {
       this.ctx.fillText("CLICK TO LOCK MOUSE & START", cx, cy);
       return;
     }
-
     this.canvas.style.cursor = "none";
     this.targets.forEach((t) => {
       const p = this.project(t.yaw, t.pitch, cx, cy, focalLength);
       if (p) {
         const r = t.radius * focalLength;
-        const color1 = this.mode === "tracking" ? "#ffb800" : "#ff4655";
-        const color2 = this.mode === "tracking" ? "#9e7200" : "#9e2a34";
+        const color1 = "#ff4655";
+        const color2 = "#9e2a34";
         const grad = this.ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
         grad.addColorStop(0, color1);
         grad.addColorStop(1, color2);
@@ -418,7 +423,6 @@ const aimTrainer = {
         this.ctx.stroke();
       }
     });
-
     this.ctx.fillStyle = "rgba(255,255,255,0.8)";
     this.ctx.font = "bold 13px Inter";
     this.ctx.textAlign = "center";
@@ -430,18 +434,14 @@ const aimTrainer = {
       this.ctx.fillText(`HITS: ${this.hits}   ACC: ${acc}%   TIME: ${this.timeLeft}s`, cx, this.canvas.height - 30);
     }
 
-    this.ctx.strokeStyle = "#00ff00";
-    this.ctx.lineWidth = 2;
-    this.ctx.beginPath();
-    this.ctx.moveTo(cx - 10, cy);
-    this.ctx.lineTo(cx - 4, cy);
-    this.ctx.moveTo(cx + 4, cy);
-    this.ctx.lineTo(cx + 10, cy);
-    this.ctx.moveTo(cx, cy - 10);
-    this.ctx.lineTo(cx, cy - 4);
-    this.ctx.moveTo(cx, cy + 4);
-    this.ctx.lineTo(cx, cy + 10);
-    this.ctx.stroke();
+    const boxSize = 4;
+    const border = 2;
+    this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    this.ctx.fillRect(cx - boxSize / 2 - border, cy - boxSize / 2 - border, boxSize + border * 2, boxSize + border * 2);
+    this.ctx.fillStyle = "white";
+    this.ctx.fillRect(cx - boxSize / 2, cy - boxSize / 2, boxSize, boxSize);
+    this.ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+    this.ctx.fillRect(cx - 1, cy - 1, 2, 2);
   },
 };
 
@@ -473,13 +473,14 @@ function updateEDPI() {
     adviceDot = document.getElementById("advice-dot"),
     defaultBlue = "hsl(198, 93%, 60%)";
   checkActivePresets();
+  toggleEDPIResetButton();
   const rawEdpi = parseFloat(dpiVal) * parseFloat(sensVal.replace(",", "."));
   const edpi = Math.round(rawEdpi);
   if (gameVal === "" || isNaN(edpi) || edpi === 0) {
     if (display) display.innerText = "0";
     if (rankLabel) rankLabel.style.opacity = "0";
     if (proDisplay) proDisplay.style.opacity = "0";
-    if (suggestBox) suggestBox.style.display = "none";
+    if (suggestBox && document.getElementById("edpi-calculator-tab").style.display !== "none") suggestBox.style.display = "none";
     if (pointer) {
       pointer.style.left = "0%";
       pointer.style.backgroundColor = defaultBlue;
@@ -548,12 +549,11 @@ function updateEDPI() {
       proDisplay.style.opacity = "1";
     }
   }
-  if (suggestBox && suggestText) {
+  if (suggestBox && suggestText && document.getElementById("edpi-calculator-tab").style.display !== "none") {
     suggestText.innerText = getAdvice(edpi, isCS ? "CS2" : "Valorant");
     suggestBox.style.display = "block";
     if (adviceDot) adviceDot.style.backgroundColor = color;
   }
-  toggleEDPIResetButton();
 }
 
 function checkActivePresets() {
@@ -580,11 +580,10 @@ function switchTab(evt, id) {
   if (target) target.style.display = "flex";
   evt.currentTarget.classList.add("active");
   const suggestBox = document.getElementById("sens-suggestion");
-  if (id === "sensitivity-converter-tab") {
+  if (id === "sensitivity-converter-tab" || id === "aim-training-tab") {
     if (suggestBox) suggestBox.style.display = "none";
-    updateConversion();
+    if (id === "sensitivity-converter-tab") updateConversion();
   } else if (id === "edpi-calculator-tab") {
-    if (suggestBox) suggestBox.style.display = "none";
     updateEDPI();
   }
 }
@@ -599,7 +598,10 @@ function toggleResetButton() {
 function toggleEDPIResetButton() {
   const resetBtn = document.getElementById("edpi-reset");
   if (!resetBtn) return;
-  const isDefault = document.getElementById("edpi-game-search").value === "" && document.getElementById("edpi-sens").value === "" && document.getElementById("edpi-dpi").value === "";
+  const gameVal = document.getElementById("edpi-game-search").value;
+  const sensVal = document.getElementById("edpi-sens").value;
+  const dpiVal = document.getElementById("edpi-dpi").value;
+  const isDefault = gameVal === "" && (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0");
   resetBtn.classList.toggle("is-default", isDefault);
 }
 
@@ -643,7 +645,7 @@ function getAdvice(edpi, game) {
 
 function handleInputValidation(input, callback) {
   const isDpiField = input.id.includes("-dpi"),
-    isSensField = input.id === "base-sens" || input.id === "edpi-sens";
+    isSensField = input.id === "base-sens" || input.id === "edpi-sens" || input.id === "canvas-sens";
   input.addEventListener("input", () => {
     let val = input.value;
     const start = input.selectionStart;
@@ -675,12 +677,12 @@ document.addEventListener("DOMContentLoaded", () => {
     tD = document.getElementById("to-dpi");
   if (fD) fD.value = "800";
   if (tD) tD.value = "800";
-  ["base-sens", "from-dpi", "to-dpi", "edpi-dpi", "edpi-sens"].forEach((id) => {
+  ["base-sens", "from-dpi", "to-dpi", "edpi-dpi", "edpi-sens", "canvas-sens", "canvas-dpi"].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) handleInputValidation(el, id.startsWith("edpi-") ? updateEDPI : updateConversion);
+    if (el) handleInputValidation(el, id.startsWith("edpi-") ? updateEDPI : id.startsWith("canvas-") ? () => {} : updateConversion);
   });
   document.addEventListener("click", (e) => {
-    ["from", "to", "edpi-game"].forEach((idPrefix) => {
+    ["from", "to", "edpi-game", "trainer-mode"].forEach((idPrefix) => {
       const list = document.getElementById(`${idPrefix}-list`),
         input = document.getElementById(`${idPrefix}-search`);
       if (list && input && !input.contains(e.target) && !list.contains(e.target)) {
@@ -688,7 +690,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   });
-  ["from", "to", "edpi-game"].forEach((idPrefix) => {
+  ["from", "to", "edpi-game", "trainer-mode"].forEach((idPrefix) => {
     const list = document.getElementById(`${idPrefix}-list`),
       input = document.getElementById(`${idPrefix}-search`),
       clearBtn = document.getElementById(`${idPrefix}-clear`);
@@ -703,7 +705,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     input.addEventListener("focus", () => {
       document.querySelectorAll(".dropdown-list").forEach((l) => l.classList.add("hidden"));
-      input.value = "";
+      if (idPrefix !== "trainer-mode") input.value = "";
       list.querySelectorAll(".game-option").forEach((o) => {
         o.style.display = "flex";
         o.classList.remove("hover");
@@ -712,7 +714,7 @@ document.addEventListener("DOMContentLoaded", () => {
       activeIndex = 0;
       syncUI(getVisible());
       if (idPrefix === "edpi-game") updateEDPI();
-      else updateConversion();
+      else if (idPrefix !== "trainer-mode") updateConversion();
     });
     input.addEventListener("keydown", (e) => {
       const visible = getVisible();
@@ -734,6 +736,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
     input.addEventListener("input", () => {
+      if (idPrefix === "trainer-mode") return;
       const filter = input.value.toLowerCase();
       list.querySelectorAll(".game-option").forEach((o) => {
         o.style.display = o.textContent.toLowerCase().includes(filter) ? "flex" : "none";
@@ -752,10 +755,16 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       opt.addEventListener("mousedown", (e) => {
         e.preventDefault();
+        const modeVal = opt.getAttribute("data-value");
         input.value = opt.querySelector(".game-name").textContent;
         list.classList.add("hidden");
-        if (idPrefix === "edpi-game") updateEDPI();
-        else updateConversion();
+        if (idPrefix === "trainer-mode" && modeVal) {
+          aimTrainer.mode = modeVal;
+        } else if (idPrefix === "edpi-game") {
+          updateEDPI();
+        } else {
+          updateConversion();
+        }
         input.blur();
       });
     });
