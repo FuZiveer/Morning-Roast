@@ -25,6 +25,20 @@ const proDatabase = {
 
 let isCopying = false;
 
+function toggleVisibility(element, isVisible) {
+  if (!element) return;
+  if (!element.classList.contains("fade-element")) {
+    element.classList.add("fade-element");
+  }
+  if (isVisible) {
+    element.classList.remove("hidden-fade");
+    element.classList.add("visible-fade");
+  } else {
+    element.classList.remove("visible-fade");
+    element.classList.add("hidden-fade");
+  }
+}
+
 const aimTrainer = {
   hits: 0,
   totalClicks: 0,
@@ -471,11 +485,19 @@ function updateEDPI() {
     suggestBox = document.getElementById("sens-suggestion"),
     suggestText = document.getElementById("suggestion-text"),
     adviceDot = document.getElementById("advice-dot"),
+    copyBtn = document.getElementById("edpi-copy"),
     defaultBlue = "hsl(198, 93%, 60%)";
-  checkActivePresets();
-  toggleEDPIResetButton();
+
+  const clearBtn = document.getElementById("edpi-game-clear");
+
+  if (clearBtn) clearBtn.style.display = gameVal ? "flex" : "none";
+
   const rawEdpi = parseFloat(dpiVal) * parseFloat(sensVal.replace(",", "."));
   const edpi = Math.round(rawEdpi);
+
+  checkActivePresets();
+  toggleEDPIResetButton();
+
   if (gameVal === "" || isNaN(edpi) || edpi === 0) {
     if (display) display.innerText = "0";
     if (rankLabel) rankLabel.style.opacity = "0";
@@ -485,9 +507,13 @@ function updateEDPI() {
       pointer.style.left = "0%";
       pointer.style.backgroundColor = defaultBlue;
     }
+    toggleVisibility(copyBtn, false);
     return;
   }
+
   if (display) display.innerText = edpi;
+  toggleVisibility(copyBtn, edpi !== 0);
+
   let percent, color, label, tier;
   const isCS = gameVal === "CS2" || gameVal === "Counter-Strike 2";
   if (isCS) {
@@ -525,6 +551,7 @@ function updateEDPI() {
       percent = Math.min(66 + ((edpi - 320) / 480) * 34, 100);
     }
   }
+
   if (pointer) {
     pointer.style.left = `${percent}%`;
     pointer.style.backgroundColor = color;
@@ -592,7 +619,7 @@ function toggleResetButton() {
   const resetBtn = document.getElementById("reset-btn");
   if (!resetBtn) return;
   const isDefault = document.getElementById("from-search").value === "" && document.getElementById("to-search").value === "" && document.getElementById("base-sens").value === "" && document.getElementById("from-dpi").value === "800" && document.getElementById("to-dpi").value === "800";
-  resetBtn.classList.toggle("is-default", isDefault);
+  toggleVisibility(resetBtn, !isDefault);
 }
 
 function toggleEDPIResetButton() {
@@ -602,7 +629,7 @@ function toggleEDPIResetButton() {
   const sensVal = document.getElementById("edpi-sens").value;
   const dpiVal = document.getElementById("edpi-dpi").value;
   const isDefault = gameVal === "" && (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0");
-  resetBtn.classList.toggle("is-default", isDefault);
+  toggleVisibility(resetBtn, !isDefault);
 }
 
 function updateConversion() {
@@ -611,36 +638,60 @@ function updateConversion() {
     baseSens = document.getElementById("base-sens").value,
     fDpi = parseFloat(document.getElementById("from-dpi").value),
     tDpi = parseFloat(document.getElementById("to-dpi").value),
-    display = document.getElementById("new-sens-value");
+    display = document.getElementById("new-sens-value"),
+    copyBtn = document.getElementById("copy-btn");
+
   ["from", "to"].forEach((id) => {
     const btn = document.getElementById(`${id}-clear`),
       input = document.getElementById(`${id}-search`);
     if (btn && input) btn.style.display = input.value ? "flex" : "none";
   });
+
   toggleResetButton();
-  if (!display) return;
+  if (!display || !copyBtn) return;
+
   const sens = parseFloat(baseSens.replace(",", "."));
-  if (!fromGame || !toGame || baseSens === "" || isNaN(fDpi) || isNaN(tDpi) || fDpi === 0 || tDpi === 0 || isNaN(sens)) {
+  const fromFactor = gameData[fromGame];
+  const toFactor = gameData[toGame];
+
+  if (!fromGame || !toGame || baseSens === "" || isNaN(fDpi) || isNaN(tDpi) || isNaN(sens)) {
     display.innerText = "0.00";
+    toggleVisibility(copyBtn, false);
     return;
   }
-  const fromFactor = gameData[fromGame],
-    toFactor = gameData[toGame];
+
   if (fromFactor && toFactor) {
-    display.innerText = (sens * (toFactor / fromFactor) * (fDpi / tDpi)).toFixed(3);
+    const result = (sens * (toFactor / fromFactor) * (fDpi / tDpi)).toFixed(3);
+    display.innerText = result;
+
+    toggleVisibility(copyBtn, parseFloat(result) > 0);
+  } else {
+    toggleVisibility(copyBtn, false);
   }
 }
 
+const tacticalAdvice = {
+  low: ["Large mousepad required. You'll need the extra surface area for big arm swipes.", "Focus on arm aiming. Use your elbow as the pivot point for large turns.", "Great for long-range precision. You'll find clicking heads at a distance much easier.", "Crosshair placement is key. Since flicking is slower, keep your aim where enemies will appear.", "Warm up your shoulder and elbow. Low sens is more physically demanding over long sessions.", "Perfect for 'Tac-Shooters'. Most tactical pros prefer this range for consistent clicking."],
+  average: ["The 'Golden Ratio'. You have enough speed for 180s and enough control for micro-adjustments.", "Hybrid aiming style. Use your arm for large turns and your wrist for fine-tuning.", "Very versatile. This sensitivity works well across different roles and agent types.", "Easier to track moving targets. The balance helps keep your crosshair glued to enemies.", "Lower fatigue. You don't have to move your whole arm as much as low-sens players.", "Standard Pro range. Most top-tier players in Valorant and CS2 land in this bracket."],
+  high: ["Wrist-heavy aiming. Use small, precise flick motions rather than large arm sweeps.", "Lighting fast 180s. You can react to flankers much faster than low-sens players.", "High precision mouse needed. Ensure your sensor can handle micro-movements without jitter.", "Keep a light grip. Tensing your hand too much will make your aim shaky at high speeds.", "Great for verticality. If you play agents with movement abilities, high sens helps you keep up.", "Focus on smoothness. Practice 'smooth tracking' drills to avoid jumpy crosshair movement."],
+};
+
 function getAdvice(edpi, game) {
-  if (game === "CS2") {
-    if (edpi < 700) return "Rock solid for long-range duels. This setting offers maximum precision for holding angles and pixel-perfect AWPing.";
-    if (edpi < 1000) return "The competitive standard. A perfect blend of control and agility for entry-fragging and consistent spray patterns.";
-    return "Ultra-fast response for close-quarters chaos. Ideal for hyper-aggressive playstyles and clearing 90-degree corners instantly.";
+  const isCS = game === "CS2" || game === "Counter-Strike 2";
+  let tier;
+
+  if (isCS) {
+    if (edpi < 700) tier = "low";
+    else if (edpi < 1000) tier = "average";
+    else tier = "high";
   } else {
-    if (edpi < 200) return "Built for micro-adjustments and steady crosshair placement. Excellent for tactical agents who hold deep angles.";
-    if (edpi < 320) return "Optimal balance for Valorant’s tactical pacing. Provides the stability needed for headshots while remaining agile.";
-    return "High-octane sensitivity. Perfect for movement-heavy duelists like Jett or Neon who need to flick 180° in a heartbeat.";
+    if (edpi < 200) tier = "low";
+    else if (edpi < 320) tier = "average";
+    else tier = "high";
   }
+
+  const options = tacticalAdvice[tier];
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 function handleInputValidation(input, callback) {
@@ -773,6 +824,8 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         input.value = "";
         list.classList.add("hidden");
+
+        clearBtn.style.display = "none";
         if (idPrefix === "edpi-game") updateEDPI();
         else updateConversion();
       });
