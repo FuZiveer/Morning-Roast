@@ -506,6 +506,7 @@ function updateEDPI() {
     if (pointer) {
       pointer.style.left = "0%";
       pointer.style.backgroundColor = defaultBlue;
+      pointer.style.boxShadow = "none";
     }
     toggleVisibility(copyBtn, false);
     return;
