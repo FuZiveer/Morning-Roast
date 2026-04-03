@@ -486,7 +486,7 @@ function updateEDPI() {
     suggestText = document.getElementById("suggestion-text"),
     adviceDot = document.getElementById("advice-dot"),
     copyBtn = document.getElementById("edpi-copy"),
-    defaultBlue = "hsl(198, 93%, 60%)";
+    defaultColor = "white";
 
   const clearBtn = document.getElementById("edpi-game-clear");
 
@@ -505,7 +505,7 @@ function updateEDPI() {
     if (suggestBox && document.getElementById("edpi-calculator-tab").style.display !== "none") suggestBox.style.display = "none";
     if (pointer) {
       pointer.style.left = "0%";
-      pointer.style.backgroundColor = defaultBlue;
+      pointer.style.backgroundColor = defaultColor;
       pointer.style.boxShadow = "none";
     }
     toggleVisibility(copyBtn, false);
