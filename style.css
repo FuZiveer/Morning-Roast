@@ -119,6 +119,7 @@ input[type=number] {
   animation: scale-animation 300ms ease;
   gap: 2rem;
   padding: 0 30rem;
+  transition: all 300ms ease;
 }
 
 .section .title-description-container {
@@ -858,6 +859,56 @@ input[type=number] {
   transform: scale(1);
 }
 
+#orientation-overlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: hsl(var(--rich-black));
+  color: white;
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  #orientation-overlay {
+    display: flex;
+  }
+  .app {
+    display: none;
+  }
+  .overlay-content i {
+    font-size: 5rem;
+    display: block;
+    margin-bottom: 1.25rem;
+    animation: tilt-phone 2s infinite ease-in-out;
+    color: hsl(var(--vibrant-red));
+  }
+  .overlay-content p {
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.0625rem;
+  }
+  body {
+    overflow: hidden;
+  }
+}
+@keyframes tilt-phone {
+  0% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(90deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
 @keyframes slideInRight {
   from {
     opacity: 0;
