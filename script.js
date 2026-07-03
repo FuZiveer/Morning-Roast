@@ -6523,9 +6523,16 @@ function getLineupVideoId(card) {
   return card?.dataset.lineupVideoId?.trim() || "";
 }
 
+function resolveAppAssetUrl(path) {
+  if (!path) return "";
+  if (/^(https?:|data:|blob:)/i.test(path)) return path;
+  const clean = String(path).replace(/^\.\//, "").replace(/^\//, "");
+  return `${getAppBasePath()}${clean}`;
+}
+
 function getLineupVideoAssetPath(card) {
   const direct = card?.dataset.lineupVideoUrl?.trim();
-  if (direct) return direct;
+  if (direct) return resolveAppAssetUrl(direct);
 
   const id = getLineupVideoId(card);
   if (!id) return "";
@@ -6534,7 +6541,7 @@ function getLineupVideoAssetPath(card) {
   const map = (card?.dataset.lineupMap || "").toLowerCase();
   if (!game || !map) return "";
 
-  return `assets/lineups/${game}/${map}/${id}.mp4`;
+  return resolveAppAssetUrl(`assets/lineups/${game}/${map}/${id}.mp4`);
 }
 
 function getLineupVideoUrl(card) {
@@ -6754,7 +6761,8 @@ function bindLineupVideoBufferUi(video, container) {
 }
 
 function applyLineupVideoSources(root = document) {
-  root.querySelectorAll(".lineup-video-card").forEach((card) => {
+  const scope = root?.querySelectorAll ? root : document;
+  scope.querySelectorAll(".lineup-video-card").forEach((card) => {
     const url = getLineupVideoUrl(card);
     const embed = card.querySelector(".lineup-video-embed");
     const preview = embed?.querySelector("video.lineup-video-preview");
@@ -6771,13 +6779,18 @@ function applyLineupVideoSources(root = document) {
     }
 
     preview.hidden = false;
+    preview.muted = true;
+    preview.playsInline = true;
     preview.preload = "metadata";
-    preview.src = url;
-    preview.load();
+    const absoluteUrl = new URL(url, window.location.href).href;
+    if (preview.src !== absoluteUrl) {
+      preview.src = url;
+      preview.load();
+    }
     bindLineupVideoBufferUi(preview, embed);
   });
 
-  enhanceLineupVideoCardFoots(root);
+  enhanceLineupVideoCardFoots(scope);
 }
 
 function getLineupVideoTitle(card) {
@@ -8140,6 +8153,7 @@ function setLineupGame(game) {
   switchLineupGamePanels(nextGame);
   renderLineupMapOptions(nextGame);
   syncLineupFiltersUiControls();
+  applyLineupVideoSources(getLineupGrid(nextGame) || document);
   applyLineupFilters();
 }
 
@@ -9125,6 +9139,7 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
     setTimeout(() => aimTrainer.displayResultsOnProfile(), 50);
   } else if (id === "lineup-tab") {
     setTimeout(() => {
+      applyLineupVideoSources();
       syncLineupFiltersUiControls();
       applyLineupGridStateInstant();
       updateAllToggleGliders();
