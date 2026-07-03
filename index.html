@@ -1,0 +1,2717 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Morning Roast</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.8.0/fonts/remixicon.css" rel="stylesheet" />
+    <link rel="preload" as="image" href="assets/crosshair-preview-bg.png" />
+    <link rel="preload" as="image" href="assets/crosshair-preview-bg-2.png" />
+    <link rel="preload" as="image" href="assets/crosshair-preview-bg-3.png" />
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      (function () {
+        var root = document.documentElement;
+        try {
+          var accent = localStorage.getItem("prefAccent") || "344 99% 47%";
+          var parts = accent.trim().split(/\s+/);
+          if (parts.length >= 3) {
+            root.style.setProperty("--accent-color", "hsl(" + parts[0] + " " + parts[1] + " " + parts[2] + ")");
+          }
+          var pattern = localStorage.getItem("prefBgPattern") || "waves";
+          if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "particles") {
+            root.setAttribute("data-bg-pattern", pattern);
+          }
+        } catch (e) {}
+        root.classList.add("accent-instant");
+      })();
+    </script>
+    <link rel="icon" type="image/png" href="./logo.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#0d0d0d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Morning Roast" />
+
+    <script>
+      // Restore deep links after the GitHub Pages SPA redirect (?/path → /path).
+      (function (location) {
+        if (location.search[1] === "/") {
+          var decoded = location.search
+            .slice(1)
+            .split("&")
+            .map(function (part) {
+              return part.replace(/~and~/g, "&");
+            })
+            .join("?");
+          history.replaceState(null, null, location.pathname.slice(0, -1) + decoded + location.hash);
+        }
+      })(window.location);
+    </script>
+
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("sw.js").catch(() => {});
+        });
+      }
+    </script>
+
+    <script defer src="crosshair-converter.js"></script>
+    <script defer src="viewmodel-generator.js"></script>
+    <script defer src="script.js"></script>
+  </head>
+  <body>
+    <div id="app-loading-screen" class="app-loading-screen" role="status" aria-live="polite" aria-busy="true" aria-label="Loading Morning Roast">
+      <div class="app-loading-screen-inner">
+        <span class="logo-stack app-loading-logo" aria-hidden="true">
+          <span class="logo-glow"></span>
+          <span class="logo-mark"></span>
+        </span>
+        <span class="app-loading-label">Morning Roast</span>
+        <div class="app-loading-progress" aria-hidden="true"><span></span></div>
+      </div>
+    </div>
+    <canvas id="bg-particles-canvas" class="bg-particles-canvas" aria-hidden="true"></canvas>
+    <aside class="app-sidebar" aria-label="Main navigation">
+      <button type="button" class="app-sidebar-logo" aria-label="Morning Roast home" onclick="cycleTabFromLogo(event)">
+        <span class="logo-stack" aria-hidden="true">
+          <span class="logo-glow" aria-hidden="true"></span>
+          <span class="logo-mark" aria-hidden="true"></span>
+        </span>
+        <span class="app-sidebar-label app-sidebar-logo-label">Morning Roast</span>
+      </button>
+      <div class="app-sidebar-divider" aria-hidden="true"></div>
+      <nav class="app-sidebar-nav" aria-label="Tools">
+        <div class="app-sidebar-group">
+          <button type="button" class="app-sidebar-item active" data-sidebar-tab="sensitivity-converter-tab" onclick="switchTab(event, 'sensitivity-converter-tab')" id="sidebar-sensitivity-converter-button">
+            <i class="ri-swap-2-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Converter</span>
+          </button>
+          <button type="button" class="app-sidebar-item" data-sidebar-tab="edpi-calculator-tab" onclick="switchTab(event, 'edpi-calculator-tab')" id="sidebar-edpi-calculator-button">
+            <i class="ri-pencil-ruler-2-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">eDPI</span>
+          </button>
+          <div class="app-sidebar-misc" id="app-sidebar-misc">
+            <button type="button" class="app-sidebar-item app-sidebar-misc-toggle" id="sidebar-misc-button" aria-expanded="false" aria-haspopup="menu" aria-controls="sidebar-misc-menu">
+              <i class="ri-apps-2-line" aria-hidden="true"></i>
+              <span class="app-sidebar-label">Misc</span>
+            </button>
+            <div class="app-sidebar-misc-menu" id="sidebar-misc-menu" role="menu" aria-labelledby="sidebar-misc-button" hidden>
+              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-crosshair-button" data-sidebar-tab="crosshair-converter-tab" onclick="switchTab(event, 'crosshair-converter-tab')">
+                <i class="ri-crosshair-2-line" aria-hidden="true"></i>
+                <span>Crosshair Converter</span>
+              </button>
+              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-viewmodel-button" data-sidebar-tab="viewmodel-generator-tab" onclick="switchTab(event, 'viewmodel-generator-tab')">
+                <i class="ri-drag-move-line" aria-hidden="true"></i>
+                <span>Viewmodel Generator</span>
+              </button>
+            </div>
+          </div>
+          <button type="button" class="app-sidebar-item" data-sidebar-tab="settings-tab" onclick="switchTab(event, 'settings-tab')" id="sidebar-settings-button">
+            <i class="ri-tools-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Settings</span>
+          </button>
+        </div>
+
+        <div class="app-sidebar-divider" aria-hidden="true"></div>
+
+        <div class="app-sidebar-group">
+          <button type="button" class="app-sidebar-item" data-sidebar-tab="stats-tab" onclick="switchTab(event, 'stats-tab')" id="sidebar-stats-button">
+            <i class="ri-equalizer-2-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Stats</span>
+          </button>
+          <button type="button" class="app-sidebar-item app-sidebar-item-aim" data-sidebar-tab="aim-training-tab" onclick="switchTab(event, 'aim-training-tab')" id="sidebar-aim-training-button">
+            <i class="ri-focus-3-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Aim Trainer</span>
+          </button>
+        </div>
+
+        <div class="app-sidebar-divider" aria-hidden="true"></div>
+
+        <div class="app-sidebar-group">
+          <button type="button" class="app-sidebar-item" data-sidebar-tab="lineup-tab" id="sidebar-lineup-button" disabled aria-disabled="true">
+            <i class="ri-video-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Lineups</span>
+          </button>
+        </div>
+      </nav>
+      <div class="app-sidebar-more" id="app-sidebar-more">
+        <button type="button" class="app-sidebar-item app-sidebar-more-toggle" id="sidebar-more-button" aria-expanded="false" aria-haspopup="menu" aria-controls="sidebar-more-menu">
+          <i class="ri-more-2-line" aria-hidden="true"></i>
+          <span class="app-sidebar-label">More</span>
+        </button>
+        <div class="app-sidebar-more-menu" id="sidebar-more-menu" role="menu" aria-labelledby="sidebar-more-button" hidden>
+          <button
+            type="button"
+            role="menuitem"
+            class="app-sidebar-more-item"
+            id="keybinds-button"
+            onclick="
+              switchTab(event, 'keybinds-tab');
+              scrollToTop(350);
+            "
+          >
+            <i class="ri-keyboard-box-line" aria-hidden="true"></i>
+            <span>Keybinds</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="app-sidebar-more-item"
+            id="updates-button"
+            onclick="
+              switchTab(event, 'updates-tab');
+              scrollToTop(350);
+            "
+          >
+            <i class="ri-history-line" aria-hidden="true"></i>
+            <span>Updates</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="app-sidebar-more-item"
+            id="privacy-policy-button"
+            onclick="
+              switchTab(event, 'privacy-policy-tab');
+              scrollToTop(350);
+            "
+          >
+            <i class="ri-lock-2-line" aria-hidden="true"></i>
+            <span>Privacy Policy</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="app-sidebar-more-item"
+            id="terms-of-service-button"
+            onclick="
+              switchTab(event, 'terms-of-service-tab');
+              scrollToTop(350);
+            "
+          >
+            <i class="ri-customer-service-line" aria-hidden="true"></i>
+            <span>Terms of Service</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="app-sidebar-more-item"
+            id="credit-button"
+            onclick="
+              switchTab(event, 'credit-tab');
+              scrollToTop(350);
+            "
+          >
+            <i class="ri-user-3-line" aria-hidden="true"></i>
+            <span>Credit</span>
+          </button>
+          <a role="menuitem" class="app-sidebar-more-item" href="mailto:svitserk.morningstar@gmail.com" target="_blank" rel="noopener noreferrer">
+            <i class="ri-mail-line" aria-hidden="true"></i>
+            <span>Connect</span>
+          </a>
+          <a role="menuitem" class="app-sidebar-more-item" href="https://discord.gg/pPQCJ8RxxU" target="_blank" rel="noopener noreferrer" id="discord-button">
+            <i class="ri-discord-line" aria-hidden="true"></i>
+            <span>Discord</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+    <div class="app">
+      <div>
+        <nav class="nav-bar">
+          <button type="button" class="logo-container" aria-label="Morning Roast home" onclick="document.getElementById('sensitivity-converter-button').click()">
+            <span class="logo-stack">
+              <span class="logo-glow" aria-hidden="true"></span>
+              <span class="logo-mark" aria-hidden="true"></span>
+            </span>
+          </button>
+
+          <button type="button" id="mobile-menu-toggle" class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="nav-menu-container">
+            <i class="ri-menu-line" aria-hidden="true"></i>
+          </button>
+
+          <div class="nav-menu-container" id="nav-menu-container">
+            <div class="button-container nav-group" data-group="Tools">
+              <button type="button" class="button active" onclick="switchTab(event, 'sensitivity-converter-tab')" id="sensitivity-converter-button">
+                <div class="icon-container">
+                  <i class="ri-swap-2-line" aria-hidden="true"></i>
+                </div>
+                <span>Sensitivity Converter</span>
+              </button>
+
+              <button type="button" class="button" onclick="switchTab(event, 'edpi-calculator-tab')" id="edpi-calculator-button">
+                <div class="icon-container">
+                  <i class="ri-pencil-ruler-2-line" aria-hidden="true"></i>
+                </div>
+                <span>Edpi Calculator</span>
+              </button>
+
+              <div class="nav-misc-dropdown" id="nav-misc-dropdown">
+                <button type="button" class="button nav-misc-toggle" id="nav-misc-toggle" aria-expanded="false" aria-controls="nav-misc-menu">
+                  <div class="icon-container">
+                    <i class="ri-apps-2-line" aria-hidden="true"></i>
+                  </div>
+                  <span>Misc</span>
+                  <i class="ri-arrow-down-s-line nav-misc-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="nav-misc-menu" id="nav-misc-menu" hidden>
+                  <button type="button" class="button nav-misc-button" data-nav-tab="crosshair-converter-tab" onclick="switchTab(event, 'crosshair-converter-tab')">
+                    <div class="icon-container">
+                      <i class="ri-crosshair-2-line" aria-hidden="true"></i>
+                    </div>
+                    <span>Crosshair Converter</span>
+                  </button>
+                  <button type="button" class="button nav-misc-button" data-nav-tab="viewmodel-generator-tab" onclick="switchTab(event, 'viewmodel-generator-tab')">
+                    <div class="icon-container">
+                      <i class="ri-drag-move-line" aria-hidden="true"></i>
+                    </div>
+                    <span>Viewmodel Generator</span>
+                  </button>
+                </div>
+              </div>
+
+              <button type="button" class="button" onclick="switchTab(event, 'settings-tab')" id="settings-button">
+                <div class="icon-container">
+                  <i class="ri-tools-line" aria-hidden="true"></i>
+                </div>
+                <span>Settings</span>
+              </button>
+            </div>
+
+            <div class="nav-group-divider" aria-hidden="true"></div>
+
+            <div class="button-container nav-group" data-group="Progress">
+              <button type="button" class="button" onclick="switchTab(event, 'stats-tab')" id="stats-button">
+                <div class="icon-container">
+                  <i class="ri-equalizer-2-line" aria-hidden="true"></i>
+                </div>
+                <span>Stats</span>
+              </button>
+
+              <button type="button" class="button" onclick="switchTab(event, 'aim-training-tab')" id="aim-training-button">
+                <div class="icon-container">
+                  <i class="ri-focus-3-line" aria-hidden="true"></i>
+                </div>
+                <span>Aim Trainer</span>
+              </button>
+            </div>
+
+            <div class="nav-group-divider" aria-hidden="true"></div>
+
+            <div class="button-container nav-group" data-group="Lineups">
+              <button type="button" class="button" id="lineup-button" disabled aria-disabled="true">
+                <div class="icon-container">
+                  <i class="ri-video-line" aria-hidden="true"></i>
+                </div>
+                <span>Lineups</span>
+              </button>
+            </div>
+
+            <div class="nav-more-dropdown" id="nav-more-dropdown">
+              <button type="button" class="button nav-more-toggle" id="nav-more-toggle" aria-expanded="false" aria-controls="nav-more-menu">
+                <div class="icon-container">
+                  <i class="ri-more-2-line" aria-hidden="true"></i>
+                </div>
+                <span>More</span>
+                <i class="ri-arrow-down-s-line nav-more-chevron" aria-hidden="true"></i>
+              </button>
+              <div class="nav-more-menu" id="nav-more-menu" hidden>
+                <button
+                  type="button"
+                  class="button nav-more-button"
+                  data-nav-tab="keybinds-tab"
+                  onclick="
+                    switchTab(event, 'keybinds-tab');
+                    scrollToTop(350);
+                  "
+                >
+                  <div class="icon-container">
+                    <i class="ri-keyboard-box-line" aria-hidden="true"></i>
+                  </div>
+                  <span>Keybinds</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="button nav-more-button"
+                  data-nav-tab="updates-tab"
+                  onclick="
+                    switchTab(event, 'updates-tab');
+                    scrollToTop(350);
+                  "
+                >
+                  <div class="icon-container">
+                    <i class="ri-history-line" aria-hidden="true"></i>
+                  </div>
+                  <span>Updates</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="button nav-more-button"
+                  data-nav-tab="privacy-policy-tab"
+                  onclick="
+                    switchTab(event, 'privacy-policy-tab');
+                    scrollToTop(350);
+                  "
+                >
+                  <div class="icon-container">
+                    <i class="ri-lock-2-line" aria-hidden="true"></i>
+                  </div>
+                  <span>Privacy Policy</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="button nav-more-button"
+                  data-nav-tab="terms-of-service-tab"
+                  onclick="
+                    switchTab(event, 'terms-of-service-tab');
+                    scrollToTop(350);
+                  "
+                >
+                  <div class="icon-container">
+                    <i class="ri-customer-service-line" aria-hidden="true"></i>
+                  </div>
+                  <span>Terms of Service</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="button nav-more-button"
+                  data-nav-tab="credit-tab"
+                  onclick="
+                    switchTab(event, 'credit-tab');
+                    scrollToTop(350);
+                  "
+                >
+                  <div class="icon-container">
+                    <i class="ri-user-3-line" aria-hidden="true"></i>
+                  </div>
+                  <span>Credit</span>
+                </button>
+
+                <a class="button nav-more-link" href="mailto:svitserk.morningstar@gmail.com" target="_blank" rel="noopener noreferrer">
+                  <div class="icon-container">
+                    <i class="ri-mail-line" aria-hidden="true"></i>
+                  </div>
+                  <span>Connect</span>
+                </a>
+
+                <a class="button nav-more-link" href="https://discord.gg/pPQCJ8RxxU" target="_blank" rel="noopener noreferrer" id="discord-button">
+                  <div class="icon-container">
+                    <i class="ri-discord-line" aria-hidden="true"></i>
+                  </div>
+                  <span>Discord</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+
+      <div class="section" id="sensitivity-converter-tab" style="display: flex">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-mouse-line"></i>
+            </div>
+            <span>Mouse Sensitivity Converter</span>
+          </div>
+          <div class="description">One sensitivity. Every game. Pure consistency.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder" id="from-container">
+              <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> From Game</h4>
+              <div class="custom-dropdown">
+                <div class="selected-view" id="from-trigger">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <div class="input-wrapper">
+                    <input type="text" class="game-search" id="from-search" placeholder="Select game" autocomplete="off" />
+                    <button type="button" id="from-clear" class="clear-btn">&times;</button>
+                  </div>
+                  <svg class="icon-game" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2">
+                    <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                    <path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" />
+                  </svg>
+                </div>
+
+                <div class="pref-dropdown-list hidden" id="from-list" role="listbox" aria-labelledby="from-trigger"></div>
+              </div>
+            </div>
+
+            <button id="swap-btn" class="swap-button">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 16h5v5M3 3v5h5" />
+              </svg>
+            </button>
+
+            <div class="box-holder" id="to-container">
+              <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> To Game</h4>
+              <div class="custom-dropdown">
+                <div class="selected-view" id="to-trigger">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <div class="input-wrapper">
+                    <input type="text" class="game-search" id="to-search" placeholder="Select game" autocomplete="off" />
+                    <button type="button" id="to-clear" class="clear-btn">&times;</button>
+                  </div>
+                  <svg class="icon-game" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2">
+                    <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                    <path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" />
+                  </svg>
+                </div>
+
+                <div class="pref-dropdown-list hidden" id="to-list" role="listbox" aria-labelledby="to-trigger"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder">
+              <h4 class="settings-section-title"><i class="ri-focus-3-line" aria-hidden="true"></i> From Sensitivity</h4>
+              <div class="input-container-inner">
+                <svg class="icon-sens" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" />
+                  <path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <input type="number" id="base-sens" class="game-input-style" placeholder="Sensitivity" />
+                <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2V0" />
+                  <rect x="5" y="4" width="14" height="18" rx="7" />
+                  <path d="M12 8v4" />
+                </svg>
+              </div>
+            </div>
+
+            <div class="box-holder">
+              <h4 class="settings-section-title"><i class="ri-mouse-line" aria-hidden="true"></i> From DPI</h4>
+              <div class="input-container-inner">
+                <svg class="icon-dpi" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M2 8H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M4 12H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+                  <path d="M2 16H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M15 8L19 12L15 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+                </svg>
+                <input type="number" id="from-dpi" class="game-input-style" placeholder="DPI" value="800" />
+                <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2V0" />
+                  <rect x="5" y="4" width="14" height="18" rx="7" />
+                  <path d="M12 8v4" />
+                </svg>
+              </div>
+            </div>
+
+            <div class="box-holder">
+              <h4 class="settings-section-title"><i class="ri-mouse-line" aria-hidden="true"></i> To DPI</h4>
+              <div class="input-container-inner">
+                <svg class="icon-dpi" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M2 8H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M4 12H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+                  <path d="M2 16H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M15 8L19 12L15 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+                </svg>
+                <input type="number" id="to-dpi" class="game-input-style" placeholder="DPI" value="800" />
+                <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2V0" />
+                  <rect x="5" y="4" width="14" height="18" rx="7" />
+                  <path d="M12 8v4" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder result-container">
+              <div class="result-label">To Sensitivity</div>
+              <div class="result-display">
+                <div class="value" id="new-sens-value">0.00</div>
+              </div>
+
+              <div class="tab-action-bar">
+                <button id="reset-btn" class="reset-button fade-element visible-fade">
+                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>RESET</span>
+                </button>
+
+                <div class="tab-action-bar-end">
+                  <button id="sens-share-btn" class="share-button fade-element hidden-fade" data-share="sens">
+                    <i class="ri-share-line"></i>
+                    <span>SHARE</span>
+                  </button>
+
+                  <button id="copy-btn" class="copy-button fade-element visible-fade">
+                    <i class="ri-file-copy-line" aria-hidden="true"></i>
+                    <span>COPY</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="edpi-calculator-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-calculator-line"></i>
+            </div>
+            <span>Mouse EDPI calculator</span>
+          </div>
+          <div class="description">Measure your true performance. Find your edge.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder" id="edpi-game-container">
+              <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> Game</h4>
+              <div class="custom-dropdown">
+                <div class="selected-view" id="edpi-game-trigger">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <div class="input-wrapper">
+                    <input type="text" class="game-search" id="edpi-game-search" placeholder="Select game" autocomplete="off" />
+                    <button type="button" id="edpi-game-clear" class="clear-btn">&times;</button>
+                  </div>
+                  <svg class="icon-game" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2">
+                    <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                    <path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" />
+                  </svg>
+                </div>
+
+                <div class="pref-dropdown-list hidden" id="edpi-game-list" role="listbox" aria-labelledby="edpi-game-trigger"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder">
+              <h4 class="settings-section-title"><i class="ri-focus-3-line" aria-hidden="true"></i> Sensitivity</h4>
+              <div class="input-container-inner">
+                <svg class="icon-sens" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" />
+                  <path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <input type="text" id="edpi-sens" class="bottom-input" placeholder="Sensitivity" autocomplete="off" />
+                <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2V0" />
+                  <rect x="5" y="4" width="14" height="18" rx="7" />
+                  <path d="M12 8v4" />
+                </svg>
+              </div>
+            </div>
+
+            <div class="box-holder">
+              <h4 class="settings-section-title"><i class="ri-mouse-line" aria-hidden="true"></i> DPI</h4>
+              <div class="input-container-inner">
+                <svg class="icon-dpi" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M2 8H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M4 12H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+                  <path d="M2 16H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M15 8L19 12L15 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+                </svg>
+                <input type="text" id="edpi-dpi" class="bottom-input" placeholder="DPI" autocomplete="off" />
+                <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2V0" />
+                  <rect x="5" y="4" width="14" height="18" rx="7" />
+                  <path d="M12 8v4" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder result-container">
+              <div class="result-display">
+                <span class="result-label">Total EDPI</span>
+                <span id="edpi-value" class="value">0</span>
+
+                <div class="edpi-info-row">
+                  <span id="edpi-rank"></span>
+                  <div id="pro-comparison">Similar To: <span id="pro-name"></span></div>
+                </div>
+              </div>
+
+              <div class="spectrum-container">
+                <div class="spectrum-bar"></div>
+                <div id="spectrum-pointer"></div>
+              </div>
+
+              <div class="tab-action-bar">
+                <button id="edpi-reset" class="reset-button fade-element visible-fade">
+                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>RESET</span>
+                </button>
+
+                <div class="tab-action-bar-end">
+                  <button id="edpi-share-btn" data-share="edpi" class="share-button fade-element hidden-fade">
+                    <i class="ri-share-line"></i>
+                    <span>SHARE</span>
+                  </button>
+
+                  <button id="edpi-copy" class="copy-button fade-element visible-fade">
+                    <i class="ri-file-copy-line" aria-hidden="true"></i>
+                    <span>COPY</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder" id="edpi-presets-box">
+              <span class="preset-title"><i class="ri-color-filter-line" style="font-size: 1.25rem"></i>PRO PRESETS</span>
+
+              <div id="edpi-presets-dynamic">
+                <p id="edpi-presets-hint" style="color: gray; font-size: 0.85rem; text-align: center; margin: 0.5rem 0">Select a game above to see its presets.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="crosshair-converter-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-crosshair-2-line"></i>
+            </div>
+            <span>Crosshair converter</span>
+          </div>
+          <div class="description">Match your reticle across games. Play with confidence.</div>
+        </div>
+
+        <div class="box-container-holder crosshair-converter-layout">
+          <div class="box-container">
+            <div class="box-holder crosshair-converter-panel">
+              <div class="crosshair-converter-direction-wrap">
+                <div class="custom-dropdown crosshair-converter-direction-dropdown" id="crosshair-converter-direction-dropdown">
+                  <div class="selected-view" id="crosshair-converter-direction-trigger" role="button" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-controls="crosshair-converter-direction-list">
+                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <div class="input-wrapper">
+                      <span class="crosshair-direction-trigger-label" id="crosshair-converter-direction-label" aria-live="polite">
+                        <span class="crosshair-direction-option-text">
+                          <span class="crosshair-direction-from">CS2</span>
+                          <i class="ri-arrow-right-line crosshair-direction-option-arrow" aria-hidden="true"></i>
+                          <span class="crosshair-direction-to">Valorant</span>
+                        </span>
+                      </span>
+                    </div>
+                    <svg class="icon-game" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2" aria-hidden="true">
+                      <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                      <path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" />
+                    </svg>
+                  </div>
+                  <div class="pref-dropdown-list hidden" id="crosshair-converter-direction-list" role="listbox" aria-labelledby="crosshair-converter-direction-trigger">
+                    <button type="button" class="pref-dropdown-option active" data-crosshair-direction="cs2-to-val" role="option">
+                      <i class="ri-gamepad-line pref-dropdown-option-icon" aria-hidden="true"></i>
+                      <span class="crosshair-direction-option-text">
+                        <span>CS2</span>
+                        <i class="ri-arrow-right-line crosshair-direction-option-arrow" aria-hidden="true"></i>
+                        <span>Valorant</span>
+                      </span>
+                    </button>
+                    <button type="button" class="pref-dropdown-option" data-crosshair-direction="val-to-cs2" role="option">
+                      <i class="ri-gamepad-line pref-dropdown-option-icon" aria-hidden="true"></i>
+                      <span class="crosshair-direction-option-text">
+                        <span>Valorant</span>
+                        <i class="ri-arrow-right-line crosshair-direction-option-arrow" aria-hidden="true"></i>
+                        <span>CS2</span>
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <p class="crosshair-converter-warnings" id="crosshair-converter-warnings" hidden></p>
+
+              <div class="crosshair-converter-codes-row">
+                <div class="crosshair-converter-field">
+                  <h4 class="settings-section-title" id="crosshair-converter-input-label"><i class="ri-code-line" aria-hidden="true"></i> From</h4>
+                  <input type="text" id="crosshair-converter-input" class="crosshair-converter-input" spellcheck="false" autocomplete="off" aria-labelledby="crosshair-converter-input-label" placeholder="CSGO-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" />
+                </div>
+
+                <div class="crosshair-converter-field">
+                  <h4 class="settings-section-title" id="crosshair-converter-output-label"><i class="ri-code-s-slash-line" aria-hidden="true"></i> To</h4>
+                  <div class="input-container-inner crosshair-converter-output-wrap is-empty" id="crosshair-converter-output" aria-disabled="true" aria-labelledby="crosshair-converter-output-label">
+                    <span class="crosshair-converter-output-code" id="crosshair-converter-output-code" aria-live="polite"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder crosshair-converter-preview-panel">
+              <div class="crosshair-converter-preview-head">
+                <h4 class="settings-section-title"><i class="ri-eye-line" aria-hidden="true"></i> Preview</h4>
+                <p class="crosshair-converter-field-note">Preview crosshairs aren't accurate</p>
+                <div class="crosshair-converter-preview-meta">
+                  <span class="crosshair-converter-resolution">1080p</span>
+                  <div class="trainer-toggle-selector crosshair-converter-zoom-selector" id="crosshair-converter-zoom-selector" role="group" aria-label="Preview zoom">
+                    <span class="glider" aria-hidden="true"></span>
+                    <button type="button" class="toggle-btn active" data-crosshair-zoom="1">1×</button>
+                    <button type="button" class="toggle-btn" data-crosshair-zoom="2">2×</button>
+                    <button type="button" class="toggle-btn" data-crosshair-zoom="4">4×</button>
+                  </div>
+                </div>
+              </div>
+              <div class="crosshair-converter-preview-wrap">
+                <button type="button" class="crosshair-converter-preview-nav crosshair-converter-preview-nav-prev" id="crosshair-converter-preview-prev" aria-label="Previous preview background">
+                  <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+                </button>
+                <canvas id="crosshair-converter-preview" class="crosshair-converter-preview-canvas" aria-label="Crosshair preview"></canvas>
+                <button type="button" class="crosshair-converter-preview-nav crosshair-converter-preview-nav-next" id="crosshair-converter-preview-next" aria-label="Next preview background">
+                  <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                </button>
+              </div>
+              <p class="crosshair-converter-preview-note" id="crosshair-converter-preview-note">Preview appears after a valid code is converted.</p>
+
+              <div class="tab-action-bar">
+                <button type="button" class="reset-button fade-element hidden-fade" id="crosshair-converter-reset">
+                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>RESET</span>
+                </button>
+
+                <button type="button" class="use-button fade-element hidden-fade" id="crosshair-converter-use">
+                  <i class="ri-crosshair-2-line" aria-hidden="true"></i>
+                  <span>USE</span>
+                </button>
+
+                <div class="tab-action-bar-end">
+                  <button type="button" class="share-button fade-element hidden-fade" id="crosshair-converter-share" data-share="crosshair">
+                    <i class="ri-share-line" aria-hidden="true"></i>
+                    <span>SHARE</span>
+                  </button>
+
+                  <button type="button" class="copy-button fade-element hidden-fade" id="crosshair-converter-copy">
+                    <i class="ri-file-copy-line" aria-hidden="true"></i>
+                    <span>COPY</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="viewmodel-generator-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-drag-move-line"></i>
+            </div>
+            <span>Viewmodel generator</span>
+          </div>
+          <div class="description">Tune your CS2 viewmodel and copy the console commands.</div>
+        </div>
+
+        <div class="box-container-holder viewmodel-generator-layout">
+          <div class="box-container">
+            <div class="box-holder viewmodel-generator-panel">
+              <h4 class="settings-section-title"><i class="ri-settings-3-line" aria-hidden="true"></i> Viewmodel settings</h4>
+
+              <div class="viewmodel-settings-grid">
+                <div class="viewmodel-setting">
+                  <label for="viewmodel-fov">FOV <span id="viewmodel-fov-val">68</span></label>
+                  <input type="range" id="viewmodel-fov" class="viewmodel-range" min="54" max="68" step="1" value="68" />
+                </div>
+                <div class="viewmodel-setting">
+                  <label for="viewmodel-x">Offset X <span id="viewmodel-x-val">2.5</span></label>
+                  <input type="range" id="viewmodel-x" class="viewmodel-range" min="-2.5" max="2.5" step="0.1" value="2.5" />
+                </div>
+                <div class="viewmodel-setting">
+                  <label for="viewmodel-y">Offset Y <span id="viewmodel-y-val">0.0</span></label>
+                  <input type="range" id="viewmodel-y" class="viewmodel-range" min="-2" max="2" step="0.1" value="0" />
+                </div>
+                <div class="viewmodel-setting">
+                  <label for="viewmodel-z">Offset Z <span id="viewmodel-z-val">-1.5</span></label>
+                  <input type="range" id="viewmodel-z" class="viewmodel-range" min="-2" max="2" step="0.1" value="-1.5" />
+                </div>
+              </div>
+
+              <h4 class="settings-section-title viewmodel-presets-title"><i class="ri-user-star-line" aria-hidden="true"></i> Pro presets</h4>
+              <div class="viewmodel-presets" role="group" aria-label="Viewmodel presets">
+                <button type="button" class="preset-btn active-preset" data-viewmodel-preset="donk">donk</button>
+                <button type="button" class="preset-btn" data-viewmodel-preset="zywoo">ZywOo</button>
+                <button type="button" class="preset-btn" data-viewmodel-preset="sh1ro">sh1ro</button>
+                <button type="button" class="preset-btn" data-viewmodel-preset="xantares">xantares</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder viewmodel-generator-output-panel">
+              <h4 class="settings-section-title"><i class="ri-terminal-box-line" aria-hidden="true"></i> Generated commands</h4>
+              <div class="input-container-inner viewmodel-output-wrap" id="viewmodel-output" aria-disabled="true">
+                <span class="viewmodel-output-code" id="viewmodel-output-code" aria-live="polite"></span>
+              </div>
+
+              <div class="tab-action-bar">
+                <button type="button" class="reset-button fade-element visible-fade" id="viewmodel-reset">
+                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>RESET</span>
+                </button>
+
+                <div class="tab-action-bar-end">
+                  <button type="button" class="copy-button fade-element visible-fade" id="viewmodel-copy">
+                    <i class="ri-file-copy-line" aria-hidden="true"></i>
+                    <span>COPY</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="settings-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-settings-line"></i>
+            </div>
+            <span>User settings</span>
+          </div>
+          <div class="description">Customize your setup. Find your sens. Test your reflexes.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder app-status-dropdown">
+              <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="app-status-panel">
+                <span class="preset-title app-status-title"><i class="ri-cloud-off-line" style="font-size: 1.25rem"></i>APP STATUS</span>
+                <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+              </button>
+              <div class="app-status-panel" id="app-status-panel">
+                <div class="app-status-panel-inner">
+                  <div class="offline-status" id="offline-status">
+                    <div class="offline-status-row">
+                      <span>Connection</span>
+                      <strong id="offline-connection">Checking…</strong>
+                    </div>
+                    <div class="offline-status-row">
+                      <span>Service worker</span>
+                      <strong id="offline-sw">Checking…</strong>
+                    </div>
+                    <div class="offline-status-row">
+                      <span>Cache version</span>
+                      <strong id="offline-cache-version">—</strong>
+                    </div>
+                    <div class="offline-status-row">
+                      <span>Offline ready</span>
+                      <strong id="offline-ready">Checking…</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder">
+              <div class="settings-sections">
+                <section class="settings-section">
+                  <h4 class="settings-section-title"><i class="ri-brush-line"></i> Theme</h4>
+                  <button type="button" id="open-theme-settings" class="trainer-option settings-general-option">
+                    <div class="trainer-option-label">
+                      <i class="ri-settings-4-line trainer-settings-icon" aria-hidden="true"></i>
+                      <span>Theme Settings</span>
+                    </div>
+                    <i class="ri-arrow-right-s-line settings-general-arrow" aria-hidden="true"></i>
+                  </button>
+                </section>
+
+                <section class="settings-section">
+                  <h4 class="settings-section-title"><i class="ri-list-settings-line"></i> General</h4>
+                  <button type="button" id="open-general-settings" class="trainer-option settings-general-option">
+                    <div class="trainer-option-label">
+                      <i class="ri-settings-4-line trainer-settings-icon" aria-hidden="true"></i>
+                      <span>General Settings</span>
+                    </div>
+                    <i class="ri-arrow-right-s-line settings-general-arrow" aria-hidden="true"></i>
+                  </button>
+                </section>
+
+                <section class="settings-section settings-section-reaction">
+                  <h4 class="settings-section-title"><i class="ri-flashlight-line"></i> Reaction</h4>
+                  <button type="button" id="open-reaction-test" class="trainer-option reaction-test-launcher">
+                    <div class="trainer-option-label">
+                      <i class="ri-flashlight-line reaction-test-launcher-icon" aria-hidden="true"></i>
+                      <span>Reaction Time Test</span>
+                    </div>
+                    <span class="reaction-test-launcher-action"><i class="ri-play-circle-line" aria-hidden="true"></i> Launch</span>
+                  </button>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="stats-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-signal-cellular-3-line"></i>
+            </div>
+            <span>System statistics</span>
+          </div>
+          <div class="description">Track your progress. Review your history. Own your stats.</div>
+        </div>
+
+        <div class="box-container-holder" style="gap: 0">
+          <div class="box-container">
+            <div class="box-holder" style="box-shadow: none">
+              <div class="topic-indicator-holder">
+                <div
+                  class="topic-indicator"
+                  onclick="
+                    document.getElementById('sidebar-sensitivity-converter-button').click();
+                    scrollToTop(350);
+                  "
+                >
+                  <i class="ri-swap-2-line topic-icon"></i>
+                  <span>Sensitivity converter</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="box-holder desktop-only" style="box-shadow: none">
+              <div class="topic-indicator-holder">
+                <div
+                  class="topic-indicator"
+                  onclick="
+                    document.getElementById('sidebar-edpi-calculator-button').click();
+                    scrollToTop(350);
+                  "
+                >
+                  <i class="ri-pencil-ruler-2-line topic-icon"></i>
+                  <span>EDPI calculator</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="box-container">
+            <div class="box-holder result-container">
+              <div id="sens-game-info" class="profile-game-info">
+                <span id="profile-from-game"></span> <i class="ri-arrow-left-right-line" style="font-size: 0.6rem"></i> <span id="profile-to-game"></span>
+                <span style="opacity: 0.3">|</span>
+                <span>Sens: <span id="profile-base-sens" style="color: #bbb">-</span></span>
+                <span>From DPI: <span id="profile-from-dpi" style="color: #bbb">-</span></span>
+                <span>To DPI: <span id="profile-to-dpi" style="color: #bbb">-</span></span>
+              </div>
+
+              <div class="result-display">
+                <span class="result-label">Last converted sens</span>
+                <span id="last-sens-conv" class="value">0.00</span>
+              </div>
+
+              <div class="tab-action-bar">
+                <button id="profile-sens-conv-reset" class="reset-button fade-element visible-fade">
+                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>RESET</span>
+                </button>
+
+                <div class="tab-action-bar-end">
+                  <button id="profile-sens-conv-copy" class="copy-button fade-element visible-fade">
+                    <i class="ri-file-copy-line" aria-hidden="true"></i>
+                    <span>COPY</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="box-holder mobile-only" style="box-shadow: none">
+              <div class="topic-indicator-holder">
+                <div
+                  class="topic-indicator"
+                  onclick="
+                    document.getElementById('sidebar-edpi-calculator-button').click();
+                    scrollToTop(350);
+                  "
+                >
+                  <i class="ri-calculator-line topic-icon"></i>
+                  <span>EDPI calculator</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="box-holder result-container">
+              <div id="edpi-game-info" class="profile-game-info">
+                <span id="profile-edpi-game"></span>
+                <span style="opacity: 0.3">|</span>
+                <span>Sens: <span id="profile-edpi-sens" style="color: #bbb">-</span></span>
+                <span>DPI: <span id="profile-edpi-dpi" style="color: #bbb">-</span></span>
+                <span style="opacity: 0.3">|</span>
+                <span>360°: <span id="profile-edpi-cm" style="color: #bbb">-</span></span>
+                <span id="profile-edpi-status-dot" style="height: 0.5rem; width: 0.5rem; border-radius: 50%; display: none; flex-shrink: 0; transform: translateY(-1px)"></span>
+              </div>
+
+              <div class="result-display">
+                <span class="result-label">Last calculated edpi</span>
+                <span id="last-edpi-calc" class="value">0.00</span>
+              </div>
+
+              <div class="tab-action-bar">
+                <button id="profile-edpi-calc-reset" class="reset-button fade-element visible-fade">
+                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>RESET</span>
+                </button>
+
+                <div class="tab-action-bar-end">
+                  <button id="profile-edpi-calc-copy" class="copy-button fade-element visible-fade">
+                    <i class="ri-file-copy-line" aria-hidden="true"></i>
+                    <span>COPY</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="box-container-holder desktop-only" style="gap: 0">
+          <div class="box-container">
+            <div class="box-holder" style="box-shadow: none">
+              <div class="topic-indicator-holder">
+                <div
+                  class="topic-indicator"
+                  onclick="
+                    document.getElementById('sidebar-aim-training-button').click();
+                    scrollToTop(350);
+                  "
+                >
+                  <i class="ri-focus-3-line topic-icon"></i>
+                  <span>Aim trainer</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="box-container">
+            <div class="box-holder result-container">
+              <div class="profile-stats-sections">
+                <section class="profile-stats-section">
+                  <div class="app-status-dropdown profile-stats-dropdown">
+                    <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="profile-filter-panel">
+                      <span class="preset-title app-status-title profile-stats-dropdown-title"><i class="ri-filter-3-line" aria-hidden="true"></i> Filter</span>
+                      <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="app-status-panel" id="profile-filter-panel">
+                      <div class="app-status-panel-inner">
+                        <div class="profile-filter-block" id="profile-game-container">
+                          <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> Game</h4>
+                          <div class="custom-dropdown">
+                            <div class="selected-view" id="profile-game-trigger">
+                              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                              </svg>
+                              <div class="input-wrapper">
+                                <input type="text" class="game-search" id="profile-game-search" placeholder="Select game" autocomplete="off" />
+                              </div>
+                              <svg class="icon-game" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2">
+                                <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                                <path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" />
+                              </svg>
+                            </div>
+                            <div class="pref-dropdown-list hidden" id="profile-game-list" role="listbox" aria-labelledby="profile-game-trigger"></div>
+                          </div>
+                        </div>
+                        <div class="profile-stats-filters-row">
+                          <div class="profile-filter-block">
+                            <h4 class="settings-section-title"><i class="ri-focus-3-line" aria-hidden="true"></i> Mode</h4>
+                            <div class="pref-dropdown profile-mode-dropdown" id="profile-mode-dropdown">
+                              <button type="button" class="pref-dropdown-trigger" id="profile-mode-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="profile-mode-list">
+                                <span class="pref-dropdown-value">
+                                  <i class="ri-focus-3-line pref-dropdown-icon" id="profile-mode-icon" aria-hidden="true"></i>
+                                  <span id="profile-mode-label">Static</span>
+                                </span>
+                                <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                              </button>
+                              <div class="pref-dropdown-list hidden" id="profile-mode-list" role="listbox" aria-labelledby="profile-mode-trigger"></div>
+                            </div>
+                          </div>
+                          <div class="profile-filter-block">
+                            <h4 class="settings-section-title"><i class="ri-time-line" aria-hidden="true"></i> Session Time</h4>
+                            <div class="pref-dropdown profile-timer-dropdown" id="profile-timer-dropdown">
+                              <button type="button" class="pref-dropdown-trigger" id="profile-timer-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="profile-timer-list">
+                                <span class="pref-dropdown-value">
+                                  <i class="ri-time-line pref-dropdown-icon" id="profile-timer-icon" aria-hidden="true"></i>
+                                  <span id="profile-timer-label">15s</span>
+                                </span>
+                                <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                              </button>
+                              <div class="pref-dropdown-list hidden" id="profile-timer-list" role="listbox" aria-labelledby="profile-timer-trigger"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="profile-stats-section">
+                  <div class="app-status-dropdown profile-stats-dropdown">
+                    <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="profile-personal-best-panel">
+                      <span class="preset-title app-status-title profile-stats-dropdown-title"><i class="ri-trophy-line" aria-hidden="true"></i> Personal Best</span>
+                      <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="app-status-panel" id="profile-personal-best-panel">
+                      <div class="app-status-panel-inner">
+                        <div class="aim-trainer-score-boxes-holder profile-personal-best-scores">
+                          <div class="aim-trainer-score-boxes" style="--text-change-score-color: hsl(23, 74%, 62%)"><i class="ri-target-line score-icon-change" style="--icon-change-score-color: hsl(23, 74%, 62%)"></i>Hits: <span id="profile-best-hits">-</span></div>
+                          <div class="aim-trainer-score-boxes" style="--text-change-score-color: hsl(0, 0%, 75%)"><i class="ri-close-circle-line score-icon-change" style="--icon-change-score-color: hsl(0, 0%, 75%)"></i>Misses: <span id="profile-best-misses">-</span></div>
+                          <div class="aim-trainer-score-boxes" style="--text-change-score-color: hsl(46, 65%, 52%)"><i class="ri-discount-percent-line score-icon-change" style="--icon-change-score-color: hsl(40, 90%, 58%)"></i>Accuracy: <span id="profile-best-accuracy">-</span></div>
+                          <div class="aim-trainer-score-boxes" style="--text-change-score-color: hsl(260, 60%, 70%)"><i class="ri-alarm-line score-icon-change" style="--icon-change-score-color: hsl(258, 27%, 59%)"></i>Reaction time: <span id="profile-best-reaction-time">-</span></div>
+                          <div class="aim-trainer-score-boxes" style="--text-change-score-color: hsl(200, 70%, 50%)"><i class="ri-calendar-line score-icon-change" style="--icon-change-score-color: hsl(200, 70%, 50%)"></i>Achieved on: <span id="profile-best-date">-</span></div>
+                        </div>
+                        <div class="aim-trainer-score-boxes-holder profile-personal-best-charts">
+                          <div class="aim-trainer-score-boxes box-analysis" style="--text-change-score-color: var(--accent-color)">
+                            <canvas id="profile-best-spatial-canvas"></canvas>
+                          </div>
+                          <div class="aim-trainer-score-boxes box-analysis" style="--text-change-score-color: var(--accent-color)">
+                            <canvas id="profile-best-precision-canvas"></canvas>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="profile-stats-section">
+                  <div class="app-status-dropdown profile-stats-dropdown">
+                    <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="profile-daily-progress-panel">
+                      <span class="preset-title app-status-title profile-stats-dropdown-title"><i class="ri-line-chart-line" aria-hidden="true"></i> Daily Progress</span>
+                      <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="app-status-panel" id="profile-daily-progress-panel">
+                      <div class="app-status-panel-inner">
+                        <div class="aim-progress-section">
+                          <div class="aim-progress-header">
+                            <div class="aim-progress-header-text">
+                              <span id="aim-progress-label" class="aim-progress-label"></span>
+                            </div>
+                            <div class="aim-progress-controls">
+                              <div class="aim-progress-date-picker" id="aim-progress-date-picker">
+                                <button type="button" class="aim-progress-date-trigger" id="aim-progress-date-trigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="aim-progress-calendar">
+                                  <i class="ri-calendar-line" aria-hidden="true"></i>
+                                  <span id="aim-progress-date-label">Select date</span>
+                                  <i class="ri-arrow-down-s-line aim-progress-date-chevron" aria-hidden="true"></i>
+                                </button>
+                                <div class="aim-progress-calendar hidden" id="aim-progress-calendar" role="dialog" aria-labelledby="aim-progress-date-trigger">
+                                  <div class="aim-progress-calendar-header">
+                                    <button type="button" class="aim-progress-cal-nav" id="aim-progress-cal-prev" aria-label="Previous month">&lsaquo;</button>
+                                    <span id="aim-progress-cal-title" class="aim-progress-cal-title"></span>
+                                    <button type="button" class="aim-progress-cal-nav" id="aim-progress-cal-next" aria-label="Next month">&rsaquo;</button>
+                                  </div>
+                                  <div class="aim-progress-calendar-weekdays" aria-hidden="true"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
+                                  <div class="aim-progress-calendar-grid" id="aim-progress-cal-grid"></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="aim-progress-holder" style="--text-change-score-color: var(--accent-color)">
+                            <div class="aim-progress-chart">
+                              <canvas id="aim-progress-canvas"></canvas>
+                              <div id="aim-progress-tooltip" class="aim-progress-tooltip hidden" aria-hidden="true"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+
+              <div class="tab-action-bar">
+                <button id="profile-aim-reset" class="reset-button fade-element hidden-fade">
+                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  <span>Reset</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="lineup-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-video-line"></i>
+            </div>
+            <span>Lineups</span>
+          </div>
+          <div class="description">Utility and grenade lineups for Valorant and CS2.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder lineup-game-panel">
+              <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> Game</h4>
+              <div class="trainer-toggle-selector lineup-game-selector" id="lineup-game-selector" role="tablist" aria-label="Lineup game" data-active-game="valorant">
+                <div class="glider"></div>
+                <button type="button" class="toggle-btn active" data-lineup-game="valorant" role="tab" aria-selected="true" aria-controls="lineup-valorant-panel">
+                  <img class="lineup-game-icon" src="https://cdn.simpleicons.org/valorant/FF4655" alt="" width="18" height="18" decoding="async" />
+                  <span>Valorant</span>
+                </button>
+                <button type="button" class="toggle-btn" data-lineup-game="cs2" role="tab" aria-selected="false" aria-controls="lineup-cs2-panel">
+                  <img class="lineup-game-icon" src="https://cdn.simpleicons.org/counterstrike/F79B00" alt="" width="18" height="18" decoding="async" />
+                  <span>CS2</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder lineup-filters-panel">
+              <h4 class="settings-section-title"><i class="ri-filter-3-line" aria-hidden="true"></i> Filters</h4>
+              <div class="lineup-toolbar">
+                <div class="lineup-side-filter">
+                  <div class="trainer-toggle-selector lineup-side-selector" id="lineup-side-selector" role="tablist" aria-label="Lineup side">
+                    <div class="glider"></div>
+                    <button type="button" class="toggle-btn active" data-lineup-side="all" role="tab" aria-selected="true">All</button>
+                    <button type="button" class="toggle-btn" data-lineup-side="attacker" role="tab" aria-selected="false">Attacker</button>
+                    <button type="button" class="toggle-btn" data-lineup-side="defender" role="tab" aria-selected="false">Defender</button>
+                  </div>
+                </div>
+
+                <div class="lineup-map-filter">
+                  <div class="custom-dropdown lineup-map-dropdown">
+                    <div class="selected-view" id="lineup-map-trigger">
+                      <div class="lineup-map-trigger-icon" id="lineup-map-trigger-icon" aria-hidden="true"><i class="ri-earth-line" aria-hidden="true"></i></div>
+                      <div class="input-wrapper">
+                        <input type="text" class="game-search" id="lineup-map-search" placeholder="All maps" autocomplete="off" aria-controls="lineup-map-list" />
+                      </div>
+                      <i class="ri-arrow-down-s-line lineup-map-chevron" aria-hidden="true"></i>
+                    </div>
+                    <div class="pref-dropdown-list hidden" id="lineup-map-list" role="listbox" aria-labelledby="lineup-map-trigger"></div>
+                  </div>
+                </div>
+
+                <div class="lineup-search-column">
+                  <div class="lineup-search-wrap settings-search-wrap">
+                    <svg class="search-icon settings-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="search" id="lineup-search" class="settings-search-input" placeholder="Search lineups..." autocomplete="off" enterkeyhint="search" />
+                    <button type="button" id="lineup-search-clear" class="clear-btn settings-search-clear" aria-label="Clear search">&times;</button>
+                  </div>
+                </div>
+
+                <div class="lineup-toolbar-meta">
+                  <p class="lineup-filter-counts" id="lineup-filter-counts" aria-live="polite"></p>
+                  <div class="lineup-difficulty-filter" id="lineup-difficulty-filter" role="group" aria-label="Difficulty">
+                    <span class="lineup-difficulty-heading lineup-difficulty-filter-heading">
+                      <span class="lineup-difficulty-label">Difficulty</span>
+                      <span class="lineup-difficulty-dot" aria-hidden="true"></span>
+                    </span>
+                    <div class="lineup-difficulty-tags">
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="1" aria-pressed="false" aria-label="1 star">
+                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">1</span>
+                      </button>
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="2" aria-pressed="false" aria-label="2 stars">
+                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">2</span>
+                      </button>
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="3" aria-pressed="false" aria-label="3 stars">
+                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">3</span>
+                      </button>
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="4" aria-pressed="false" aria-label="4 stars">
+                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">4</span>
+                      </button>
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="5" aria-pressed="false" aria-label="5 stars">
+                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">5</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder lineup-videos-holder" data-active-game="valorant">
+              <div class="lineup-videos-panel" id="lineup-valorant-panel" data-lineup-game-panel="valorant" role="tabpanel">
+                <h4 class="settings-section-title"><i class="ri-fire-line" aria-hidden="true"></i> Valorant lineups</h4>
+                <div class="lineup-video-grid" id="lineup-valorant-grid">
+                  <article class="lineup-video-card" data-lineup-map="pearl" data-lineup-side="attacker" data-lineup-agent="veto" data-lineup-ability="snare-trap" data-lineup-callout="B Push" data-lineup-difficulty="2" data-lineup-video-id="veto-pearl-attacker" data-lineup-search="attacker pearl veto b push flank trip snare trap chokehold">
+                    <div class="lineup-video-embed">
+                      <video class="lineup-video-preview" playsinline preload="auto"></video>
+                    </div>
+                    <div class="lineup-video-card-foot">
+                      <h3 class="lineup-video-title">B Push Flank Trip</h3>
+                      <div class="lineup-difficulty" data-lineup-difficulty="2" aria-label="Difficulty: 2 stars">
+                        <span class="lineup-difficulty-heading">
+                          <span class="lineup-difficulty-label">Difficulty</span>
+                          <span class="lineup-difficulty-dot" aria-hidden="true"></span>
+                        </span>
+                        <span class="lineup-difficulty-stars" aria-hidden="true">
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <div class="lineup-videos-panel hidden" id="lineup-cs2-panel" data-lineup-game-panel="cs2" role="tabpanel" hidden>
+                <h4 class="settings-section-title"><i class="ri-fire-line" aria-hidden="true"></i> CS2 lineups</h4>
+                <div class="lineup-video-grid" id="lineup-cs2-grid">
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Window" data-lineup-difficulty="1" data-lineup-utility="smoke" data-lineup-video-id="window-smoke-from-spawn" data-lineup-search="t side smoke window spawn mirage">
+                    <div class="lineup-video-embed">
+                      <video class="lineup-video-preview" playsinline preload="auto"></video>
+                    </div>
+                    <div class="lineup-video-card-foot">
+                      <h3 class="lineup-video-title">Window Smoke From Spawn</h3>
+                      <div class="lineup-difficulty" data-lineup-difficulty="1" aria-label="Difficulty: 1 star">
+                        <span class="lineup-difficulty-heading">
+                          <span class="lineup-difficulty-label">Difficulty</span>
+                          <span class="lineup-difficulty-dot" aria-hidden="true"></span>
+                        </span>
+                        <span class="lineup-difficulty-stars" aria-hidden="true">
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Connector" data-lineup-difficulty="1" data-lineup-utility="smoke" data-lineup-video-id="connector-smoke-from-spawn" data-lineup-search="t side smoke connector spawn mirage">
+                    <div class="lineup-video-embed">
+                      <video class="lineup-video-preview" playsinline preload="auto"></video>
+                    </div>
+                    <div class="lineup-video-card-foot">
+                      <h3 class="lineup-video-title">Connector Smoke From Spawn</h3>
+                      <div class="lineup-difficulty" data-lineup-difficulty="1" aria-label="Difficulty: 1 star">
+                        <span class="lineup-difficulty-heading">
+                          <span class="lineup-difficulty-label">Difficulty</span>
+                          <span class="lineup-difficulty-dot" aria-hidden="true"></span>
+                        </span>
+                        <span class="lineup-difficulty-stars" aria-hidden="true">
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Bench" data-lineup-difficulty="3" data-lineup-utility="smoke" data-lineup-video-id="bench-smoke-from-spawn" data-lineup-search="t side smoke bench spawn mirage">
+                    <div class="lineup-video-embed">
+                      <video class="lineup-video-preview" playsinline preload="auto"></video>
+                    </div>
+                    <div class="lineup-video-card-foot">
+                      <h3 class="lineup-video-title">Bench Smoke From Spawn</h3>
+                      <div class="lineup-difficulty" data-lineup-difficulty="3" aria-label="Difficulty: 3 stars">
+                        <span class="lineup-difficulty-heading">
+                          <span class="lineup-difficulty-label">Difficulty</span>
+                          <span class="lineup-difficulty-dot" aria-hidden="true"></span>
+                        </span>
+                        <span class="lineup-difficulty-stars" aria-hidden="true">
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Jungle" data-lineup-difficulty="2" data-lineup-utility="smoke" data-lineup-video-id="jungle-smoke-from-spawn" data-lineup-search="t side smoke jungle spawn mirage">
+                    <div class="lineup-video-embed">
+                      <video class="lineup-video-preview" playsinline preload="auto"></video>
+                    </div>
+                    <div class="lineup-video-card-foot">
+                      <h3 class="lineup-video-title">Jungle Smoke From A Ramp</h3>
+                      <div class="lineup-difficulty" data-lineup-difficulty="2" aria-label="Difficulty: 2 stars">
+                        <span class="lineup-difficulty-heading">
+                          <span class="lineup-difficulty-label">Difficulty</span>
+                          <span class="lineup-difficulty-dot" aria-hidden="true"></span>
+                        </span>
+                        <span class="lineup-difficulty-stars" aria-hidden="true">
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                          <i class="ri-star-line"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Stairs" data-lineup-difficulty="5" data-lineup-utility="molotov" data-lineup-video-id="stairs-molotov" data-lineup-search="t side molotov stairs mirage">
+                    <div class="lineup-video-embed">
+                      <video class="lineup-video-preview" playsinline preload="auto"></video>
+                    </div>
+                    <div class="lineup-video-card-foot">
+                      <h3 class="lineup-video-title">Stairs Molotov From A Ramp</h3>
+                      <div class="lineup-difficulty" data-lineup-difficulty="5" aria-label="Difficulty: 5 stars">
+                        <span class="lineup-difficulty-heading">
+                          <span class="lineup-difficulty-label">Difficulty</span>
+                          <span class="lineup-difficulty-dot" aria-hidden="true"></span>
+                        </span>
+                        <span class="lineup-difficulty-stars" aria-hidden="true">
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-fill"></i>
+                          <i class="ri-star-fill"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="aim-training-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+                <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5" />
+                <path d="M12 1v3M12 20v3M1 12h3M20 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                <circle cx="12" cy="12" r="1" fill="currentColor" />
+              </svg>
+            </div>
+            <span>Aim Trainer</span>
+          </div>
+          <div class="description">Sharpen your aim. Build muscle memory. Never miss.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder" id="trainer-game-container">
+              <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> Game</h4>
+              <div class="custom-dropdown">
+                <div class="selected-view" id="trainer-game-trigger">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <div class="input-wrapper">
+                    <input type="text" class="game-search" id="trainer-game-search" placeholder="Select game" autocomplete="off" />
+                    <button type="button" id="trainer-game-clear" class="clear-btn" hidden>&times;</button>
+                  </div>
+                  <svg class="icon-game" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2">
+                    <path d="M6 12h4M8 10v4M15 11h.01M18 13h.01" />
+                    <path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z" />
+                  </svg>
+                </div>
+
+                <div class="pref-dropdown-list hidden" id="trainer-game-list" role="listbox" aria-labelledby="trainer-game-trigger"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container-holder">
+            <div class="box-container">
+              <div class="box-holder">
+                <h4 class="settings-section-title"><i class="ri-focus-3-line" aria-hidden="true"></i> Sensitivity</h4>
+                <div class="input-container-inner">
+                  <svg class="icon-sens" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                    <path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                  <input type="text" id="canvas-sens" class="bottom-input" placeholder="Sensitivity" autocomplete="off" />
+                  <span class="sens-finder-hint" aria-hidden="true">Disable sensitivity finder first</span>
+                  <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2V0" />
+                    <rect x="5" y="4" width="14" height="18" rx="7" />
+                    <path d="M12 8v4" />
+                  </svg>
+                </div>
+              </div>
+
+              <div class="box-holder">
+                <h4 class="settings-section-title"><i class="ri-mouse-line" aria-hidden="true"></i> DPI</h4>
+                <div class="input-container-inner">
+                  <svg class="icon-dpi" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M2 8H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                    <path d="M4 12H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+                    <path d="M2 16H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                    <path d="M15 8L19 12L15 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+                  </svg>
+                  <input type="text" id="canvas-dpi" class="bottom-input" placeholder="DPI" autocomplete="off" />
+                  <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 2V0" />
+                    <rect x="5" y="4" width="14" height="18" rx="7" />
+                    <path d="M12 8v4" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container">
+            <div class="box-holder trainer-integrated-box">
+              <div class="trainer-settings-integrated">
+                <div id="trainer-controls">
+                  <h4 class="settings-section-title"><i class="ri-crosshair-2-line"></i> Training</h4>
+                  <button type="button" id="open-trainer-settings" class="trainer-option settings-general-option">
+                    <div class="trainer-option-label">
+                      <i class="ri-settings-4-line trainer-settings-icon" aria-hidden="true"></i>
+                      <span>Training Settings</span>
+                    </div>
+                    <i class="ri-arrow-right-s-line settings-general-arrow" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="flick-trainer-container" id="flick-trainer-container">
+                <div class="trainer-grid-backdrop" aria-hidden="true"></div>
+                <canvas id="aimCanvas" width="800" height="450"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="privacy-policy-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-fingerprint-line"></i>
+            </div>
+            <span>Privacy Policy</span>
+          </div>
+          <div class="description">Everything you need to know about how our converter protects your information.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder" style="display: flex; flex-direction: column; gap: 0.5rem">
+              <fieldset class="privacy-policy-fieldset-holder">
+                <legend class="privacy-policy-fieldset" style="--privacy-policy-color: hsl(258, 54%, 82%)">1. Data Collection</legend>
+
+                <p class="policy-intro">We believe in privacy by design. Because our sensitivity converter is a utility tool, we prioritize the following:</p>
+
+                <div class="policy-item item-lavender">
+                  <h3>No Account Needed</h3>
+                  <p>You can use every conversion and aim tool without an account or sign-up. We don't collect names, emails, or passwords.</p>
+                </div>
+
+                <div class="policy-item item-blue">
+                  <h3>Local Processing</h3>
+                  <p>The sensitivity conversion calculations are performed locally within your web browser. We do not transmit your sensitivity settings or game data to our servers.</p>
+                </div>
+
+                <div class="policy-item item-mint">
+                  <h3>Stored On Your Device</h3>
+                  <p>Your preferences and aim-trainer scores are saved locally in your browser only. They never leave your device, and we do not sell your information to anyone.</p>
+                </div>
+              </fieldset>
+
+              <fieldset class="privacy-policy-fieldset-holder">
+                <legend class="privacy-policy-fieldset" style="--privacy-policy-color: hsl(191, 54%, 82%)">2. Usage Data & Analytics</legend>
+                <div class="policy-item item-yellow">
+                  <h3>Usage Data & Analytics</h3>
+                  <p>To help us improve the performance of our tool, we may collect anonymous, non-identifiable usage data, such as:</p>
+                  <ul style="margin: 10px 0; padding-left: 20px; color: #bbb">
+                    <li>The type of browser or device you are using.</li>
+                    <li>The frequency of visits to our tool.</li>
+                    <li>Technical errors that may occur.</li>
+                  </ul>
+                  <p>This data is aggregated and cannot be used to identify you individually.</p>
+                </div>
+              </fieldset>
+
+              <fieldset class="privacy-policy-fieldset-holder">
+                <legend class="privacy-policy-fieldset" style="--privacy-policy-color: hsl(121, 54%, 82%)">3. Cookies</legend>
+                <div class="policy-item item-peach">
+                  <h3>Cookies</h3>
+                  <p>We may use functional cookies to remember your preferred settings (such as your chosen game or sensitivity units) to make your next visit more efficient. These cookies do not track your activity across other websites.</p>
+                </div>
+              </fieldset>
+
+              <fieldset class="privacy-policy-fieldset-holder">
+                <legend class="privacy-policy-fieldset" style="--privacy-policy-color: hsl(59, 54%, 82%)">4. Third-Party Services</legend>
+                <div class="policy-item item-lavender">
+                  <h3>4. Third-Party Services</h3>
+                  <p>We do not share your information with third-party advertisers. If our site includes links to external websites, please note that those sites have their own privacy policies which we do not control.</p>
+                </div>
+              </fieldset>
+
+              <fieldset class="privacy-policy-fieldset-holder">
+                <legend class="privacy-policy-fieldset" style="--privacy-policy-color: hsl(0, 54%, 82%)">5. Contact</legend>
+                <div class="policy-item item-blue">
+                  <h3>5. Contact</h3>
+                  <p>If you have questions regarding this policy or the functionality of our converter, you can reach out to us at:</p>
+                  <p style="margin-top: 10px"><strong>Email:</strong> <a href="mailto:svitserk.morningstar@gmail.com" target="_blank" style="color: #fff; text-decoration: underline">svitserk.morningstar@gmail.com</a></p>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="terms-of-service-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-list-check-2"></i>
+            </div>
+            <span>Terms of Service</span>
+          </div>
+          <div class="description">Everything you need to know about your responsibilities and the terms of using our converter.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder">
+              <fieldset class="privacy-policy-fieldset-holder">
+                <legend class="privacy-policy-fieldset" style="--privacy-policy-color: hsl(258, 54%, 82%)">Terms of Service</legend>
+
+                <div class="policy-item item-lavender">
+                  <h3>1. Acceptance of Terms</h3>
+                  <p>By using this website, you acknowledge that you have read, understood, and agreed to these terms. We reserve the right to modify these terms at any time; continued use of the site constitutes acceptance of any changes.</p>
+                </div>
+
+                <div class="policy-item item-blue">
+                  <h3>2. Use of Service</h3>
+                  <p>Morning Roast is provided as a free utility tool for personal, non-commercial use. You agree not to attempt to bypass, modify, or hack the conversion algorithms; use the site to distribute malicious software; or use the site for commercial purposes.</p>
+                </div>
+
+                <div class="policy-item item-mint">
+                  <h3>3. "As-Is" Disclaimer</h3>
+                  <p>The sensitivity converter is provided on an "as-is" and "as-available" basis. We make no warranties regarding the accuracy or reliability of the results. Your use of this tool is at your own risk.</p>
+                </div>
+
+                <div class="policy-item item-yellow">
+                  <h3>4. Limitation of Liability</h3>
+                  <p>Morning Roast and its creators shall not be held liable for any damages or losses—including, but not limited to, changes in in-game performance or hardware malfunctions—resulting from the use or inability to use our website.</p>
+                </div>
+
+                <div class="policy-item item-peach">
+                  <h3>5. Contact</h3>
+                  <p>If you have any questions regarding these Terms of Service, please contact us at: <a href="mailto:svitserk.morningstar@gmail.com" target="_blank" style="color: #fff; text-decoration: underline">svitserk.morningstar@gmail.com</a></p>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="keybinds-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-keyboard-box-line"></i>
+            </div>
+            <span>Keybinds</span>
+          </div>
+          <div class="description">Keyboard shortcuts for navigating Morning Roast.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder keybinds-panel">
+              <h4 class="settings-section-title"><i class="ri-layout-grid-line" aria-hidden="true"></i> Tabs</h4>
+              <div class="keybinds-list">
+                <div class="keybind-row"><kbd>1</kbd><span>Open Sensitivity Converter</span></div>
+                <div class="keybind-row"><kbd>2</kbd><span>Open eDPI Calculator</span></div>
+                <div class="keybind-row"><kbd>3</kbd><span>Cycle Misc tools (Crosshair / Viewmodel)</span></div>
+                <div class="keybind-row"><kbd>4</kbd><span>Open Settings</span></div>
+                <div class="keybind-row"><kbd>5</kbd><span>Open Stats</span></div>
+                <div class="keybind-row"><kbd>6</kbd><span>Open Aim Trainer</span></div>
+                <div class="keybind-row"><kbd>7</kbd><span id="keybind-7-label">Cycle More pages (Keybinds / Updates / Privacy / Terms / Credit)</span></div>
+              </div>
+
+              <h4 class="settings-section-title keybinds-section-title"><i class="ri-flashlight-line" aria-hidden="true"></i> Actions</h4>
+              <div class="keybinds-list">
+                <div class="keybind-row"><kbd>C</kbd><span>Copy the current tab result</span></div>
+                <div class="keybind-row"><kbd>R</kbd><span>Restart aim trainer session (during play)</span></div>
+                <div class="keybind-row"><kbd>?</kbd><span>Open this Keybinds tab</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="updates-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-history-line"></i>
+            </div>
+            <span>Updates</span>
+          </div>
+          <div class="description">Version history and what changed in Morning Roast.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder changelog-panel">
+              <article class="changelog-entry is-latest">
+                <header class="changelog-header">
+                  <div class="changelog-version-wrap">
+                    <span class="changelog-version">0.1.0</span>
+                    <span class="changelog-badge">Latest</span>
+                  </div>
+                  <time class="changelog-date" datetime="2026-07-03">July 3, 2026</time>
+                </header>
+                <ul class="changelog-list">
+                  <li>Added Crosshair Converter and Viewmodel Generator under Misc</li>
+                  <li>Added pro viewmodel presets for donk, ZywOo, sh1ro, and xantares</li>
+                  <li>Added Sonner-style notification toasts with timer rings and stacking</li>
+                  <li>Moved tactical advice into notification toasts</li>
+                  <li>Added Keybinds tab and keyboard shortcuts (1–7, C, R, ?)</li>
+                  <li>Aim trainer: press R during a session to restart countdown</li>
+                  <li>Polished sidebar More / Misc menus and open/close behavior</li>
+                  <li>Added right-edge scroll-to-top control</li>
+                  <li>Improved stats cards, action bars, and result layouts</li>
+                  <li>Added this Updates tab for version history</li>
+                </ul>
+              </article>
+
+              <article class="changelog-entry">
+                <header class="changelog-header">
+                  <div class="changelog-version-wrap">
+                    <span class="changelog-version">0.0.1</span>
+                  </div>
+                  <time class="changelog-date" datetime="2026-01-01">Initial release</time>
+                </header>
+                <ul class="changelog-list">
+                  <li>Sensitivity Converter across supported games</li>
+                  <li>Mouse eDPI Calculator with pro tiers and presets</li>
+                  <li>Aim Trainer with session stats and sharing</li>
+                  <li>Stats tab for last conversions, eDPI, and aim progress</li>
+                  <li>Settings for theme, general preferences, and reaction test</li>
+                  <li>Privacy Policy, Terms of Service, and Credit pages</li>
+                  <li>Offline-ready install with service worker caching</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="credit-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-team-line"></i>
+            </div>
+            <span>Credit</span>
+          </div>
+          <div class="description">Recognizing the foundation of our work.</div>
+        </div>
+
+        <div class="box-container" style="display: flex; flex-direction: column; gap: 0.5rem">
+          <div class="box-holder">
+            <fieldset class="privacy-policy-fieldset-holder">
+              <legend class="privacy-policy-fieldset" style="--privacy-policy-color: hsl(258, 54%, 82%)">Creator</legend>
+
+              <div class="policy-item item-blue">
+                <h3>FuZiveer</h3>
+                <p>Hello everyone, I hope you’re all having a fantastic day. I’m incredibly excited to share the sensitivity converter website I’ve been building. My goal was to create a tool that makes it easier for everyone to find their perfect settings, maintain consistency, and ultimately level up their gameplay. I truly hope it becomes a valuable resource for you on your journey to improvement. Thank you so much for all the support—it means the world to me. Much love to you all!</p>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="box-holder">
+            <fieldset class="privacy-policy-fieldset-holder">
+              <legend class="privacy-policy-fieldset" style="--privacy-policy-color: hsl(59, 54%, 82%)">Looking...</legend>
+
+              <div class="policy-item item-mint">
+                <h3>Front-end developer</h3>
+                <p>
+                  Looking for some front-end designers. 'Direct message', "FuZiveer" on discord or join server: <button class="in-text-button" onclick="document.getElementById('discord-button').click()">Discord <i class="ri-external-link-line"></i></button>
+                </p>
+              </div>
+
+              <div class="policy-item item-peach">
+                <h3>Back-end developer</h3>
+                <p>
+                  Looking for some back-end coders. 'Direct message', "FuZiveer" on discord or join server: <button class="in-text-button" onclick="document.getElementById('discord-button').click()">Discord <i class="ri-external-link-line"></i></button>
+                </p>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+
+      <div id="toast-stack"></div>
+
+      <section id="notify-toaster" class="notify-toaster" aria-label="Notifications" aria-live="polite">
+        <ol class="toaster notify-stack" data-x-position="right" data-y-position="bottom" data-expanded="false"></ol>
+      </section>
+    </div>
+
+    <div id="trainer-settings-overlay" class="trainer-settings-overlay">
+      <div class="modal-content settings-modal-shell">
+        <div class="settings-modal-head">
+          <div class="modal-header">
+            <h3>Advanced Settings</h3>
+            <button id="close-trainer-settings" class="close-modal"><i class="ri-close-line"></i></button>
+          </div>
+          <div class="settings-modal-search">
+            <div class="settings-search-wrap">
+              <svg class="search-icon settings-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="search" class="settings-search-input" id="trainer-settings-search" placeholder="Search settings..." autocomplete="off" spellcheck="false" />
+              <button type="button" class="clear-btn settings-search-clear" id="trainer-settings-search-clear" aria-label="Clear search">&times;</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-modal-body">
+          <div class="trainer-settings-sections">
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-session-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-time-line" aria-hidden="true"></i> Session</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="trainer-settings-session-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Training Mode</span>
+                          <p>Pick the drill that matches what you want to train. Static and Micro build precision, Shrink rewards fast clicks before targets shrink, Track follows a moving target, Flick gives one at a time, Switch jumps between two random spots, and Strafe uses side-to-side motion.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="pref-dropdown" id="trainer-mode-dropdown">
+                            <button type="button" class="pref-dropdown-trigger" id="trainer-mode-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="trainer-mode-list">
+                              <span class="pref-dropdown-value">
+                                <i class="ri-focus-3-line pref-dropdown-icon" id="trainer-mode-icon" aria-hidden="true"></i>
+                                <span id="trainer-mode-label">Static</span>
+                              </span>
+                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                            </button>
+                            <div class="pref-dropdown-list hidden" id="trainer-mode-list" role="listbox" aria-labelledby="trainer-mode-trigger"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block hidden" id="tracking-hp-setting" hidden>
+                        <div class="setting-text">
+                          <span>Track Target HP</span>
+                          <p>Limited HP lets the target die after 250 damage and respawn. Unlimited keeps one target alive for pure tracking practice.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector" id="tracking-hp-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-value="limited">LIMITED</button>
+                            <button class="toggle-btn" data-value="unlimited">UNLIMITED</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Session Timer</span>
+                          <p>How long each run lasts before your score is recorded. Shorter sessions are great for quick warm-ups; longer ones give a more reliable read on your accuracy and consistency.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="pref-dropdown" id="trainer-timer-dropdown">
+                            <button type="button" class="pref-dropdown-trigger" id="trainer-timer-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="trainer-timer-list">
+                              <span class="pref-dropdown-value">
+                                <i class="ri-time-line pref-dropdown-icon" id="trainer-timer-icon" aria-hidden="true"></i>
+                                <span id="trainer-timer-label">15s</span>
+                              </span>
+                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                            </button>
+                            <div class="pref-dropdown-list hidden" id="trainer-timer-list" role="listbox" aria-labelledby="trainer-timer-trigger"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-display-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-computer-line" aria-hidden="true"></i> Display</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="trainer-settings-display-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Aspect Ratio</span>
+                          <p>Pick a canvas shape that matches how you play. Taller ratios like 4:3 and 5:4 feel wider in the trainer; ultrawide 21:9 feels narrower. Fullscreen expands to your whole screen.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="pref-dropdown" id="trainer-aspect-dropdown">
+                            <button type="button" class="pref-dropdown-trigger" id="trainer-aspect-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="trainer-aspect-list">
+                              <span class="pref-dropdown-value">
+                                <i class="ri-aspect-ratio-line pref-dropdown-icon" id="trainer-aspect-icon" aria-hidden="true"></i>
+                                <span id="trainer-aspect-label">16:9</span>
+                              </span>
+                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                            </button>
+                            <div class="pref-dropdown-list hidden" id="trainer-aspect-list" role="listbox" aria-labelledby="trainer-aspect-trigger"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-target-timer-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-focus-3-line" aria-hidden="true"></i> Target</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="trainer-settings-target-timer-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Target Color</span>
+                          <p>Switch between red, yellow, and purple targets. Use whichever color is easiest to spot while you train.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector" id="target-color-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-value="red">RED</button>
+                            <button class="toggle-btn" data-value="yellow">YELLOW</button>
+                            <button class="toggle-btn" data-value="purple">PURPLE</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Target Size</span>
+                          <p>Set how big targets appear on screen. Easy targets are larger, hard targets are smaller — size stays consistent across every game.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector" id="target-difficulty-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-value="easy">EASY</button>
+                            <button class="toggle-btn" data-value="medium">MEDIUM</button>
+                            <button class="toggle-btn" data-value="hard">HARD</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Health Bar</span>
+                          <p>Show a small bar above each target that shrinks as its health drops. Turn it off for a cleaner screen when you do not need HP feedback.</p>
+                        </div>
+                        <div class="control-group health-bar-control">
+                          <div class="health-bar-settings-panel">
+                            <div class="health-bar-picker" id="health-bar-color-picker">
+                              <div class="health-bar-showcase">
+                                <div class="health-bar-preview-fill" id="health-bar-preview-fill" aria-hidden="true"></div>
+                              </div>
+                              <div class="trainer-toggle-selector accent-selector health-bar-color-options" id="health-bar-color-selector" role="radiogroup" aria-label="Health bar color">
+                                <button type="button" class="accent-swatch" data-health-bar-color="green" style="--swatch: #8ecc51" aria-label="Green" role="radio" aria-checked="false"></button>
+                                <button type="button" class="accent-swatch" data-health-bar-color="yellow" style="--swatch: #ccbc51" aria-label="Yellow" role="radio" aria-checked="false"></button>
+                                <button type="button" class="accent-swatch active" data-health-bar-color="red" style="--swatch: #cc5151" aria-label="Red" role="radio" aria-checked="true"></button>
+                                <button type="button" class="accent-swatch" data-health-bar-color="blue" style="--swatch: #5180cc" aria-label="Blue" role="radio" aria-checked="false"></button>
+                                <button type="button" class="accent-swatch" data-health-bar-color="purple" style="--swatch: #a351cc" aria-label="Purple" role="radio" aria-checked="false"></button>
+                              </div>
+                              <div class="accent-picker-nav health-bar-picker-nav">
+                                <button type="button" class="accent-picker-arrow" id="health-bar-color-prev" aria-label="Previous health bar color">
+                                  <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+                                </button>
+                                <span class="accent-picker-label" id="health-bar-color-label">Red</span>
+                                <button type="button" class="accent-picker-arrow" id="health-bar-color-next" aria-label="Next health bar color">
+                                  <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="trainer-toggle-selector" id="target-healthbar-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-value="false">OFF</button>
+                            <button class="toggle-btn" data-value="true">ON</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Health Text</span>
+                          <p>Show or hide the numeric health above targets. When the bar is off, the number sits in the bar slot.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector" id="target-health-text-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-value="false">OFF</button>
+                            <button class="toggle-btn" data-value="true">ON</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Hitmarker</span>
+                          <p>Flash an X on the target when you finish it off. Only appears on eliminations — not on partial hits or misses.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector" id="target-hitmarker-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-value="false">OFF</button>
+                            <button class="toggle-btn" data-value="true">ON</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block" id="target-spread-control">
+                        <div class="setting-text">
+                          <span>Target Spread</span>
+                          <p>Control how far from the center targets can spawn. Tighter keeps them near your crosshair; wider pushes them toward the edges of the screen.</p>
+                        </div>
+                        <div class="control-group trainer-spread-control">
+                          <div class="trainer-spread-preview-wrap">
+                            <canvas id="target-spread-preview" class="trainer-spread-preview" width="240" height="112" aria-hidden="true"></canvas>
+                          </div>
+                          <div class="trainer-spread-header">
+                            <span id="target-spread-label">Balanced</span>
+                            <span class="trainer-spread-hint" id="target-spread-hint">Recommended</span>
+                          </div>
+                          <div class="trainer-spread-selector" id="target-spread-selector" role="group" aria-label="Target spread">
+                            <div class="glider"></div>
+                            <button type="button" class="spread-btn" data-spread="0">Tight</button>
+                            <button type="button" class="spread-btn" data-spread="1">Close</button>
+                            <button type="button" class="spread-btn active" data-spread="2">Balanced</button>
+                            <button type="button" class="spread-btn" data-spread="3">Wide</button>
+                            <button type="button" class="spread-btn" data-spread="4">Far</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-sensitivity-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-drag-move-2-line" aria-hidden="true"></i> Sensitivity</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="trainer-settings-sensitivity-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Sensitivity Finder</span>
+                          <p>Runs a guided series of 10 sessions at slightly different sensitivities, then compares your scores to suggest the setting where you perform best. Use the reset icon to start the search over.</p>
+                        </div>
+                        <div class="control-group">
+                          <button id="finder-reset-btn" class="finder-reset-icon"><i class="ri-refresh-line"></i></button>
+                          <div class="trainer-toggle-selector" id="finder-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-value="false">NO</button>
+                            <button class="toggle-btn" data-value="true">YES</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Sensitivity Randomizer</span>
+                          <p>Slightly varies your sensitivity each session so you can't rely on autopilot muscle memory, training your brain to adapt and aim reactively. Best left off when chasing personal-best scores.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector" id="randomizer-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-value="false">NO</button>
+                            <button class="toggle-btn" data-value="true">YES</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-crosshair-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-crosshair-2-line" aria-hidden="true"></i> Crosshair</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="trainer-settings-crosshair-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block crosshair-setting-block">
+                        <div class="setting-text">
+                          <p>Set up a crosshair that feels familiar — adjust color, size, gap, thickness, dot, outline, and hit flash to match your in-game setup.</p>
+                        </div>
+                        <div class="control-group crosshair-controls">
+                          <div class="crosshair-preview-wrap">
+                            <canvas id="crosshair-preview" width="140" height="140"></canvas>
+                          </div>
+                          <div class="crosshair-options-grid">
+                            <div class="crosshair-options-row crosshair-row-appearance">
+                              <div class="crosshair-option crosshair-option-colors">
+                                <label>Color</label>
+                                <div class="accent-picker" id="crosshair-color-picker">
+                                  <div class="trainer-toggle-selector accent-selector" id="crosshair-color-options" role="radiogroup" aria-label="Crosshair color">
+                                    <button type="button" class="accent-swatch active" data-color="#00ff00" style="--swatch: #00ff00" aria-label="Green" role="radio" aria-checked="true"></button>
+                                    <button type="button" class="accent-swatch" data-color="#ffffff" style="--swatch: #ffffff" aria-label="White" role="radio" aria-checked="false"></button>
+                                    <button type="button" class="accent-swatch" data-color="#00e5ff" style="--swatch: #00e5ff" aria-label="Cyan" role="radio" aria-checked="false"></button>
+                                    <button type="button" class="accent-swatch" data-color="#ff00d4" style="--swatch: #ff00d4" aria-label="Magenta" role="radio" aria-checked="false"></button>
+                                    <button type="button" class="accent-swatch" data-color="#ffea00" style="--swatch: #ffea00" aria-label="Yellow" role="radio" aria-checked="false"></button>
+                                  </div>
+                                  <div class="accent-picker-nav">
+                                    <button type="button" class="accent-picker-arrow" id="crosshair-color-prev" aria-label="Previous crosshair color">
+                                      <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+                                    </button>
+                                    <span class="accent-picker-label" id="crosshair-color-label">Green</span>
+                                    <button type="button" class="accent-picker-arrow" id="crosshair-color-next" aria-label="Next crosshair color">
+                                      <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                              <div class="crosshair-option crosshair-option-toggle">
+                                <label>Center Dot</label>
+                                <div class="trainer-toggle-selector crosshair-toggle" id="ch-dot-selector">
+                                  <div class="glider"></div>
+                                  <button class="toggle-btn" data-value="false">OFF</button>
+                                  <button class="toggle-btn active" data-value="true">ON</button>
+                                </div>
+                              </div>
+                              <div class="crosshair-option crosshair-option-toggle">
+                                <label>Outline</label>
+                                <div class="trainer-toggle-selector crosshair-toggle" id="ch-outline-selector">
+                                  <div class="glider"></div>
+                                  <button class="toggle-btn active" data-value="false">OFF</button>
+                                  <button class="toggle-btn" data-value="true">ON</button>
+                                </div>
+                              </div>
+                              <div class="crosshair-option crosshair-option-toggle">
+                                <label>Hit Flash</label>
+                                <div class="trainer-toggle-selector crosshair-toggle" id="ch-flash-selector">
+                                  <div class="glider"></div>
+                                  <button class="toggle-btn" data-value="false">OFF</button>
+                                  <button class="toggle-btn active" data-value="true">ON</button>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="crosshair-options-divider" aria-hidden="true"></div>
+                            <div class="crosshair-options-row crosshair-row-sizing">
+                              <div class="crosshair-option">
+                                <label>Size <span id="ch-size-val">10</span></label>
+                                <input type="range" id="ch-size" min="2" max="30" step="1" value="10" />
+                              </div>
+                              <div class="crosshair-option">
+                                <label>Gap <span id="ch-gap-val">4</span></label>
+                                <input type="range" id="ch-gap" min="0" max="20" step="1" value="4" />
+                              </div>
+                              <div class="crosshair-option">
+                                <label>Thickness <span id="ch-thickness-val">2</span></label>
+                                <input type="range" id="ch-thickness" min="1" max="8" step="1" value="2" />
+                              </div>
+                              <div class="crosshair-option">
+                                <label>Outline <span id="ch-outline-thickness-val">2</span></label>
+                                <input type="range" id="ch-outline-thickness" min="1" max="8" step="1" value="2" />
+                              </div>
+                            </div>
+                            <div class="crosshair-options-divider" aria-hidden="true"></div>
+                            <div class="crosshair-presets" id="crosshair-presets" role="group" aria-label="Crosshair presets">
+                              <button class="crosshair-preset-btn" type="button" data-preset="classic">
+                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                                <span>Classic</span>
+                              </button>
+                              <button class="crosshair-preset-btn" type="button" data-preset="valorant">
+                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                                <span>Valorant</span>
+                              </button>
+                              <button class="crosshair-preset-btn" type="button" data-preset="cs2">
+                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                                <span>CS2</span>
+                              </button>
+                              <button class="crosshair-preset-btn" type="button" data-preset="minimal">
+                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                                <span>Minimal</span>
+                              </button>
+                              <button class="crosshair-preset-btn" type="button" data-preset="bold">
+                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                                <span>Bold</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="theme-settings-overlay" class="trainer-settings-overlay">
+      <div class="modal-content settings-modal-shell">
+        <div class="settings-modal-head">
+          <div class="modal-header">
+            <h3>Theme Settings</h3>
+            <button type="button" id="close-theme-settings" class="close-modal" aria-label="Close theme settings"><i class="ri-close-line"></i></button>
+          </div>
+          <div class="settings-modal-search">
+            <div class="settings-search-wrap">
+              <svg class="search-icon settings-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="search" class="settings-search-input" id="theme-settings-search" placeholder="Search settings..." autocomplete="off" spellcheck="false" />
+              <button type="button" class="clear-btn settings-search-clear" id="theme-settings-search-clear" aria-label="Clear search">&times;</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-modal-body">
+          <div class="trainer-settings-sections">
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="theme-settings-appearance-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-paint-line" aria-hidden="true"></i> Appearance</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="theme-settings-appearance-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block theme-accent-block">
+                        <div class="setting-text">
+                          <span>Accent Theme</span>
+                          <p>Change the highlight color used across the app.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="accent-picker" id="accent-picker">
+                            <div class="trainer-toggle-selector pref-toggle accent-selector" id="accent-grid" role="radiogroup" aria-label="Accent theme">
+                              <button type="button" class="accent-swatch active" data-accent="344 99% 47%" style="--swatch: hsl(344 99% 47%)" aria-label="Red" role="radio" aria-checked="true"></button>
+                              <button type="button" class="accent-swatch" data-accent="25 95% 53%" style="--swatch: hsl(25 95% 53%)" aria-label="Orange" role="radio" aria-checked="false"></button>
+                              <button type="button" class="accent-swatch" data-accent="45 93% 53%" style="--swatch: hsl(45 93% 53%)" aria-label="Yellow" role="radio" aria-checked="false"></button>
+                              <button type="button" class="accent-swatch" data-accent="142 71% 45%" style="--swatch: hsl(142 71% 45%)" aria-label="Green" role="radio" aria-checked="false"></button>
+                              <button type="button" class="accent-swatch" data-accent="190 90% 50%" style="--swatch: hsl(190 90% 50%)" aria-label="Cyan" role="radio" aria-checked="false"></button>
+                              <button type="button" class="accent-swatch" data-accent="217 91% 60%" style="--swatch: hsl(217 91% 60%)" aria-label="Blue" role="radio" aria-checked="false"></button>
+                              <button type="button" class="accent-swatch" data-accent="265 84% 64%" style="--swatch: hsl(265 84% 64%)" aria-label="Purple" role="radio" aria-checked="false"></button>
+                              <button type="button" class="accent-swatch" data-accent="330 81% 60%" style="--swatch: hsl(330 81% 60%)" aria-label="Pink" role="radio" aria-checked="false"></button>
+                            </div>
+                            <div class="accent-picker-nav">
+                              <button type="button" class="accent-picker-arrow" id="accent-prev" aria-label="Previous accent color">
+                                <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+                              </button>
+                              <span class="accent-picker-label" id="accent-picker-label">Red</span>
+                              <button type="button" class="accent-picker-arrow" id="accent-next" aria-label="Next accent color">
+                                <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Background Pattern</span>
+                          <p>Choose a subtle backdrop texture for the app.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="pref-dropdown" id="bg-pattern-dropdown">
+                            <button type="button" class="pref-dropdown-trigger" id="bg-pattern-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="bg-pattern-list">
+                              <span class="pref-dropdown-value">
+                                <i class="ri-pulse-line pref-dropdown-icon" id="bg-pattern-icon" aria-hidden="true"></i>
+                                <span id="bg-pattern-label">Waves</span>
+                              </span>
+                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                            </button>
+                            <div class="pref-dropdown-list hidden" id="bg-pattern-list" role="listbox" aria-labelledby="bg-pattern-trigger">
+                              <button type="button" class="pref-dropdown-option active" data-bg-pattern="waves" role="option"><i class="ri-pulse-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Waves</span></button>
+                              <button type="button" class="pref-dropdown-option" data-bg-pattern="grid" role="option"><i class="ri-layout-grid-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Grid</span></button>
+                              <button type="button" class="pref-dropdown-option" data-bg-pattern="dots" role="option"><i class="ri-more-2-fill pref-dropdown-option-icon" aria-hidden="true"></i><span>Dots</span></button>
+                              <button type="button" class="pref-dropdown-option" data-bg-pattern="particles" role="option"><i class="ri-sparkling-2-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Particles</span></button>
+                              <button type="button" class="pref-dropdown-option" data-bg-pattern="none" role="option"><i class="ri-prohibited-line pref-dropdown-option-icon" aria-hidden="true"></i><span>None</span></button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="general-settings-overlay" class="trainer-settings-overlay">
+      <div class="modal-content settings-modal-shell">
+        <div class="settings-modal-head">
+          <div class="modal-header">
+            <h3>General Settings</h3>
+            <button type="button" id="close-general-settings" class="close-modal" aria-label="Close general settings"><i class="ri-close-line"></i></button>
+          </div>
+          <div class="settings-modal-search">
+            <div class="settings-search-wrap">
+              <svg class="search-icon settings-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="search" class="settings-search-input" id="general-settings-search" placeholder="Search settings..." autocomplete="off" spellcheck="false" />
+              <button type="button" class="clear-btn settings-search-clear" id="general-settings-search-clear" aria-label="Clear search">&times;</button>
+            </div>
+          </div>
+        </div>
+        <div class="settings-modal-body">
+          <div class="trainer-settings-sections">
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="general-settings-performance-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-speed-line" aria-hidden="true"></i> Performance</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="general-settings-performance-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>UI Refresh Rate</span>
+                          <p>Limit how often the site refreshes each second. Use a lower cap on weaker PCs, or Max for no limit.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector pref-toggle" id="refresh-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-refresh="60">60HZ</button>
+                            <button class="toggle-btn" data-refresh="144">144HZ</button>
+                            <button class="toggle-btn" data-refresh="max">MAX</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="general-settings-display-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-eye-line" aria-hidden="true"></i> Display &amp; Accessibility</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="general-settings-display-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Text Size</span>
+                          <p>Scale the interface text for readability.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector pref-toggle" id="fontsize-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn" data-fontsize="0.9">SMALL</button>
+                            <button class="toggle-btn active" data-fontsize="1">NORMAL</button>
+                            <button class="toggle-btn" data-fontsize="1.12">LARGE</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>High Contrast</span>
+                          <p>Boost contrast and borders for better visibility.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector pref-toggle" id="contrast-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-contrast="false">OFF</button>
+                            <button class="toggle-btn" data-contrast="true">ON</button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Reduce Motion</span>
+                          <p>Minimize animations and transitions.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector pref-toggle" id="motion-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn active" data-motion="false">OFF</button>
+                            <button class="toggle-btn" data-motion="true">ON</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="general-settings-audio-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-volume-up-line" aria-hidden="true"></i> Audio</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="general-settings-audio-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Master Volume</span>
+                          <p>Controls overall app volume for all sounds.</p>
+                        </div>
+                        <div class="control-group master-audio-control" id="master-audio-control">
+                          <div class="aim-trainer-volume-row">
+                            <input type="range" id="master-volume" min="0" max="100" step="1" value="100" aria-label="Master volume" />
+                            <span class="aim-trainer-volume-label" id="master-volume-label">100%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Aim Trainer Volume</span>
+                          <p>Adjust aim trainer hit and countdown sounds relative to master volume.</p>
+                        </div>
+                        <div class="control-group aim-trainer-audio-control" id="aim-trainer-audio-control">
+                          <div class="aim-trainer-volume-row">
+                            <input type="range" id="aim-trainer-volume" min="0" max="100" step="1" value="100" aria-label="Aim trainer volume" />
+                            <span class="aim-trainer-volume-label" id="aim-trainer-volume-label">100%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="trainer-settings-section">
+              <div class="app-status-dropdown trainer-settings-dropdown">
+                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="general-settings-data-panel">
+                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-shield-check-line" aria-hidden="true"></i> Data &amp; Reset</span>
+                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="app-status-panel" id="general-settings-data-panel">
+                  <div class="app-status-panel-inner">
+                    <div class="toggles-row">
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Confirm Before Reset</span>
+                          <p>Ask for confirmation before clearing forms or saved stats.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="trainer-toggle-selector pref-toggle" id="confirm-reset-selector">
+                            <div class="glider"></div>
+                            <button class="toggle-btn" data-confirm-reset="false">OFF</button>
+                            <button class="toggle-btn active" data-confirm-reset="true">ON</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="reaction-test-overlay" class="trainer-settings-overlay" data-reaction-state="idle">
+      <div class="modal-content reaction-test-modal">
+        <div class="modal-header">
+          <h3>Reaction Time Test</h3>
+          <button type="button" id="close-reaction-test" class="close-modal" aria-label="Close reaction time test"><i class="ri-close-line"></i></button>
+        </div>
+        <div class="reaction-test-modal-body">
+          <div id="reaction-test" class="reaction-test idle">
+            <div class="reaction-stage" id="reaction-stage">
+              <div class="reaction-msg" id="reaction-msg">Click to start</div>
+              <div class="reaction-sub" id="reaction-sub">Wait for green, then click as fast as you can</div>
+            </div>
+          </div>
+          <div class="reaction-stats">
+            <div><span>Last</span><strong id="reaction-last">-</strong></div>
+            <div><span>Best</span><strong id="reaction-best">-</strong></div>
+            <div><span>Average</span><strong id="reaction-avg">-</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="lineup-video-overlay" class="lineup-video-overlay trainer-settings-overlay">
+      <div class="lineup-video-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-video-modal-title">
+        <div class="lineup-video-modal-head">
+          <h3 id="lineup-video-modal-title" class="lineup-video-modal-title"></h3>
+          <div class="lineup-video-head-actions">
+            <div class="lineup-video-options-wrap" id="lineup-video-options-wrap">
+              <button type="button" class="lineup-video-ctrl-btn lineup-video-modal-close" id="lineup-video-options-btn" aria-label="Video options" aria-haspopup="true" aria-expanded="false" aria-controls="lineup-video-options-menu">
+                <i class="ri-settings-3-line" aria-hidden="true"></i>
+              </button>
+              <div class="lineup-video-options-menu hidden" id="lineup-video-options-menu" role="menu" aria-labelledby="lineup-video-options-btn">
+                <div class="lineup-video-options-section">
+                  <span class="lineup-video-options-label">Speed</span>
+                  <div class="lineup-video-options-list" id="lineup-video-speed-list" role="group" aria-label="Playback speed"></div>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="lineup-video-modal-close close-modal" id="lineup-video-modal-close" aria-label="Close video">
+              <i class="ri-close-line" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div class="lineup-video-modal-body">
+          <video id="lineup-video-modal-player" class="lineup-video-modal-player" playsinline preload="auto" autoplay></video>
+          <video id="lineup-video-scrub-player" class="lineup-video-scrub-player" playsinline preload="auto" muted hidden aria-hidden="true"></video>
+        </div>
+        <div class="lineup-video-controls" id="lineup-video-controls">
+          <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-play" aria-label="Play">
+            <i class="ri-play-fill" aria-hidden="true"></i>
+          </button>
+          <span class="lineup-video-time" id="lineup-video-time-current">0:00</span>
+          <div class="lineup-video-progress-wrap" id="lineup-video-progress-wrap">
+            <div class="lineup-video-scrub-preview hidden" id="lineup-video-scrub-preview" aria-hidden="true">
+              <canvas id="lineup-video-scrub-canvas" width="160" height="90"></canvas>
+              <span class="lineup-video-scrub-time" id="lineup-video-scrub-time">0:00</span>
+            </div>
+            <div class="lineup-video-progress-track" aria-hidden="true">
+              <div class="lineup-video-progress-buffer">
+                <div class="lineup-video-progress-buffer-trail" id="lineup-video-progress-buffer-trail"></div>
+                <div class="lineup-video-progress-buffer-fill" id="lineup-video-progress-buffer-fill"></div>
+              </div>
+              <div class="lineup-video-progress-played-trail" id="lineup-video-progress-played-trail"></div>
+              <div class="lineup-video-progress-played" id="lineup-video-progress-played"></div>
+            </div>
+            <div class="lineup-video-progress-thumb" id="lineup-video-progress-thumb" aria-hidden="true"></div>
+            <input type="range" class="lineup-video-progress" id="lineup-video-progress" min="0" max="100" step="0.1" value="0" aria-label="Seek" />
+          </div>
+          <span class="lineup-video-time" id="lineup-video-time-duration">0:00</span>
+          <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-mute" aria-label="Mute">
+            <i class="ri-volume-up-line" aria-hidden="true"></i>
+          </button>
+          <input type="range" class="lineup-video-volume" id="lineup-video-volume" min="0" max="1" step="0.05" value="1" aria-label="Volume" />
+          <span class="lineup-video-volume-label" id="lineup-video-volume-label" aria-hidden="true">100%</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="lineup-badge-info-overlay" class="lineup-badge-info-overlay trainer-settings-overlay" hidden>
+      <div class="lineup-badge-info-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-badge-info-title">
+        <div class="lineup-badge-info-head">
+          <img id="lineup-badge-info-icon" class="lineup-badge-info-icon" alt="" width="48" height="48" decoding="async" />
+          <div class="lineup-badge-info-heading">
+            <h3 id="lineup-badge-info-title" class="lineup-badge-info-title"></h3>
+            <p id="lineup-badge-info-meta" class="lineup-badge-info-meta"></p>
+          </div>
+          <button type="button" class="lineup-badge-info-close close-modal" id="lineup-badge-info-close" aria-label="Close">
+            <i class="ri-close-line" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p id="lineup-badge-info-body" class="lineup-badge-info-body"></p>
+      </div>
+    </div>
+
+    <div id="confirm-reset-overlay" class="confirm-reset-overlay trainer-settings-overlay">
+      <div class="confirm-reset-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="confirm-reset-title">
+        <h3 id="confirm-reset-title">Confirm reset</h3>
+        <p id="confirm-reset-message">Are you sure you want to reset?</p>
+        <div class="confirm-reset-actions">
+          <button type="button" class="confirm-reset-btn confirm-reset-cancel" id="confirm-reset-cancel">Cancel</button>
+          <button type="button" class="confirm-reset-btn confirm-reset-ok" id="confirm-reset-ok">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" class="scrollToTop" id="backToTopButton" aria-label="Scroll to top" aria-hidden="true">
+      <span class="scrollToTop-arrows" aria-hidden="true">
+        <i class="ri-arrow-up-s-line"></i>
+        <i class="ri-arrow-up-s-line"></i>
+        <i class="ri-arrow-up-s-line"></i>
+      </span>
+    </button>
+  </body>
+</html>
