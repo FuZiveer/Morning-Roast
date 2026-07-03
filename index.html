@@ -134,7 +134,7 @@
         <div class="app-sidebar-divider" aria-hidden="true"></div>
 
         <div class="app-sidebar-group">
-          <button type="button" class="app-sidebar-item" data-sidebar-tab="lineup-tab" id="sidebar-lineup-button" disabled aria-disabled="true">
+          <button type="button" class="app-sidebar-item" data-sidebar-tab="lineup-tab" id="sidebar-lineup-button" onclick="switchTab(event, 'lineup-tab')">
             <i class="ri-video-line" aria-hidden="true"></i>
             <span class="app-sidebar-label">Lineups</span>
           </button>
@@ -305,7 +305,7 @@
             <div class="nav-group-divider" aria-hidden="true"></div>
 
             <div class="button-container nav-group" data-group="Lineups">
-              <button type="button" class="button" id="lineup-button" disabled aria-disabled="true">
+              <button type="button" class="button" id="lineup-button" onclick="switchTab(event, 'lineup-tab')">
                 <div class="icon-container">
                   <i class="ri-video-line" aria-hidden="true"></i>
                 </div>

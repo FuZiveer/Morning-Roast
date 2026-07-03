@@ -6136,7 +6136,7 @@ function isEdpiTabVisible() {
   return edpiTab && edpiTab.style.display !== "none";
 }
 
-const LINEUP_TAB_ENABLED = false;
+const LINEUP_TAB_ENABLED = true;
 
 const TAB_SLUGS = {
   "sensitivity-converter-tab": "sensitivity-converter",
@@ -8195,26 +8195,29 @@ function lineupProgressPctToThumbLeft(pct, wrap = document.getElementById("lineu
 }
 
 function getLineupVideoBufferedEndPct(video) {
-  if (!video?.duration || !Number.isFinite(video.duration)) return 0;
+  if (!video?.duration || !Number.isFinite(video.duration) || video.duration <= 0) return 0;
 
-  const time = video.currentTime ?? 0;
-  let end = time;
-
-  for (let i = 0; i < video.buffered.length; i += 1) {
-    const start = video.buffered.start(i);
-    const bufferedEnd = video.buffered.end(i);
-    if (time >= start - 0.05 && time <= bufferedEnd + 0.05) {
-      end = bufferedEnd;
-      break;
+  let end = 0;
+  try {
+    const time = video.currentTime ?? 0;
+    for (let i = 0; i < video.buffered.length; i += 1) {
+      const start = video.buffered.start(i);
+      const bufferedEnd = video.buffered.end(i);
+      end = Math.max(end, bufferedEnd);
+      if (time >= start - 0.25 && time <= bufferedEnd + 0.25) {
+        end = Math.max(end, bufferedEnd);
+      }
     }
+
+    // Some browsers expose ahead-buffer via seekable before buffered updates.
+    if (end <= 0 && video.seekable?.length) {
+      end = video.seekable.end(video.seekable.length - 1);
+    }
+  } catch {
+    return 0;
   }
 
-  if (video.buffered.length) {
-    const maxEnd = video.buffered.end(video.buffered.length - 1);
-    if (maxEnd > end) end = maxEnd;
-  }
-
-  return (end / video.duration) * 100;
+  return Math.max(0, Math.min(100, (end / video.duration) * 100));
 }
 
 function getLineupVideoPlayedPct(video) {
@@ -8312,14 +8315,16 @@ function applyLineupVideoProgressVisuals(ui, { playedDisplay, playedTrail, buffe
 
 function lineupVideoNeedsProgressUpdates(video, anim) {
   if (!video?.src) return false;
-  if (!video.duration || video.networkState === HTMLMediaElement.NETWORK_LOADING) return true;
+  if (!video.duration || !Number.isFinite(video.duration) || video.readyState < HTMLMediaElement.HAVE_METADATA) return true;
+  if (video.networkState === HTMLMediaElement.NETWORK_LOADING) return true;
+  if (!video.paused && !video.ended && !video.hidden) return true;
 
   const targetBuffer = getLineupVideoBufferedEndPct(video);
   if (targetBuffer < 99.5) return true;
   if (Math.abs(anim.displayBuffer - targetBuffer) > 0.05) return true;
   if (Math.abs(anim.trailBuffer - anim.displayBuffer) > 0.05) return true;
 
-  if (video.id === "lineup-video-modal-player" && !video.paused && !video.hidden) {
+  if (video.id === "lineup-video-modal-player" && !video.hidden) {
     const targetPlayed = getLineupVideoPlayedPct(video);
     if (Math.abs(anim.displayPlayed - targetPlayed) > 0.05) return true;
     if (Math.abs(anim.trailPlayed - anim.displayPlayed) > 0.05) return true;
@@ -8361,7 +8366,10 @@ function updateLineupVideoProgressForPlayer(video, dt, { snap = false } = {}) {
 
   const anim = getLineupVideoProgressAnimState(video);
   const targetBuffer = getLineupVideoBufferedEndPct(video);
-  const bufferStep = stepLineupVideoProgressAnim(anim.displayBuffer, targetBuffer, anim.trailBuffer, dt, { snap });
+  // Buffer should reflect loaded media immediately; trail can ease behind it.
+  const bufferStep = stepLineupVideoProgressAnim(anim.displayBuffer, targetBuffer, anim.trailBuffer, dt, {
+    snap: snap || targetBuffer > anim.displayBuffer,
+  });
   anim.displayBuffer = bufferStep.display;
   anim.trailBuffer = bufferStep.trail;
 
@@ -8403,8 +8411,8 @@ function collectLineupVideoProgressTargets() {
 function tickLineupVideoProgressAnim(ts) {
   lineupVideoSeekState.progressLoopId = 0;
 
-  const lastTs = lineupVideoSeekState.lastProgressTs || ts;
-  const dt = Math.min(0.05, (ts - lastTs) / 1000);
+  const lastTs = lineupVideoSeekState.lastProgressTs;
+  const dt = lastTs ? Math.min(0.05, Math.max(0, (ts - lastTs) / 1000)) : 1 / 60;
   lineupVideoSeekState.lastProgressTs = ts;
 
   const overlay = document.getElementById("lineup-video-overlay");
@@ -8418,7 +8426,10 @@ function tickLineupVideoProgressAnim(ts) {
 
   if (modalActive && modalPlayer && !modalPlayer.hidden && modalPlayer.src && !lineupVideoSeekState.dragging) {
     updateLineupVideoProgressFromPlayer(modalPlayer);
-    if (!modalPlayer.paused) needsNextFrame = true;
+    updateLineupVideoProgressForPlayer(modalPlayer, dt);
+    if (!modalPlayer.paused || !modalPlayer.duration || modalPlayer.readyState < HTMLMediaElement.HAVE_METADATA) {
+      needsNextFrame = true;
+    }
   }
 
   if (needsNextFrame) {
@@ -8440,15 +8451,23 @@ function stopLineupVideoProgressLoop() {
   lineupVideoSeekState.lastProgressTs = 0;
 }
 
-function updateLineupVideoProgressBars({ playedPct, snap = false, playedDisplayOnly = false } = {}) {
+function updateLineupVideoProgressBars({ playedPct, bufferPct, snap = false, playedDisplayOnly = false } = {}) {
   const player = document.getElementById("lineup-video-modal-player");
   if (!player) return;
 
-  if (playedPct != null) {
-    setLineupVideoProgressTargets(player, { playedPct, snap, playedDisplayOnly });
-  }
+  const nextBufferPct = bufferPct ?? getLineupVideoBufferedEndPct(player);
+  const nextPlayedPct = playedPct ?? (lineupVideoSeekState.dragging ? null : getLineupVideoPlayedPct(player));
 
-  updateLineupVideoProgressForPlayer(player, 0, { snap: snap && !playedDisplayOnly });
+  setLineupVideoProgressTargets(player, {
+    playedPct: nextPlayedPct,
+    bufferPct: playedDisplayOnly ? null : nextBufferPct,
+    snap,
+    playedDisplayOnly,
+  });
+
+  if (!playedDisplayOnly) {
+    updateLineupVideoProgressForPlayer(player, 1 / 60, { snap });
+  }
   startLineupVideoProgressLoop();
 }
 
@@ -8566,8 +8585,15 @@ function syncLineupVideoBufferUi() {
   const duration = document.getElementById("lineup-video-time-duration");
   if (!player) return;
 
-  updateLineupVideoProgressForPlayer(player, 0);
-  startLineupVideoProgressLoop();
+  if (!lineupVideoSeekState.dragging) {
+    updateLineupVideoProgressBars({
+      playedPct: getLineupVideoPlayedPct(player),
+      bufferPct: getLineupVideoBufferedEndPct(player),
+      snap: true,
+    });
+  } else {
+    startLineupVideoProgressLoop();
+  }
   if (duration && player.duration) duration.textContent = formatLineupVideoTime(player.duration);
 }
 
@@ -8665,9 +8691,10 @@ function syncLineupVideoControlsUi() {
   if (!lineupVideoSeekState.dragging) {
     progress.value = String(pct);
     if (current) current.textContent = formatLineupVideoTime(player.currentTime);
-    if (player.paused || !canAnimateHeightResize()) {
-      updateLineupVideoProgressBars({ playedPct: pct, snap: true });
-    }
+    updateLineupVideoProgressBars({
+      playedPct: pct,
+      snap: player.paused || !canAnimateHeightResize(),
+    });
   }
 
   startLineupVideoProgressLoop();
@@ -8887,7 +8914,8 @@ function initLineupVideoModal() {
   });
 
   player.addEventListener("timeupdate", () => {
-    if (!player.paused && !lineupVideoSeekState.dragging) syncLineupVideoBufferUi();
+    if (lineupVideoSeekState.dragging) return;
+    syncLineupVideoControlsUi();
   });
   player.addEventListener("progress", syncLineupVideoBufferUi);
   player.addEventListener("loadeddata", syncLineupVideoBufferUi);
