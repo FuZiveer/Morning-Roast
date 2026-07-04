@@ -157,12 +157,19 @@
       g: bytes[5],
       b: bytes[6],
       alpha: bytes[7],
-      outline: (bytes[10] & 8) === 8,
+      splitDistance: bytes[8] & 7,
+      followRecoil: ((bytes[8] >> 4) & 8) === 8,
+      fixedCrosshairGap: uint8ToInt8(bytes[9]) / 10,
       color: bytes[10] & 7,
+      outline: (bytes[10] & 8) === 8,
+      innerSplitAlpha: (bytes[10] >> 4) / 10,
+      outerSplitAlpha: (bytes[11] & 15) / 10,
+      splitSizeRatio: (bytes[11] >> 4) / 10,
       thickness: bytes[12] / 10,
       dot: ((bytes[13] >> 4) & 1) === 1,
-      t: ((bytes[13] >> 4) & 8) === 8,
+      deployedWeaponGap: ((bytes[13] >> 4) & 2) === 2,
       useAlpha: ((bytes[13] >> 4) & 4) === 4,
+      t: ((bytes[13] >> 4) & 8) === 8,
       style: (bytes[13] & 0xf) >> 1,
       size: bytes[14] / 10,
     };
@@ -215,9 +222,38 @@
   }
 
   function encodeCs2ShareCode(crosshair) {
-    const bytes = [0, 1, (crosshair.gap * 10) & 0xff, crosshair.outlineThickness * 2, crosshair.r, crosshair.g, crosshair.b, crosshair.alpha, 0, 0, (crosshair.color & 7) | (Number(crosshair.outline) << 3), 0, crosshair.thickness * 10, (crosshair.style << 1) | (Number(crosshair.dot) << 4) | (Number(crosshair.useAlpha) << 6) | (Number(crosshair.t) << 7), crosshair.size * 10, 0, 0, 0];
+    const bytes = [
+      0,
+      1,
+      (crosshair.gap * 10) & 0xff,
+      crosshair.outlineThickness * 2,
+      crosshair.r,
+      crosshair.g,
+      crosshair.b,
+      crosshair.alpha,
+      (crosshair.splitDistance || 0) & 7 | (Number(crosshair.followRecoil) << 7),
+      ((crosshair.fixedCrosshairGap || 0) * 10) & 0xff,
+      (crosshair.color & 7) | (Number(crosshair.outline) << 3) | (((crosshair.innerSplitAlpha ?? 1) * 10) << 4),
+      ((crosshair.outerSplitAlpha ?? 0.5) * 10) | (((crosshair.splitSizeRatio ?? 1) * 10) << 4),
+      crosshair.thickness * 10,
+      (crosshair.style << 1) | (Number(crosshair.dot) << 4) | (Number(crosshair.deployedWeaponGap) << 5) | (Number(crosshair.useAlpha) << 6) | (Number(crosshair.t) << 7),
+      crosshair.size * 10,
+      0,
+      0,
+      0,
+    ];
     bytes[0] = sumArray(bytes) & 0xff;
     return bytesToShareCode(bytes);
+  }
+
+  // Matches cs2valcrosshair.com conversion (visibility floor + CS2 baseline gap).
+  const CS2_BASELINE_GAP = 5;
+  const CS2_GAP_COLLAPSE = -6;
+  const VAL_TO_CS2_LENGTH = 0.5;
+  const VAL_TO_CS2_THICKNESS = 0.5;
+
+  function round1(value) {
+    return Math.round(value * 10) / 10;
   }
 
   function cs2ColorToHex(ch) {
@@ -256,6 +292,8 @@
       innerOffset: 3,
       innerOpacity: 0.8,
       outerEnabled: false,
+      firingError: true,
+      movementError: false,
     };
 
     for (let i = pIndex + 1; i < end; i += 2) {
@@ -303,6 +341,12 @@
         case "0a":
           settings.innerOpacity = clamp(parseFloat(raw) || 1, 0, 1);
           break;
+        case "0f":
+          settings.firingError = raw === "1";
+          break;
+        case "0m":
+          settings.movementError = raw === "1";
+          break;
         case "1b":
           settings.outerEnabled = raw === "1";
           break;
@@ -320,84 +364,116 @@
   }
 
   function buildValorantCode(settings) {
-    const chunks = ["0", "P"];
-
-    const colorIdx = settings.colorIndex;
-    if (colorIdx === 8) {
-      chunks.push("c", "8", "u", settings.hexColor.slice(0, 6).toUpperCase());
-    } else if (colorIdx !== 0) {
-      chunks.push("c", String(colorIdx));
-    }
+    // Match cs2valcrosshair.com export shape (custom color + explicit geometry).
+    const chunks = ["0", "s;1", "P"];
+    const hex = (settings.hexColor || "FFFFFF").slice(0, 6).toUpperCase();
+    chunks.push("c;8", `u;${hex}FF`);
 
     if (!settings.outlines) {
-      chunks.push("h", "0");
+      chunks.push("h;0");
     } else {
-      if (settings.outlineThickness !== 1) chunks.push("t", String(settings.outlineThickness));
-      if (settings.outlineOpacity !== 0.5) chunks.push("o", String(settings.outlineOpacity));
+      chunks.push(`t;${settings.outlineThickness}`);
+      chunks.push(`o;${settings.outlineOpacity}`);
     }
+
+    chunks.push("b;1", "m;1");
 
     if (settings.dot) {
-      chunks.push("d", "1");
-      if (settings.dotThickness !== 2) chunks.push("z", String(settings.dotThickness));
+      chunks.push("d;1");
+      chunks.push(`z;${settings.dotThickness}`);
+      chunks.push(`a;${settings.dotOpacity ?? 1}`);
     }
 
-    if (!settings.innerEnabled) {
-      chunks.push("0b", "0");
+    if (!settings.innerEnabled || settings.innerLength <= 0) {
+      chunks.push("0b;0");
     } else {
-      chunks.push("0t", String(settings.innerThickness));
-      chunks.push("0l", String(settings.innerLength));
-      if (settings.innerOffset !== 3) chunks.push("0o", String(settings.innerOffset));
-      if (settings.innerOpacity !== 1) chunks.push("0a", String(settings.innerOpacity));
+      if (settings.innerLength !== 6) chunks.push(`0l;${settings.innerLength}`);
+      chunks.push(`0o;${settings.innerOffset}`);
+      chunks.push(`0a;${settings.innerOpacity}`);
+      chunks.push(`0t;${settings.innerThickness}`);
+      chunks.push(`0f;${settings.firingError ? 1 : 0}`);
+      chunks.push(`0m;${settings.movementError ? 1 : 0}`);
     }
 
-    chunks.push("0f", "0", "0m", "0", "1b", settings.outerEnabled ? "1" : "0");
+    chunks.push("1b;0");
+    chunks.push("S", "c;0", "s;0.9", "o;1");
     return chunks.join(";");
   }
 
   function cs2ToValorantSettings(ch) {
-    const hex = cs2ColorToHex(ch);
-    const colorIndex = nearestValorantColorIndex(hex);
-    const innerLength = clamp(Math.round(ch.size + 1), 0, 10);
-    const innerOffset = clamp(Math.round(Math.max(0, -ch.gap)), 0, 20);
-    const innerThickness = clamp(Math.max(1, Math.round(ch.thickness)), 1, 10);
+    const hex = cs2ColorToHex(ch).replace("#", "").toUpperCase();
+    const alpha = ch.useAlpha ? clamp(ch.alpha / 255, 0, 1) : 1;
+    // CS2 outline flag with thickness 0 is visually off.
+    const outlines = Boolean(ch.outline && ch.outlineThickness > 0);
+
+    // Visibility floor: length/thickness ×2, minimum 2 (cs2valcrosshair.com).
+    let innerLength = ch.size > 0 ? clamp(Math.max(2, Math.round(ch.size * 2)), 0, 20) : 0;
+    if (ch.t) innerLength = Math.max(innerLength, 0);
+
+    const baselineOffset = Math.max(0, CS2_BASELINE_GAP + ch.gap);
+    let innerOffset;
+    if (ch.gap <= CS2_GAP_COLLAPSE) {
+      innerOffset = 0;
+    } else {
+      innerOffset = clamp(Math.max(1, Math.round(baselineOffset)), 0, 20);
+    }
+
+    let innerThickness = ch.thickness < 0.7 ? 1 : clamp(Math.max(2, Math.round(ch.thickness * 2)), 1, 10);
+    if (innerLength > 0 && innerThickness > innerLength) innerThickness = innerLength;
+
+    const classicStatic = ch.style === 4;
 
     return {
-      colorIndex: colorIndex === 8 ? 8 : colorIndex,
-      hexColor: hex.replace("#", "").toUpperCase(),
-      outlines: ch.outline,
-      outlineThickness: clamp(Math.round(ch.outlineThickness) || 1, 1, 6),
-      outlineOpacity: ch.useAlpha ? clamp(ch.alpha / 255, 0.1, 1) : 0.5,
-      dot: ch.dot,
-      dotThickness: clamp(Math.max(1, Math.round(ch.thickness)), 1, 6),
-      innerEnabled: !ch.t,
+      colorIndex: 8,
+      hexColor: hex.slice(0, 6),
+      outlines,
+      outlineThickness: outlines ? clamp(Math.round(ch.outlineThickness) || 1, 1, 6) : 1,
+      outlineOpacity: outlines ? 1 : 0.5,
+      dot: Boolean(ch.dot),
+      dotThickness: ch.dot ? clamp(Math.max(2, Math.round(ch.thickness * 2)), 2, 6) : 2,
+      dotOpacity: alpha,
+      // Valorant has no T-style; keep full cross and note the loss.
+      innerEnabled: innerLength > 0,
       innerLength,
       innerThickness,
       innerOffset,
-      innerOpacity: ch.useAlpha ? clamp(ch.alpha / 255, 0.1, 1) : 1,
+      innerOpacity: alpha,
       outerEnabled: false,
+      firingError: !classicStatic,
+      movementError: !classicStatic,
     };
   }
 
   function valorantToCs2Settings(val) {
     const hex = valorantColorHex(val);
-    const rgb = hexToRgb(hex) || [50, 250, 50];
-    const colorIndex = val.colorIndex <= 7 ? val.colorIndex : 5;
+    const rgb = hexToRgb(hex) || [0, 255, 0];
+    // Outline on with opacity 0 is visually off (e.g. TenZ codes).
+    const outlines = Boolean(val.outlines && (val.outlineOpacity ?? 0.5) > 0);
+    const innerEnabled = val.innerEnabled !== false && (val.innerLength ?? 0) > 0;
+    const dynamic = Boolean(val.firingError || val.movementError);
 
     return {
-      gap: -clamp(Math.round(val.innerOffset), 0, 12),
-      outlineThickness: clamp(val.outlineThickness, 0, 3),
+      gap: clamp(round1((val.innerOffset ?? 0) - CS2_BASELINE_GAP), -10, 10),
+      outlineThickness: outlines ? clamp(val.outlineThickness || 1, 0, 3) : 1,
       r: rgb[0],
       g: rgb[1],
       b: rgb[2],
-      alpha: Math.round((val.innerOpacity || 1) * 255),
-      outline: val.outlines,
-      color: colorIndex === 8 ? 5 : clamp(colorIndex, 1, 5),
-      thickness: clamp(val.innerThickness / 2, 0.5, 6),
-      t: !val.innerEnabled,
+      alpha: clamp(Math.round((val.innerOpacity ?? 1) * 255), 0, 255),
+      outline: outlines,
+      color: 5,
+      thickness: clamp(round1((val.innerThickness ?? 2) * VAL_TO_CS2_THICKNESS), 0.1, 6),
+      t: false,
       useAlpha: true,
-      dot: val.dot,
-      style: 4,
-      size: clamp(Math.round(val.innerLength - 1), 0, 100),
+      dot: Boolean(val.dot),
+      style: dynamic ? 0 : 4,
+      size: innerEnabled ? clamp(round1((val.innerLength ?? 0) * VAL_TO_CS2_LENGTH), 0, 10) : 0,
+      splitDistance: 7,
+      followRecoil: false,
+      fixedCrosshairGap: 3,
+      innerSplitAlpha: 1,
+      outerSplitAlpha: 0.5,
+      splitSizeRatio: 1,
+      deployedWeaponGap: false,
     };
   }
 
@@ -423,11 +499,18 @@
       const decoded = decodeCs2ShareCode(trimmed);
       if (!decoded) return { ok: false, error: "Could not decode that CS2 share code." };
       const valSettings = cs2ToValorantSettings(decoded);
+      const warnings = [];
+      if (decoded.t) warnings.push("T-style (no top line) — Valorant has no equivalent.");
+      if (decoded.followRecoil) warnings.push("Follow recoil — Valorant does not support recoil-following crosshairs.");
+      if (decoded.deployedWeaponGap) warnings.push("Per-weapon gap — Valorant has no per-weapon gap control.");
+      if (decoded.gap < 0 && valSettings.innerOffset === 0) {
+        warnings.push(`Negative gap (${decoded.gap}) closes CS2's natural baseline — Valorant offset clamped to 0.`);
+      }
       return {
         ok: true,
         output: buildValorantCode(valSettings),
         preview: { game: "valorant", settings: valSettings },
-        warnings: decoded.t ? ["CS2 T-style crosshair — converted as a standard cross."] : [],
+        warnings,
       };
     }
 
