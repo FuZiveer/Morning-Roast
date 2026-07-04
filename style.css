@@ -3822,7 +3822,8 @@ body.reduce-motion .notify-toast {
     top: auto;
     left: auto;
     transform: none;
-    margin: -1.75rem 0;
+    align-self: center;
+    margin: -1.75rem auto;
     z-index: 5;
     transition: transform 300ms ease;
   }
@@ -7345,15 +7346,6 @@ button.scrollToTop {
   transition-timing-function: var(--button-motion-ease);
 }
 
-button.preset-btn,
-.preset-btn {
-  transition: all 300ms ease;
-}
-
-.preset-btn::before {
-  transition: all 300ms ease;
-}
-
 .trainer-settings-overlay,
 .app-status-panel,
 .app-sidebar-more-menu,
@@ -7415,6 +7407,51 @@ button.preset-btn,
   .settings-search-icon
 ) {
   transition-property: background-color, border-color, box-shadow, opacity, filter;
+}
+
+/* Preset buttons (eDPI + viewmodel): include transform; motion system omits it. */
+button.preset-btn {
+  transform: scale(1);
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: 300ms;
+  transition-timing-function: ease;
+}
+
+button.preset-btn::before {
+  transition-property: background-color, box-shadow;
+  transition-duration: 300ms;
+  transition-timing-function: ease;
+}
+
+button.preset-btn:hover {
+  background: hsl(from var(--accent-color) h s l / 0.05);
+  border-color: hsl(from var(--accent-color) h s l / 0.5);
+  color: hsl(0, 0%, 100%);
+  box-shadow: 0 0.25rem 0.75rem hsla(0, 0%, 0%, 0.3);
+}
+
+button.preset-btn:hover::before {
+  background: var(--accent-color);
+  box-shadow: 0 0 0.5rem var(--accent-color);
+}
+
+button.preset-btn:active {
+  transform: scale(0.95);
+  background: hsl(from var(--accent-color) h s l / 0.1);
+}
+
+button.preset-btn.active-preset {
+  background: hsl(from var(--accent-color) h s l / 0.1);
+  border-color: hsl(from var(--accent-color) h s l / 0.8);
+  color: hsl(0, 0%, 100%);
+  box-shadow: 0 0.25rem 0.75rem hsla(0, 0%, 0%, 0.3);
+  transform: scale(0.95);
+  pointer-events: none;
+}
+
+button.preset-btn.active-preset::before {
+  background: var(--accent-color);
+  box-shadow: 0 0 0.5rem var(--accent-color);
 }
 
 /* Reduced motion */
