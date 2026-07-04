@@ -5,7 +5,7 @@ const ASSETS = ["./", "./index.html", "./style.css", "./script.js", "./crosshair
 function isCacheableRequest(request) {
   const protocol = new URL(request.url).protocol;
   return protocol === "http:" || protocol === "https:";
-}
+} 
 
 function isMediaRequest(request, url) {
   // Range requests and media files must bypass the SW — caching/rewriting them breaks <video>.

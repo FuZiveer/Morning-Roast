@@ -12,7 +12,7 @@ function bindHeightResizeAnimation(el, { durationMs = 300, onSettle } = {}) {
   function settleHeight(animatedTo) {
     el.style.height = "";
     el.style.overflow = "";
-    el.style.transition = "";
+    el.style.transition = ""; 
     animating = false;
     const actual = el.offsetHeight;
     lastHeight = actual;
