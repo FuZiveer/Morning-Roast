@@ -1,4 +1,4 @@
-const CACHE = "morning-roast-v1"; // Keep in sync with APP_CACHE_VERSION in script.js
+const CACHE = "morning-roast-v2"; // Keep in sync with APP_CACHE_VERSION in script.js
 const ASSETS = ["./", "./index.html", "./style.css", "./script.js", "./crosshair-converter.js", "./viewmodel-generator.js", "./logo.png", "./manifest.webmanifest", "./assets/crosshair-preview-bg.png", "./assets/crosshair-preview-bg-2.png", "./assets/crosshair-preview-bg-3.png"];
 // PATH ROUTING: add "./404.html" to ASSETS when re-enabling GitHub Pages deep links.
 
@@ -7,8 +7,15 @@ function isCacheableRequest(request) {
   return protocol === "http:" || protocol === "https:";
 }
 
+function isMediaRequest(request, url) {
+  // Range requests and media files must bypass the SW — caching/rewriting them breaks <video>.
+  if (request.headers.has("range")) return true;
+  if (request.destination === "video" || request.destination === "audio") return true;
+  return /\.(mp4|webm|ogg|mp3|wav|m4a|mov)(\?|$)/i.test(url.pathname);
+}
+
 function putInCache(request, response) {
-  if (!isCacheableRequest(request) || !response?.ok) return;
+  if (!isCacheableRequest(request) || !response?.ok || response.status === 206) return;
   caches
     .open(CACHE)
     .then((cache) => cache.put(request, response))
@@ -39,8 +46,10 @@ self.addEventListener("fetch", (e) => {
 
   const url = new URL(req.url);
 
-  // Network-first for same-origin navigation/core assets so updates land fast,
-  // falling back to cache when offline. Cache-first for everything else.
+  // Browser handles media natively (range requests, progressive download).
+  if (isMediaRequest(req, url)) return;
+
+  // Network-first for same-origin so updates land fast, falling back to cache when offline.
   if (url.origin === self.location.origin) {
     e.respondWith(
       fetch(req)
@@ -48,7 +57,15 @@ self.addEventListener("fetch", (e) => {
           putInCache(req, res.clone());
           return res;
         })
-        .catch(() => caches.match(req).then((r) => r || caches.match("./index.html"))),
+        .catch(() =>
+          caches.match(req).then((cached) => {
+            if (cached) return cached;
+            if (req.mode === "navigate" || req.destination === "document") {
+              return caches.match("./index.html");
+            }
+            return undefined;
+          }),
+        ),
     );
     return;
   }
