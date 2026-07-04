@@ -101,17 +101,19 @@ const Toast = (() => {
     return stack;
   }
 
+  let cachedNavBar = null;
+
   function applyReposition() {
     const stack = document.getElementById("toast-stack");
-    if (!stack) return;
+    if (!stack || !stack.children.length) return;
 
-    const navBar = document.querySelector(".nav-bar");
+    if (!cachedNavBar) cachedNavBar = document.querySelector(".nav-bar");
     const gap = stackGapPx();
     const defaultTop = gap;
 
     let toastTop = defaultTop;
-    if (navBar) {
-      const navBottom = navBar.getBoundingClientRect().bottom;
+    if (cachedNavBar) {
+      const navBottom = cachedNavBar.getBoundingClientRect().bottom;
       if (navBottom > defaultTop) {
         toastTop = navBottom + gap;
       }
@@ -121,23 +123,21 @@ const Toast = (() => {
   }
 
   function reposition() {
-    applyReposition();
+    const stack = document.getElementById("toast-stack");
+    if (!stack || !stack.children.length) return;
     cancelAnimationFrame(repositionFrame);
-    repositionFrame = requestAnimationFrame(() => {
-      applyReposition();
-      requestAnimationFrame(applyReposition);
-    });
+    repositionFrame = requestAnimationFrame(applyReposition);
   }
 
   function initLayoutWatchers() {
     if (layoutWatchInit) return;
     layoutWatchInit = true;
 
-    const navBar = document.querySelector(".nav-bar");
+    cachedNavBar = document.querySelector(".nav-bar");
     const stack = document.getElementById("toast-stack");
 
     if (typeof ResizeObserver !== "undefined") {
-      if (navBar) new ResizeObserver(() => reposition()).observe(navBar);
+      if (cachedNavBar) new ResizeObserver(() => reposition()).observe(cachedNavBar);
       if (stack) new ResizeObserver(() => reposition()).observe(stack);
     }
 
@@ -746,6 +746,44 @@ const trainerConfigs = {
 
 const SUPPORTED_GAMES = Object.freeze(Object.keys(trainerConfigs).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })));
 
+/** Simple Icons brand marks for game dropdown options. */
+const GAME_ICON_BRANDS = Object.freeze({
+  Valorant: { slug: "valorant", color: "FF4655" },
+  CS2: { slug: "counterstrike", color: "DE9B35" },
+  "Apex Legends": { slug: "apexlegends", color: "DA292A" },
+  Fortnite: { slug: "fortnite", color: "9D4DBB" },
+  "Overwatch 2": { slug: "overwatch", color: "F99E1A" },
+  "Rainbow Six Siege": { slug: "ubisoft", color: "0080FF" },
+  Roblox: { slug: "roblox", color: "E2231A" },
+  "osu!": { slug: "osu", color: "FF66AA" },
+  "Call of Duty: Black Ops 7": { slug: "callofduty", color: "8B8B8B" },
+});
+
+function getGameIconSrc(gameName) {
+  const brand = GAME_ICON_BRANDS[gameName];
+  if (!brand) return "";
+  return `https://cdn.simpleicons.org/${brand.slug}/${brand.color}`;
+}
+
+function getGameIconFallbackColor(gameName) {
+  return edpiPresets[gameName]?.color || "hsl(0, 0%, 55%)";
+}
+
+function getGameIconInitial(gameName) {
+  const cleaned = String(gameName || "").replace(/^[^A-Za-z0-9]+/, "");
+  return (cleaned.charAt(0) || "?").toUpperCase();
+}
+
+function renderGameOptionIcon(gameName) {
+  const src = getGameIconSrc(gameName);
+  if (src) {
+    return `<img class="game-option-icon" src="${src}" alt="" width="18" height="18" loading="lazy" decoding="async" />`;
+  }
+  const color = getGameIconFallbackColor(gameName);
+  const initial = getGameIconInitial(gameName);
+  return `<span class="game-option-icon game-option-icon--fallback" style="--game-icon-color:${color}" aria-hidden="true">${initial}</span>`;
+}
+
 const TRAINER_MODES = Object.freeze([
   { id: "static", label: "Static", icon: "ri-focus-3-line", scoreType: "hits", maxTargets: 4, spawnBand: { yaw: 0.2, pitch: 0.1 } },
   { id: "shrinking", label: "Shrink", icon: "ri-contract-left-right-line", scoreType: "hits", maxTargets: 4, spawnBand: { yaw: 0.2, pitch: 0.1 } },
@@ -1234,7 +1272,10 @@ function initTrainerTimerDropdown(savedTimer) {
 
 function renderGameOptions(list, valueAttr = "data-game") {
   if (!list) return;
-  list.innerHTML = SUPPORTED_GAMES.map((name) => `<button type="button" class="pref-dropdown-option" ${valueAttr}="${name}" role="option"><i class="ri-gamepad-line pref-dropdown-option-icon" aria-hidden="true"></i><span>${name}</span></button>`).join("");
+  list.innerHTML = SUPPORTED_GAMES.map(
+    (name) =>
+      `<button type="button" class="pref-dropdown-option" ${valueAttr}="${name}" role="option">${renderGameOptionIcon(name)}<span>${name}</span></button>`,
+  ).join("");
 }
 
 function getGameOptionLabel(opt) {
@@ -2428,7 +2469,7 @@ function positionToggleGlider(container) {
 }
 
 const GLIDER_SELECTOR_CONTAINERS =
-  ".trainer-timer-selector, .trainer-toggle-selector, .trainer-spread-selector, .trainer-mode-trigger, .profile-mode-selector, .profile-timer-selector, .lineup-game-selector, .crosshair-converter-zoom-selector";
+  ".trainer-timer-selector, .trainer-toggle-selector, .trainer-spread-selector, .trainer-mode-trigger, .profile-mode-selector, .profile-timer-selector, .crosshair-converter-zoom-selector";
 
 function updateAllToggleGliders() {
   document.querySelectorAll(GLIDER_SELECTOR_CONTAINERS).forEach(positionToggleGlider);
@@ -3688,7 +3729,18 @@ const aimTrainer = {
     window.addEventListener("resize", () => this.updateAllGliders());
     setTimeout(() => this.updateAllGliders(), 100);
     this.observeGliders();
-    this.loop();
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) this.stopLoop();
+      else this.resumeLoop();
+    });
+    document.addEventListener("fullscreenchange", () => {
+      if (this.shouldRunLoop()) this.resumeLoop();
+      else this.stopLoop();
+    });
+
+    if (this.shouldRunLoop()) this.resumeLoop();
+    else this.render();
   },
 
   restartSession() {
@@ -3988,8 +4040,8 @@ const aimTrainer = {
       for (let i = 0; i < count; i++) this.spawnTarget();
     }
 
-    if (this.animationId) nativeCancelAnimationFrame(this.animationId);
-    this.loop();
+    this.stopLoop();
+    this.resumeLoop();
   },
 
   randomizeSessionSensitivity() {
@@ -4257,6 +4309,30 @@ const aimTrainer = {
 
   isStandbyScreen() {
     return !document.fullscreenElement || (!this.active && !this.showResults && !this.isCountingDown);
+  },
+
+  isAimTabVisible() {
+    const tab = document.getElementById("aim-training-tab");
+    return !!tab && tab.style.display !== "none";
+  },
+
+  shouldRunLoop() {
+    if (document.hidden) return false;
+    if (document.fullscreenElement === this.canvas || document.fullscreenElement?.contains?.(this.canvas)) return true;
+    return this.isAimTabVisible();
+  },
+
+  stopLoop() {
+    if (this.animationId) {
+      nativeCancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+  },
+
+  resumeLoop() {
+    if (this.animationId || !this.shouldRunLoop()) return;
+    this.lastFrameTime = performance.now();
+    this.loop();
   },
 
   getRoundedRectPerimeterPoint(cx, cy, hw, hh, r, t) {
@@ -4539,23 +4615,23 @@ const aimTrainer = {
     }
   },
 
-  drawStandbyParticles() {
+  drawStandbyParticles(fillColor = accentColor(), glowSoft = accentAlpha(0.45), glowStrong = accentAlpha(0.75)) {
     this.ctx.save();
     this.particles.forEach((p) => {
       const glow = p.scanGlow || 0;
       if (glow > 0.04) {
         this.ctx.globalAlpha = p.alpha * glow * 0.42;
-        this.ctx.fillStyle = accentColor();
+        this.ctx.fillStyle = fillColor;
         this.ctx.shadowBlur = 14 + glow * 22;
-        this.ctx.shadowColor = accentAlpha(0.75);
+        this.ctx.shadowColor = glowStrong;
         this.ctx.beginPath();
         this.ctx.arc(p.x, p.y, p.size * (1 + glow * 1.15), 0, Math.PI * 2);
         this.ctx.fill();
       }
       this.ctx.globalAlpha = p.alpha * (1 + glow * 0.5);
-      this.ctx.fillStyle = accentColor();
+      this.ctx.fillStyle = fillColor;
       this.ctx.shadowBlur = 5 + glow * 18;
-      this.ctx.shadowColor = accentAlpha(0.45 + glow * 0.4);
+      this.ctx.shadowColor = glow > 0.04 ? glowStrong : glowSoft;
       this.ctx.beginPath();
       this.ctx.arc(p.x, p.y, p.size * (1 + glow * 0.4), 0, Math.PI * 2);
       this.ctx.fill();
@@ -4681,6 +4757,11 @@ const aimTrainer = {
   },
 
   loop() {
+    if (!this.shouldRunLoop()) {
+      this.animationId = null;
+      return;
+    }
+
     const now = performance.now();
     const dt = (now - this.lastFrameTime) / 1000;
     this.lastFrameTime = now;
@@ -5617,19 +5698,26 @@ const aimTrainer = {
 
     const showParticles = isStandby || this.showResults;
 
+    const frameAccent = showParticles || isStandby ? accentColor() : null;
+    const frameAccentAlpha04 = isStandby ? accentAlpha(0.4) : null;
+    const frameAccentAlpha045 = showParticles ? accentAlpha(0.45) : null;
+    const frameAccentAlpha075 = showParticles ? accentAlpha(0.75) : null;
+
     if (showParticles) {
       this.ensureStandbyParticles();
-      this.drawStandbyParticles();
+      this.drawStandbyParticles(frameAccent, frameAccentAlpha045, frameAccentAlpha075);
     }
 
     if (isStandby) {
       this.drawStandbyGrid(time);
       const overBubble = this.isPointInStandbyBubble(this.mx, this.my);
-      this.standbyCanvasHover = overBubble;
-      this.canvas.style.cursor = overBubble ? "pointer" : "default";
+      if (overBubble !== this.standbyCanvasHover) {
+        this.standbyCanvasHover = overBubble;
+        this.canvas.style.cursor = overBubble ? "pointer" : "default";
+      }
 
       const scanY = this.getStandbyScanY(time);
-      this.ctx.strokeStyle = accentAlpha(0.4);
+      this.ctx.strokeStyle = frameAccentAlpha04;
       this.ctx.beginPath();
       this.ctx.moveTo(0, scanY);
       this.ctx.lineTo(this.canvas.width, scanY);
@@ -5665,7 +5753,7 @@ const aimTrainer = {
         time,
       });
 
-      this.ctx.strokeStyle = accentColor();
+      this.ctx.strokeStyle = frameAccent;
       this.ctx.lineWidth = 2;
       this.ctx.beginPath();
       const bGap = 20,
@@ -6345,6 +6433,22 @@ const LINEUP_DIFFICULTY_STORAGE_KEY = "lineupDifficulty";
 const LINEUP_MAP_STORAGE_PREFIX = "lineupMap:";
 const LINEUP_SEARCH_STORAGE_PREFIX = "lineupSearch:";
 const LINEUP_GAMES = new Set(["valorant", "cs2"]);
+const LINEUP_GAME_OPTIONS = {
+  valorant: {
+    label: "Valorant",
+    gameName: "Valorant",
+    get iconSrc() {
+      return getGameIconSrc("Valorant");
+    },
+  },
+  cs2: {
+    label: "CS2",
+    gameName: "CS2",
+    get iconSrc() {
+      return getGameIconSrc("CS2");
+    },
+  },
+};
 const LINEUP_SIDES = new Set(["all", "attacker", "defender"]);
 const LINEUP_DIFFICULTY_LEVELS = ["1", "2", "3", "4", "5"];
 const LINEUP_MAPS = {
@@ -6355,11 +6459,19 @@ const LINEUP_MAPS = {
 /** CS2 utility badge icons (smoke, molotov, incendiary, HE, flashbang). */
 const LINEUP_CS2_UTILITIES = new Set(["smoke", "molotov", "incendiary", "he", "flashbang"]);
 const LINEUP_CS2_UTILITY_ICONS = {
-  smoke: "https://tinyurl.com/yefcvrka",
-  molotov: "https://tinyurl.com/bdzcd6yv",
-  incendiary: "https://tinyurl.com/tx2ey2vt",
-  he: "https://tinyurl.com/mr2nd7xf",
-  flashbang: "https://tinyurl.com/35ssf4eb",
+  smoke: "assets/lineup-utilities/cs2/smoke.png",
+  molotov: "assets/lineup-utilities/cs2/molotov.png",
+  incendiary: "assets/lineup-utilities/cs2/incendiary.png",
+  he: "assets/lineup-utilities/cs2/he.png",
+  flashbang: "assets/lineup-utilities/cs2/flashbang.png",
+};
+const LINEUP_CS2_SIDE_ICONS = {
+  attacker: "assets/lineup-utilities/cs2/t.svg",
+  defender: "assets/lineup-utilities/cs2/ct.svg",
+};
+const LINEUP_CS2_SIDE_LABELS = {
+  attacker: "T",
+  defender: "CT",
 };
 const LINEUP_CS2_UTILITY_LABELS = {
   smoke: "Smoke grenade",
@@ -6414,10 +6526,10 @@ const LINEUP_VALORANT_AGENT_LABELS = {
 
 const LINEUP_VALORANT_UTILITIES = new Set(["smoke", "flash", "molly", "recon"]);
 const LINEUP_VALORANT_UTILITY_ICONS = {
-  smoke: "https://media.valorant-api.com/agents/9f0d8ba9-4140-b941-57d3-a7ad57c6b417/abilities/ability2/displayicon.png",
-  flash: "https://media.valorant-api.com/agents/6f2a04ca-43e0-be17-7f36-b3908627744d/abilities/ability2/displayicon.png",
-  molly: "https://media.valorant-api.com/agents/9f0d8ba9-4140-b941-57d3-a7ad57c6b417/abilities/ability1/displayicon.png",
-  recon: "https://media.valorant-api.com/agents/320b2a48-4d9b-a075-30f1-1f93a9b638fa/abilities/ability2/displayicon.png",
+  smoke: "assets/lineup-utilities/valorant/smoke.png",
+  flash: "assets/lineup-utilities/valorant/flash.png",
+  molly: "assets/lineup-utilities/valorant/molly.png",
+  recon: "assets/lineup-utilities/valorant/recon.png",
 };
 const LINEUP_VALORANT_UTILITY_LABELS = {
   smoke: "Smoke",
@@ -6851,12 +6963,14 @@ function resolveCs2UtilityIconKey(card, utility) {
 
 function getLineupUtilityIconSrc(game, utility, card) {
   if (!utility) return null;
+  let path = null;
   if (game === "cs2") {
     const key = resolveCs2UtilityIconKey(card, utility);
-    return LINEUP_CS2_UTILITY_ICONS[key] || null;
+    path = LINEUP_CS2_UTILITY_ICONS[key] || null;
+  } else if (game === "valorant") {
+    path = LINEUP_VALORANT_UTILITY_ICONS[utility] || null;
   }
-  if (game === "valorant") return LINEUP_VALORANT_UTILITY_ICONS[utility] || null;
-  return null;
+  return path ? resolveAppAssetUrl(path) : null;
 }
 
 function getLineupUtilityLabel(game, utility, card) {
@@ -7045,11 +7159,12 @@ function getLineupCs2UtilityInfo(card, utility = getLineupCardUtility(card)) {
   const description = LINEUP_CS2_UTILITY_DESCRIPTIONS[key];
   if (!description) return null;
 
+  const iconPath = LINEUP_CS2_UTILITY_ICONS[key] || "";
   return {
     key,
     label: LINEUP_CS2_UTILITY_LABELS[key] || key,
     description,
-    icon: LINEUP_CS2_UTILITY_ICONS[key] || "",
+    icon: iconPath ? resolveAppAssetUrl(iconPath) : "",
     meta: "Grenade utility",
   };
 }
@@ -7222,13 +7337,65 @@ function renderLineupVideoAgentBadge(card) {
   if (!embed) return;
 
   if (game === "valorant") {
+    embed.querySelector(".lineup-video-side-badge")?.remove();
     renderLineupValorantEmbedBadges(card);
     return;
   }
 
-  embed.querySelector(".lineup-video-embed-badges")?.remove();
+  if (game !== "cs2") {
+    embed.querySelector(".lineup-video-embed-badges")?.remove();
+    embed.querySelector(".lineup-video-agent-badge")?.remove();
+    embed.querySelector(".lineup-video-ability-badge")?.remove();
+    embed.querySelector(".lineup-video-side-badge")?.remove();
+  }
+}
+
+function renderLineupCs2EmbedBadges(card) {
+  const embed = card.querySelector(".lineup-video-embed");
+  if (!embed) return;
+
+  embed.querySelectorAll(":scope > .lineup-video-utility-badge, :scope > .lineup-video-side-badge").forEach((el) => el.remove());
   embed.querySelector(".lineup-video-agent-badge")?.remove();
   embed.querySelector(".lineup-video-ability-badge")?.remove();
+
+  const utility = getLineupCardUtility(card);
+  const utilitySrc = getLineupUtilityIconSrc("cs2", utility, card);
+  const side = (card.dataset.lineupSide || "").toLowerCase();
+  const sidePath = LINEUP_CS2_SIDE_ICONS[side];
+
+  if (!utilitySrc && !sidePath) {
+    embed.querySelector(".lineup-video-embed-badges")?.remove();
+    return;
+  }
+
+  const row = ensureLineupEmbedBadgeRow(embed);
+  row.classList.add("lineup-video-embed-badges--cs2");
+  row.replaceChildren();
+
+  if (utilitySrc) {
+    const utilityLabel = getLineupUtilityLabel("cs2", utility, card);
+    const badge = document.createElement("button");
+    badge.type = "button";
+    badge.className = "lineup-video-utility-badge";
+    badge.dataset.lineupCs2Utility = utility;
+    badge.setAttribute("aria-label", `About ${utilityLabel}`);
+    badge.classList.add(side === "defender" ? "lineup-video-utility-badge--cs2-ct" : "lineup-video-utility-badge--cs2-t");
+    badge.innerHTML = `<img src="${utilitySrc}" alt="" loading="lazy" decoding="async" />`;
+    row.appendChild(badge);
+  }
+
+  if (sidePath) {
+    const label = LINEUP_CS2_SIDE_LABELS[side] || side;
+    const badge = document.createElement("div");
+    badge.className = "lineup-video-side-badge";
+    badge.dataset.lineupSide = side;
+    badge.classList.toggle("lineup-video-side-badge--t", side === "attacker");
+    badge.classList.toggle("lineup-video-side-badge--ct", side === "defender");
+    badge.title = label;
+    badge.setAttribute("aria-hidden", "true");
+    badge.innerHTML = `<img src="${resolveAppAssetUrl(sidePath)}" alt="" loading="lazy" decoding="async" />`;
+    row.appendChild(badge);
+  }
 }
 
 function getLineupCs2Utility(card) {
@@ -7246,57 +7413,44 @@ function getLineupCs2Utility(card) {
 
 function renderLineupVideoUtilityBadge(card) {
   const game = getLineupGameForCard(card);
-  if (game !== "cs2" && game !== "valorant") return;
+  if (game === "cs2") {
+    renderLineupCs2EmbedBadges(card);
+    return;
+  }
+  if (game !== "valorant") return;
 
   const embed = card.querySelector(".lineup-video-embed");
   if (!embed) return;
 
   const utility = getLineupCardUtility(card);
   const src = getLineupUtilityIconSrc(game, utility, card);
-  let badge = embed.querySelector(".lineup-video-utility-badge");
+  let badge = embed.querySelector(":scope > .lineup-video-utility-badge");
 
   if (!src) {
     badge?.remove();
     return;
   }
 
-  const isCs2 = game === "cs2";
-  if (badge && (isCs2 ? badge.tagName !== "BUTTON" : badge.tagName !== "DIV")) {
+  if (badge && badge.tagName !== "DIV") {
     badge.remove();
     badge = null;
   }
 
   if (!badge) {
-    badge = document.createElement(isCs2 ? "button" : "div");
+    badge = document.createElement("div");
     badge.className = "lineup-video-utility-badge";
-    if (isCs2) {
-      badge.type = "button";
-    } else {
-      badge.setAttribute("aria-hidden", "true");
-    }
+    badge.setAttribute("aria-hidden", "true");
     embed.appendChild(badge);
   }
 
   const label = getLineupUtilityLabel(game, utility, card);
-  if (isCs2) {
-    badge.dataset.lineupCs2Utility = utility;
-    badge.setAttribute("aria-label", `About ${label}`);
-    badge.removeAttribute("aria-hidden");
-    badge.removeAttribute("title");
-  } else {
-    delete badge.dataset.lineupCs2Utility;
-    badge.title = label;
-    badge.setAttribute("aria-hidden", "true");
-    badge.removeAttribute("aria-label");
-  }
-
+  delete badge.dataset.lineupCs2Utility;
+  badge.title = label;
+  badge.setAttribute("aria-hidden", "true");
+  badge.removeAttribute("aria-label");
   badge.innerHTML = `<img src="${src}" alt="" loading="lazy" decoding="async" />`;
-  badge.classList.toggle("lineup-video-utility-badge--valorant", game === "valorant");
+  badge.classList.add("lineup-video-utility-badge--valorant");
   badge.classList.remove("lineup-video-utility-badge--cs2-t", "lineup-video-utility-badge--cs2-ct");
-  if (isCs2) {
-    const side = (card.dataset.lineupSide || "").toLowerCase();
-    badge.classList.add(side === "defender" ? "lineup-video-utility-badge--cs2-ct" : "lineup-video-utility-badge--cs2-t");
-  }
 }
 
 function enhanceLineupVideoCardFoots(root = document) {
@@ -7305,6 +7459,17 @@ function enhanceLineupVideoCardFoots(root = document) {
     renderLineupVideoAgentBadge(card);
     renderLineupVideoUtilityBadge(card);
   });
+}
+
+function syncLineupSideFilterIcons(game = getActiveLineupGame()) {
+  const showCs2 = game === "cs2";
+  document.querySelectorAll(".lineup-side-icon[data-lineup-side-icon]").forEach((icon) => {
+    const side = icon.dataset.lineupSideIcon;
+    const path = LINEUP_CS2_SIDE_ICONS[side];
+    if (path) icon.src = resolveAppAssetUrl(path);
+    icon.hidden = !showCs2;
+  });
+  document.getElementById("lineup-side-selector")?.classList.toggle("lineup-side-selector--cs2", showCs2);
 }
 
 function getLineupGameForCard(card) {
@@ -7340,9 +7505,10 @@ function getLineupCardCallout(card) {
 
 function applyLineupSearchHighlights(game = getActiveLineupGame()) {
   const lineupTab = document.getElementById("lineup-tab");
+  if (lineupTab) clearSettingsSearchHighlights(lineupTab);
+  if (!game) return;
   const grid = getLineupGrid(game);
   const query = getLineupSearchQuery(game).trim();
-  if (lineupTab) clearSettingsSearchHighlights(lineupTab);
   if (!query || !grid) return;
 
   const filters = getLineupFilters(game);
@@ -7355,11 +7521,12 @@ function applyLineupSearchHighlights(game = getActiveLineupGame()) {
 }
 
 function getActiveLineupGame() {
-  const game = localStorage.getItem(LINEUP_GAME_STORAGE_KEY) || "valorant";
-  return LINEUP_GAMES.has(game) ? game : "valorant";
+  const game = localStorage.getItem(LINEUP_GAME_STORAGE_KEY);
+  return LINEUP_GAMES.has(game) ? game : null;
 }
 
 function getLineupGrid(game = getActiveLineupGame()) {
+  if (!game) return null;
   return document.getElementById(`lineup-${game}-grid`);
 }
 
@@ -7389,6 +7556,7 @@ function lineupGameHasVideos(game = getActiveLineupGame()) {
 }
 
 function resolveLineupMapFilter(game = getActiveLineupGame()) {
+  if (!game) return "all";
   const stored = localStorage.getItem(`${LINEUP_MAP_STORAGE_PREFIX}${game}`) || "all";
   if (stored === "all") return "all";
   if (!lineupMapFromSlug(stored, game)) return "all";
@@ -7469,11 +7637,21 @@ function renderLineupMapTriggerIcon(game, slug) {
 }
 
 function syncLineupMapDropdownUi(game = getActiveLineupGame()) {
-  const map = resolveLineupMapFilter(game);
-  localStorage.setItem(`${LINEUP_MAP_STORAGE_PREFIX}${game}`, map);
-
   const input = document.getElementById("lineup-map-search");
   const list = document.getElementById("lineup-map-list");
+
+  if (!game) {
+    renderLineupMapTriggerIcon(null, "all");
+    if (input && document.activeElement !== input) {
+      input.value = "All maps";
+      input.dataset.lastValid = "all";
+    }
+    list?.querySelectorAll("[data-lineup-map]").forEach((opt) => opt.classList.remove("active"));
+    return;
+  }
+
+  const map = resolveLineupMapFilter(game);
+  localStorage.setItem(`${LINEUP_MAP_STORAGE_PREFIX}${game}`, map);
   const label = getLineupMapDisplayLabel(map, game);
 
   renderLineupMapTriggerIcon(game, map);
@@ -7501,6 +7679,7 @@ function showLineupMapList() {
   if (!list || !trigger) return;
 
   hideAllGameDropdownLists();
+  initLineupGameDropdown.close?.();
   initTrainerModeDropdown.close?.();
   initTrainerTimerDropdown.close?.();
   initTrainerAspectDropdown.close?.();
@@ -7619,6 +7798,7 @@ function getLineupCardSearchText(card) {
 }
 
 function getLineupSearchQuery(game = getActiveLineupGame()) {
+  if (!game) return "";
   return localStorage.getItem(`${LINEUP_SEARCH_STORAGE_PREFIX}${game}`) || "";
 }
 
@@ -7734,29 +7914,45 @@ function isLineupCardDisplayed(card) {
 }
 
 function getLineupGridColumnCount(grid) {
-  const template = getComputedStyle(grid).gridTemplateColumns || "";
-  const cols = template.split(" ").filter((part) => part && part !== "0px").length;
-  return cols || 1;
+  const styles = getComputedStyle(grid);
+  const template = styles.gridTemplateColumns || "";
+  const cols = template.split(/\s+/).filter((part) => part && part !== "0px" && part !== "none").length;
+  if (cols > 0) return cols;
+
+  const gap = parseFloat(styles.columnGap || styles.gap) || 16;
+  const minCol = 17.5 * 16;
+  const width = grid.clientWidth;
+  if (!width) return 1;
+  return Math.max(1, Math.floor((width + gap) / (minCol + gap)));
 }
 
-function measureLineupVideosMaxHeight(panel) {
+function measureLineupVideosFixedHeight(panel) {
   const grid = panel?.querySelector(".lineup-video-grid");
-  const sampleCard = grid?.querySelector(".lineup-video-card");
-  if (!grid || !sampleCard) return null;
+  if (!grid) return null;
 
+  const gridWidth = grid.clientWidth;
+  if (!gridWidth) return null;
+
+  const styles = getComputedStyle(grid);
+  const gap = parseFloat(styles.rowGap || styles.gap) || 16;
   const cols = getLineupGridColumnCount(grid);
   const rows = Math.ceil(LINEUP_MAX_VISIBLE_BEFORE_SCROLL / cols);
-  const cardHeight = sampleCard.getBoundingClientRect().height;
-  const gap = parseFloat(getComputedStyle(grid).rowGap || getComputedStyle(grid).gap) || 16;
+  const cardWidth = (gridWidth - gap * Math.max(0, cols - 1)) / cols;
+  // Embed is aspect-ratio 16/9; foot uses min-height 4.25rem (border-box).
+  const cardHeight = cardWidth * (9 / 16) + 4.25 * 16;
   const gridHeight = rows * cardHeight + Math.max(0, rows - 1) * gap;
 
   const title = panel.querySelector(":scope > .settings-section-title");
   const titleStyle = title ? getComputedStyle(title) : null;
-  const titleBlock = title ? title.offsetHeight + parseFloat(titleStyle.marginTop || 0) + parseFloat(titleStyle.marginBottom || 0) : 0;
+  const titleBlock = title
+    ? title.offsetHeight + parseFloat(titleStyle.marginTop || 0) + parseFloat(titleStyle.marginBottom || 0)
+    : 0;
 
   const holder = panel.closest(".lineup-videos-holder");
   const holderStyle = holder ? getComputedStyle(holder) : null;
-  const holderPadding = holderStyle ? parseFloat(holderStyle.paddingTop || 0) + parseFloat(holderStyle.paddingBottom || 0) : 0;
+  const holderPadding = holderStyle
+    ? parseFloat(holderStyle.paddingTop || 0) + parseFloat(holderStyle.paddingBottom || 0)
+    : 0;
 
   return holderPadding + titleBlock + gridHeight;
 }
@@ -7768,25 +7964,54 @@ function releaseLineupVideosHolderHeight(holder = document.querySelector(".lineu
   holder.style.transition = "";
 }
 
+function clearLineupVideosHolderFixedHeight(holder = document.querySelector(".lineup-videos-holder")) {
+  if (!holder) return;
+  holder.classList.remove("lineup-videos-holder--fixed");
+  holder.style.removeProperty("--lineup-videos-fixed-height");
+  releaseLineupVideosHolderHeight(holder);
+}
+
 function updateLineupVideosScrollState(game = getActiveLineupGame()) {
   const holder = document.querySelector(".lineup-videos-holder");
+  if (!holder) return;
+
+  if (!game) {
+    clearLineupVideosHolderFixedHeight(holder);
+    return;
+  }
+
   const panel = document.getElementById(`lineup-${game}-panel`);
   const grid = getLineupGrid(game);
-  if (!holder || !panel || !grid) return;
-
-  const visibleCount = [...grid.querySelectorAll(".lineup-video-card")].filter(isLineupCardDisplayed).length;
-  const scrollable = visibleCount > LINEUP_MAX_VISIBLE_BEFORE_SCROLL;
-
-  if (scrollable) {
-    const maxHeight = measureLineupVideosMaxHeight(panel);
-    if (maxHeight != null) holder.style.setProperty("--lineup-videos-max-height", `${Math.ceil(maxHeight)}px`);
-    holder.classList.add("lineup-videos-holder--scrollable");
-    releaseLineupVideosHolderHeight(holder);
-  } else {
-    holder.classList.remove("lineup-videos-holder--scrollable");
-    holder.style.removeProperty("--lineup-videos-max-height");
-    releaseLineupVideosHolderHeight(holder);
+  if (!panel || !grid) {
+    clearLineupVideosHolderFixedHeight(holder);
+    return;
   }
+
+  // Clear any stale resize-animation inline styles from older builds.
+  delete holder.dataset.resizeBound;
+  delete holder.dataset.resizeReady;
+  releaseLineupVideosHolderHeight(holder);
+
+  const fixedHeight = measureLineupVideosFixedHeight(panel);
+  if (fixedHeight == null) {
+    clearLineupVideosHolderFixedHeight(holder);
+    const lineupTab = document.getElementById("lineup-tab");
+    if (lineupTab && lineupTab.style.display !== "none") {
+      scheduleLineupVideosScrollStateUpdate();
+    }
+    return;
+  }
+
+  holder.style.setProperty("--lineup-videos-fixed-height", `${Math.ceil(fixedHeight)}px`);
+  holder.classList.add("lineup-videos-holder--fixed");
+}
+
+function refreshLineupVideosFixedHeight(game = getActiveLineupGame()) {
+  updateLineupVideosScrollState(game);
+  requestAnimationFrame(() => {
+    updateLineupVideosScrollState(game);
+    scheduleLineupVideosScrollStateUpdate();
+  });
 }
 
 function clearLineupCardLeaveTimer(card) {
@@ -7853,29 +8078,81 @@ function setLineupCardVisible(card, show, { onComplete } = {}) {
   }, LINEUP_CARD_FADE_MS);
 }
 
+function syncLineupFiltersVisibility(game = getActiveLineupGame()) {
+  const container = document.getElementById("lineup-filters-container");
+  const hasGame = LINEUP_GAMES.has(game);
+  if (!container) return;
+  container.hidden = !hasGame;
+  container.classList.toggle("hidden", !hasGame);
+}
+
 function switchLineupGamePanels(nextGame) {
+  const activeGame = LINEUP_GAMES.has(nextGame) ? nextGame : "";
+
   document.querySelectorAll("[data-lineup-game-panel]").forEach((panel) => {
-    const show = panel.dataset.lineupGamePanel === nextGame;
+    const show = !!activeGame && panel.dataset.lineupGamePanel === activeGame;
     panel.classList.toggle("hidden", !show);
     panel.hidden = !show;
   });
 
   const selector = document.getElementById("lineup-game-selector");
-  if (selector) selector.dataset.activeGame = nextGame;
-  document.querySelector(".lineup-videos-holder")?.setAttribute("data-active-game", nextGame);
+  if (selector) selector.dataset.activeGame = activeGame;
+  document.querySelector(".lineup-videos-holder")?.setAttribute("data-active-game", activeGame);
+  syncLineupFiltersVisibility(activeGame || null);
 }
 
 function syncLineupGameSelectorUi(game = getActiveLineupGame()) {
   const selector = document.getElementById("lineup-game-selector");
+  const label = document.getElementById("lineup-game-label");
+  const iconHost = document.getElementById("lineup-game-icon");
+  const list = document.getElementById("lineup-game-list");
+  const clearBtn = document.getElementById("lineup-game-clear");
   if (!selector) return;
 
-  selector.dataset.activeGame = game;
-  selector.querySelectorAll(".toggle-btn[data-lineup-game]").forEach((btn) => {
-    const active = btn.dataset.lineupGame === game;
-    btn.classList.toggle("active", active);
-    btn.setAttribute("aria-selected", active ? "true" : "false");
+  const activeGame = LINEUP_GAMES.has(game) ? game : "";
+  const option = activeGame ? LINEUP_GAME_OPTIONS[activeGame] : null;
+
+  selector.dataset.activeGame = activeGame;
+  selector.dataset.value = activeGame;
+  selector.classList.toggle("has-game", !!activeGame);
+  if (label) label.textContent = option?.label || "Select game";
+  if (clearBtn) {
+    clearBtn.hidden = !activeGame;
+    clearBtn.style.display = activeGame ? "flex" : "none";
+  }
+
+  if (iconHost) {
+    if (option?.iconSrc) {
+      if (iconHost.tagName === "IMG") {
+        iconHost.className = "game-option-icon";
+        iconHost.src = option.iconSrc;
+      } else {
+        const img = document.createElement("img");
+        img.id = "lineup-game-icon";
+        img.className = "game-option-icon";
+        img.src = option.iconSrc;
+        img.alt = "";
+        img.width = 18;
+        img.height = 18;
+        img.decoding = "async";
+        iconHost.replaceWith(img);
+      }
+    } else if (iconHost.tagName === "IMG") {
+      const icon = document.createElement("i");
+      icon.id = "lineup-game-icon";
+      icon.className = "ri-gamepad-line pref-dropdown-icon";
+      icon.setAttribute("aria-hidden", "true");
+      iconHost.replaceWith(icon);
+    } else {
+      iconHost.className = "ri-gamepad-line pref-dropdown-icon";
+    }
+  }
+
+  list?.querySelectorAll("[data-lineup-game]").forEach((opt) => {
+    const active = opt.dataset.lineupGame === activeGame;
+    opt.classList.toggle("active", active);
+    opt.setAttribute("aria-selected", active ? "true" : "false");
   });
-  positionToggleGlider(selector);
 }
 
 function countVisibleLineupCards(grid) {
@@ -7998,7 +8275,6 @@ async function runLineupFilterTransition(grid, game, filters) {
 
   if (!targetCards.length) {
     applyLineupSearchHighlights(game);
-    releaseLineupVideosHolderHeight();
     updateLineupVideosScrollState(game);
     updateLineupFilterCounts(game);
     return;
@@ -8039,14 +8315,12 @@ function applyLineupFilters() {
     return;
   }
 
-  scrollToTop(0);
   runLineupFilterTransition(grid, game, filters);
 }
 
 function applyLineupGridStateInstant() {
   lineupFilterTransitionState.token += 1;
   const game = getActiveLineupGame();
-  const filters = getLineupFilters(game);
 
   switchLineupGamePanels(game);
 
@@ -8056,7 +8330,13 @@ function applyLineupGridStateInstant() {
   });
 
   const enterGrid = getLineupGrid(game);
-  if (!enterGrid) return;
+  if (!enterGrid) {
+    refreshLineupVideosFixedHeight(game);
+    updateLineupFilterCounts(game);
+    return;
+  }
+
+  const filters = getLineupFilters(game);
 
   const allCards = [...enterGrid.querySelectorAll(".lineup-video-card")];
   const staticEmpty = enterGrid.querySelector(":scope > .lineup-empty-state:not(.lineup-filter-empty-state)");
@@ -8065,7 +8345,7 @@ function applyLineupGridStateInstant() {
     staticEmpty?.classList.remove("hidden");
     if (staticEmpty) staticEmpty.hidden = false;
     setLineupFilterEmptyState(enterGrid, false);
-    updateLineupVideosScrollState(game);
+    refreshLineupVideosFixedHeight(game);
     applyLineupSearchHighlights(game);
     updateLineupFilterCounts(game);
     return;
@@ -8086,7 +8366,7 @@ function applyLineupGridStateInstant() {
   });
 
   setLineupFilterEmptyState(enterGrid, targetCards.length === 0);
-  updateLineupVideosScrollState(game);
+  refreshLineupVideosFixedHeight(game);
   applyLineupSearchHighlights(game);
   updateLineupFilterCounts(game);
 }
@@ -8096,6 +8376,7 @@ function syncLineupFiltersUiControls() {
   const side = getLineupSideFilter();
   const search = getLineupSearchQuery(game);
 
+  syncLineupSideFilterIcons(game);
   syncLineupMapDropdownUi(game);
 
   const sideSelector = document.getElementById("lineup-side-selector");
@@ -8127,6 +8408,7 @@ function syncLineupFiltersUI() {
 
 function setLineupMap(map) {
   const game = getActiveLineupGame();
+  if (!game) return;
   const nextMap = map === "all" || lineupMapFromSlug(map, game) ? map : "all";
   localStorage.setItem(`${LINEUP_MAP_STORAGE_PREFIX}${game}`, nextMap);
   syncLineupFiltersUI();
@@ -8140,21 +8422,34 @@ function setLineupSide(side) {
 
 function setLineupSearch(query) {
   const game = getActiveLineupGame();
+  if (!game) return;
   localStorage.setItem(`${LINEUP_SEARCH_STORAGE_PREFIX}${game}`, query);
   applyLineupSearchHighlights(game);
   syncLineupFiltersUI();
 }
 
 function setLineupGame(game) {
-  const nextGame = LINEUP_GAMES.has(game) ? game : "valorant";
-  localStorage.setItem(LINEUP_GAME_STORAGE_KEY, nextGame);
+  if (!LINEUP_GAMES.has(game)) return;
+  localStorage.setItem(LINEUP_GAME_STORAGE_KEY, game);
 
-  syncLineupGameSelectorUi(nextGame);
-  switchLineupGamePanels(nextGame);
-  renderLineupMapOptions(nextGame);
+  syncLineupGameSelectorUi(game);
+  switchLineupGamePanels(game);
+  renderLineupMapOptions(game);
   syncLineupFiltersUiControls();
-  applyLineupVideoSources(getLineupGrid(nextGame) || document);
+  applyLineupVideoSources(getLineupGrid(game) || document);
   applyLineupFilters();
+  refreshLineupVideosFixedHeight(game);
+}
+
+function clearLineupGame() {
+  localStorage.removeItem(LINEUP_GAME_STORAGE_KEY);
+  initLineupGameDropdown.close?.();
+  syncLineupGameSelectorUi(null);
+  switchLineupGamePanels(null);
+  renderLineupMapOptions(null);
+  syncLineupFiltersUiControls();
+  applyLineupGridStateInstant();
+  refreshLineupVideosFixedHeight(null);
 }
 
 function formatLineupVideoTime(seconds) {
@@ -8726,6 +9021,7 @@ function closeLineupVideoModal() {
   const player = document.getElementById("lineup-video-modal-player");
   if (!overlay) return;
 
+  syncLineupVideoModalDifficulty("");
   closeLineupVideoOptionsMenu();
   hideLineupVideoScrubPreview();
   stopLineupVideoProgressLoop();
@@ -8758,13 +9054,38 @@ function closeLineupVideoModal() {
   startLineupVideoProgressLoop();
 }
 
-function openLineupVideoModal(url, title = "") {
+function renderLineupDifficultyStarsHtml(level) {
+  const n = Math.min(5, Math.max(0, Number(level) || 0));
+  return Array.from({ length: 5 }, (_, i) => `<i class="ri-star-${i < n ? "fill" : "line"}"></i>`).join("");
+}
+
+function syncLineupVideoModalDifficulty(level) {
+  const el = document.getElementById("lineup-video-modal-difficulty");
+  if (!el) return;
+
+  const n = Number(level);
+  if (!Number.isFinite(n) || n < 1 || n > 5) {
+    el.hidden = true;
+    el.innerHTML = "";
+    el.removeAttribute("data-lineup-difficulty");
+    el.removeAttribute("aria-label");
+    return;
+  }
+
+  el.hidden = false;
+  el.dataset.lineupDifficulty = String(n);
+  el.setAttribute("aria-label", `Difficulty: ${n} star${n === 1 ? "" : "s"}`);
+  el.innerHTML = `<span class="lineup-difficulty-heading"><span class="lineup-difficulty-label">Difficulty</span><span class="lineup-difficulty-dot" aria-hidden="true"></span></span><span class="lineup-difficulty-stars" aria-hidden="true">${renderLineupDifficultyStarsHtml(n)}</span>`;
+}
+
+function openLineupVideoModal(url, title = "", difficulty = "") {
   const overlay = document.getElementById("lineup-video-overlay");
   const player = document.getElementById("lineup-video-modal-player");
   const titleEl = document.getElementById("lineup-video-modal-title");
   if (!overlay || !player || !url) return;
 
   if (titleEl) titleEl.textContent = title;
+  syncLineupVideoModalDifficulty(difficulty);
 
   closeLineupVideoOptionsMenu();
 
@@ -8836,7 +9157,7 @@ function initLineupVideoModal() {
       const src = card ? getLineupVideoUrl(card) : "";
       if (!src) return;
 
-      openLineupVideoModal(src, card ? getLineupVideoTitle(card) : "");
+      openLineupVideoModal(src, card ? getLineupVideoTitle(card) : "", card?.dataset.lineupDifficulty || "");
     });
   });
 
@@ -8984,7 +9305,7 @@ function initLineupVideoModal() {
 }
 
 function initLineupPanelResizeAnimations() {
-  document.querySelectorAll(".lineup-filters-panel, .lineup-videos-holder").forEach((el) => {
+  document.querySelectorAll(".lineup-filters-panel").forEach((el) => {
     bindHeightResizeAnimation(el, { durationMs: 500 });
   });
 }
@@ -8996,11 +9317,76 @@ function scheduleLineupVideosScrollStateUpdate() {
   }, 120);
 }
 
+function initLineupGameDropdown() {
+  const dropdown = document.getElementById("lineup-game-selector");
+  const trigger = document.getElementById("lineup-game-trigger");
+  const list = document.getElementById("lineup-game-list");
+  const clearBtn = document.getElementById("lineup-game-clear");
+  if (!dropdown || !trigger || !list || initLineupGameDropdown._init) return;
+  initLineupGameDropdown._init = true;
+
+  const close = () => {
+    dropdown.classList.remove("is-open");
+    trigger.setAttribute("aria-expanded", "false");
+    list.classList.add("hidden");
+    unmountPrefDropdownPortal(list);
+  };
+
+  const open = () => {
+    hideAllGameDropdownLists();
+    hideLineupMapList();
+    dropdown.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    list.classList.remove("hidden");
+    mountPrefDropdownPortal(list, trigger);
+  };
+
+  initLineupGameDropdown.close = close;
+
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (dropdown.classList.contains("is-open")) close();
+    else open();
+  });
+
+  clearBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clearLineupGame();
+  });
+
+  list.querySelectorAll("[data-lineup-game]").forEach((opt) => {
+    opt.addEventListener("click", () => {
+      const value = opt.dataset.lineupGame;
+      if (!LINEUP_GAMES.has(value) || value === getActiveLineupGame()) {
+        close();
+        return;
+      }
+      setLineupGame(value);
+      close();
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (dropdown.contains(e.target) || list.contains(e.target)) return;
+    close();
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && dropdown.classList.contains("is-open")) {
+      e.preventDefault();
+      close();
+      trigger.blur();
+    }
+  });
+}
+
 function initLineupTab() {
   const selector = document.getElementById("lineup-game-selector");
   if (!selector) return;
 
   initLineupPanelResizeAnimations();
+  initLineupGameDropdown();
   initLineupMapDropdown();
   initLineupVideoModal();
   initLineupBadgeInfoPopovers();
@@ -9012,12 +9398,6 @@ function initLineupTab() {
   switchLineupGamePanels(activeGame);
   applyLineupGridStateInstant();
   window.addEventListener("resize", scheduleLineupVideosScrollStateUpdate);
-
-  selector.addEventListener("click", (event) => {
-    const btn = event.target.closest(".toggle-btn[data-lineup-game]");
-    if (!btn || btn.classList.contains("active")) return;
-    setLineupGame(btn.dataset.lineupGame);
-  });
 
   const sideSelector = document.getElementById("lineup-side-selector");
   sideSelector?.addEventListener("click", (event) => {
@@ -9037,6 +9417,7 @@ function initLineupTab() {
   if (searchInput) {
     searchInput.addEventListener("input", () => {
       const game = getActiveLineupGame();
+      if (!game) return;
       localStorage.setItem(`${LINEUP_SEARCH_STORAGE_PREFIX}${game}`, searchInput.value);
       if (clearBtn) clearBtn.style.display = searchInput.value.trim() ? "flex" : "none";
       applyLineupSearchHighlights(game);
@@ -9109,15 +9490,19 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
     hideSensSuggestion();
   }
 
-  if (id === "sensitivity-converter-tab" || id === "aim-training-tab" || id === "privacy-policy-tab" || id === "terms-of-service-tab") {
+  if (id === "aim-training-tab") {
+    setTimeout(() => {
+      aimTrainer.handleResize();
+      aimTrainer.updateAllGliders();
+      aimTrainer.resumeLoop();
+    }, 50);
+  } else if (!aimTrainer.shouldRunLoop?.()) {
+    aimTrainer.stopLoop?.();
+  }
+
+  if (id === "sensitivity-converter-tab" || id === "privacy-policy-tab" || id === "terms-of-service-tab") {
     if (id === "sensitivity-converter-tab") {
       updateConversion();
-    }
-    if (id === "aim-training-tab") {
-      setTimeout(() => {
-        aimTrainer.handleResize();
-        aimTrainer.updateAllGliders();
-      }, 50);
     }
   } else if (id === "edpi-calculator-tab") {
     updateEDPI();
@@ -9142,6 +9527,7 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
       applyLineupVideoSources();
       syncLineupFiltersUiControls();
       applyLineupGridStateInstant();
+      refreshLineupVideosFixedHeight();
       updateAllToggleGliders();
     }, 50);
   }
@@ -11717,6 +12103,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const scrollButton = document.getElementById("backToTopButton");
 
+  let scrollButtonFrame = 0;
   function syncScrollButton() {
     if (!scrollButton) return;
     if (window.innerWidth <= 768) {
@@ -11729,7 +12116,15 @@ document.addEventListener("DOMContentLoaded", () => {
     scrollButton.setAttribute("aria-hidden", visible ? "false" : "true");
   }
 
-  window.addEventListener("scroll", syncScrollButton, { passive: true });
+  function scheduleSyncScrollButton() {
+    if (scrollButtonFrame) return;
+    scrollButtonFrame = requestAnimationFrame(() => {
+      scrollButtonFrame = 0;
+      syncScrollButton();
+    });
+  }
+
+  window.addEventListener("scroll", scheduleSyncScrollButton, { passive: true });
 
   function onWindowResize() {
     syncScrollButton();
@@ -11797,7 +12192,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   aimTrainer.init();
   initProfileGameFilter();
-  aimTrainer.displayResultsOnProfile();
+  if (getCurrentTabId() === "stats-tab") aimTrainer.displayResultsOnProfile();
   updateConversion();
   updateEDPI();
 

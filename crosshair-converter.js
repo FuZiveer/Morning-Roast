@@ -215,33 +215,14 @@
   }
 
   function encodeCs2ShareCode(crosshair) {
-    const bytes = [
-      0,
-      1,
-      (crosshair.gap * 10) & 0xff,
-      crosshair.outlineThickness * 2,
-      crosshair.r,
-      crosshair.g,
-      crosshair.b,
-      crosshair.alpha,
-      0,
-      0,
-      (crosshair.color & 7) | (Number(crosshair.outline) << 3),
-      0,
-      crosshair.thickness * 10,
-      (crosshair.style << 1) | (Number(crosshair.dot) << 4) | (Number(crosshair.useAlpha) << 6) | (Number(crosshair.t) << 7),
-      crosshair.size * 10,
-      0,
-      0,
-      0,
-    ];
+    const bytes = [0, 1, (crosshair.gap * 10) & 0xff, crosshair.outlineThickness * 2, crosshair.r, crosshair.g, crosshair.b, crosshair.alpha, 0, 0, (crosshair.color & 7) | (Number(crosshair.outline) << 3), 0, crosshair.thickness * 10, (crosshair.style << 1) | (Number(crosshair.dot) << 4) | (Number(crosshair.useAlpha) << 6) | (Number(crosshair.t) << 7), crosshair.size * 10, 0, 0, 0];
     bytes[0] = sumArray(bytes) & 0xff;
     return bytesToShareCode(bytes);
   }
 
   function cs2ColorToHex(ch) {
     const preset = CS2_COLOR_RGB[ch.color];
-    if (preset && (!ch.r && !ch.g && !ch.b)) return rgbToHex(preset[0], preset[1], preset[2]);
+    if (preset && !ch.r && !ch.g && !ch.b) return rgbToHex(preset[0], preset[1], preset[2]);
     if (ch.r || ch.g || ch.b) return rgbToHex(ch.r, ch.g, ch.b);
     return preset ? rgbToHex(preset[0], preset[1], preset[2]) : "#00ff00";
   }
@@ -511,9 +492,7 @@
 
     if (settings.dot) {
       const dotSize = Math.max(1, (settings.dotThickness || 2) * scale);
-      ctx.fillStyle = color.startsWith("#")
-        ? `rgba(${parseInt(color.slice(1, 3), 16)},${parseInt(color.slice(3, 5), 16)},${parseInt(color.slice(5, 7), 16)},${settings.dotOpacity ?? 1})`
-        : color;
+      ctx.fillStyle = color.startsWith("#") ? `rgba(${parseInt(color.slice(1, 3), 16)},${parseInt(color.slice(3, 5), 16)},${parseInt(color.slice(5, 7), 16)},${settings.dotOpacity ?? 1})` : color;
       ctx.fillRect(Math.round(cx - dotSize / 2), Math.round(cy - dotSize / 2), dotSize, dotSize);
     }
   }
@@ -559,11 +538,7 @@
     }
   }
 
-  const PREVIEW_BACKGROUNDS = [
-    "assets/crosshair-preview-bg.png",
-    "assets/crosshair-preview-bg-2.png",
-    "assets/crosshair-preview-bg-3.png",
-  ];
+  const PREVIEW_BACKGROUNDS = ["assets/crosshair-preview-bg.png", "assets/crosshair-preview-bg-2.png", "assets/crosshair-preview-bg-3.png"];
   const PREVIEW_REF_WIDTH = 1920;
   const PREVIEW_REF_HEIGHT = 1080;
   const previewBgCache = new Map();
@@ -584,7 +559,7 @@
         return;
       }
 
-      img.decoding = "sync";
+      img.decoding = "async";
       img.onload = () => resolve(img);
       img.onerror = () => resolve(null);
       img.src = src;
@@ -779,14 +754,11 @@
   }
 
   function prefersCrosshairZoomMotion() {
-    return (
-      !document.body.classList.contains("reduce-motion") &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
+    return !document.body.classList.contains("reduce-motion") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
 
   function easeInOutCubic(t) {
-    return t < 0.5 ? 4 * t * t * t : 1 - ((-2 * t + 2) ** 3) / 2;
+    return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
   }
 
   function cancelCrosshairZoomAnimation() {
@@ -807,10 +779,7 @@
       previewNote.textContent = "Preview appears after a valid code is converted.";
       return;
     }
-    previewNote.textContent =
-      state.zoom > 1
-        ? `Preview is approximate at 1080p with ${state.zoom}× zoom.`
-        : "Preview is approximate at 1080p reference scale.";
+    previewNote.textContent = state.zoom > 1 ? `Preview is approximate at 1080p with ${state.zoom}× zoom.` : "Preview is approximate at 1080p reference scale.";
   }
 
   function animateCrosshairPreviewZoom(targetZoom) {
@@ -1036,7 +1005,14 @@
 
     if (!initCrosshairConverterTab._previewWindowResizeListener) {
       initCrosshairConverterTab._previewWindowResizeListener = true;
-      window.addEventListener("resize", redrawCrosshairPreview, { passive: true });
+      window.addEventListener(
+        "resize",
+        () => {
+          if (section?.style.display === "none") return;
+          redrawCrosshairPreview();
+        },
+        { passive: true },
+      );
     }
 
     if (previewWrap && typeof ResizeObserver !== "undefined" && !initCrosshairConverterTab._previewResizeObserver) {
@@ -1079,10 +1055,8 @@
 
     updateCrosshairConverterUi();
     updateAllToggleGliders?.();
-    preloadAllPreviewBackgrounds().then(() => redrawCrosshairPreview());
+    loadPreviewBackground(state.bgIndex).then(() => redrawCrosshairPreview());
   }
-
-  preloadAllPreviewBackgrounds();
 
   window.initCrosshairConverterTab = initCrosshairConverterTab;
   window.updateCrosshairConverterUi = updateCrosshairConverterUi;

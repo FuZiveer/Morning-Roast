@@ -9,9 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.8.0/fonts/remixicon.css" rel="stylesheet" />
-    <link rel="preload" as="image" href="assets/crosshair-preview-bg.png" />
-    <link rel="preload" as="image" href="assets/crosshair-preview-bg-2.png" />
-    <link rel="preload" as="image" href="assets/crosshair-preview-bg-3.png" />
     <link rel="stylesheet" href="style.css" />
     <script>
       (function () {
@@ -1313,21 +1310,32 @@
           <div class="box-container">
             <div class="box-holder lineup-game-panel">
               <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> Game</h4>
-              <div class="trainer-toggle-selector lineup-game-selector" id="lineup-game-selector" role="tablist" aria-label="Lineup game" data-active-game="valorant">
-                <div class="glider"></div>
-                <button type="button" class="toggle-btn active" data-lineup-game="valorant" role="tab" aria-selected="true" aria-controls="lineup-valorant-panel">
-                  <img class="lineup-game-icon" src="https://cdn.simpleicons.org/valorant/FF4655" alt="" width="18" height="18" decoding="async" />
-                  <span>Valorant</span>
-                </button>
-                <button type="button" class="toggle-btn" data-lineup-game="cs2" role="tab" aria-selected="false" aria-controls="lineup-cs2-panel">
-                  <img class="lineup-game-icon" src="https://cdn.simpleicons.org/counterstrike/F79B00" alt="" width="18" height="18" decoding="async" />
-                  <span>CS2</span>
-                </button>
+              <div class="pref-dropdown lineup-game-selector" id="lineup-game-selector" data-active-game="">
+                <div class="lineup-game-selector-control">
+                  <button type="button" class="pref-dropdown-trigger" id="lineup-game-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="lineup-game-list" aria-label="Lineup game">
+                    <span class="pref-dropdown-value">
+                      <i class="ri-gamepad-line pref-dropdown-icon" id="lineup-game-icon" aria-hidden="true"></i>
+                      <span id="lineup-game-label">Select game</span>
+                    </span>
+                    <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                  </button>
+                  <button type="button" id="lineup-game-clear" class="clear-btn lineup-game-clear" aria-label="Clear game" hidden>&times;</button>
+                </div>
+                <div class="pref-dropdown-list hidden" id="lineup-game-list" role="listbox" aria-labelledby="lineup-game-trigger">
+                  <button type="button" class="pref-dropdown-option" data-lineup-game="valorant" role="option">
+                    <img class="game-option-icon" src="https://cdn.simpleicons.org/valorant/FF4655" alt="" width="18" height="18" decoding="async" />
+                    <span>Valorant</span>
+                  </button>
+                  <button type="button" class="pref-dropdown-option" data-lineup-game="cs2" role="option">
+                    <img class="game-option-icon" src="https://cdn.simpleicons.org/counterstrike/DE9B35" alt="" width="18" height="18" decoding="async" />
+                    <span>CS2</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="box-container">
+          <div class="box-container lineup-filters-container hidden" id="lineup-filters-container" hidden>
             <div class="box-holder lineup-filters-panel">
               <h4 class="settings-section-title"><i class="ri-filter-3-line" aria-hidden="true"></i> Filters</h4>
               <div class="lineup-toolbar">
@@ -1335,8 +1343,14 @@
                   <div class="trainer-toggle-selector lineup-side-selector" id="lineup-side-selector" role="tablist" aria-label="Lineup side">
                     <div class="glider"></div>
                     <button type="button" class="toggle-btn active" data-lineup-side="all" role="tab" aria-selected="true">All</button>
-                    <button type="button" class="toggle-btn" data-lineup-side="attacker" role="tab" aria-selected="false">Attacker</button>
-                    <button type="button" class="toggle-btn" data-lineup-side="defender" role="tab" aria-selected="false">Defender</button>
+                    <button type="button" class="toggle-btn" data-lineup-side="attacker" role="tab" aria-selected="false">
+                      <img class="lineup-side-icon" data-lineup-side-icon="attacker" alt="" width="18" height="18" decoding="async" hidden />
+                      <span>Attacker</span>
+                    </button>
+                    <button type="button" class="toggle-btn" data-lineup-side="defender" role="tab" aria-selected="false">
+                      <img class="lineup-side-icon" data-lineup-side-icon="defender" alt="" width="18" height="18" decoding="async" hidden />
+                      <span>Defender</span>
+                    </button>
                   </div>
                 </div>
 
@@ -1395,8 +1409,12 @@
           </div>
 
           <div class="box-container">
-            <div class="box-holder lineup-videos-holder" data-active-game="valorant">
-              <div class="lineup-videos-panel" id="lineup-valorant-panel" data-lineup-game-panel="valorant" role="tabpanel">
+            <div class="box-holder lineup-videos-holder" data-active-game="">
+              <div class="lineup-game-empty" id="lineup-game-empty">
+                <i class="ri-gamepad-line" aria-hidden="true"></i>
+                <p>Select a game to browse lineups</p>
+              </div>
+              <div class="lineup-videos-panel hidden" id="lineup-valorant-panel" data-lineup-game-panel="valorant" role="tabpanel" hidden>
                 <h4 class="settings-section-title"><i class="ri-fire-line" aria-hidden="true"></i> Valorant lineups</h4>
                 <div class="lineup-video-grid" id="lineup-valorant-grid">
                   <article class="lineup-video-card" data-lineup-map="pearl" data-lineup-side="attacker" data-lineup-agent="veto" data-lineup-ability="snare-trap" data-lineup-callout="B Push" data-lineup-difficulty="2" data-lineup-video-id="veto-pearl-attacker" data-lineup-video-url="assets/lineups/valorant/pearl/veto-pearl-attacker.mp4" data-lineup-search="attacker pearl veto b push flank trip snare trap chokehold">
@@ -1423,7 +1441,7 @@
                 </div>
               </div>
 
-              <div class="lineup-videos-panel hidden" id="lineup-cs2-panel" data-lineup-game-panel="cs2" role="tabpanel" hidden>
+              <div class="lineup-videos-panel hidden" id="lineup-cs2-panel" data-lineup-game-panel="cs2" role="tabpanel" hidden aria-hidden="true">
                 <h4 class="settings-section-title"><i class="ri-fire-line" aria-hidden="true"></i> CS2 lineups</h4>
                 <div class="lineup-video-grid" id="lineup-cs2-grid">
                   <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Window" data-lineup-difficulty="1" data-lineup-utility="smoke" data-lineup-video-id="window-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/window-smoke-from-spawn.mp4" data-lineup-search="t side smoke window spawn mirage">
@@ -2626,7 +2644,10 @@
     <div id="lineup-video-overlay" class="lineup-video-overlay trainer-settings-overlay">
       <div class="lineup-video-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-video-modal-title">
         <div class="lineup-video-modal-head">
-          <h3 id="lineup-video-modal-title" class="lineup-video-modal-title"></h3>
+          <div class="lineup-video-modal-title-wrap">
+            <h3 id="lineup-video-modal-title" class="lineup-video-modal-title"></h3>
+            <div id="lineup-video-modal-difficulty" class="lineup-difficulty lineup-video-modal-difficulty" hidden></div>
+          </div>
           <div class="lineup-video-head-actions">
             <div class="lineup-video-options-wrap" id="lineup-video-options-wrap">
               <button type="button" class="lineup-video-ctrl-btn lineup-video-modal-close" id="lineup-video-options-btn" aria-label="Video options" aria-haspopup="true" aria-expanded="false" aria-controls="lineup-video-options-menu">
