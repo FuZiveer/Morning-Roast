@@ -86,8 +86,10 @@
 
     if (preview.game === "cs2") {
       const ch = preview.settings;
+      const hasLines = ch.size > 0;
       return {
-        size: clamp(Math.round(ch.size), 2, 30),
+        lines: hasLines,
+        size: hasLines ? clamp(Math.round(ch.size), 2, 30) : 10,
         gap: clamp(Math.round(Math.max(0, -ch.gap)), 0, 20),
         thickness: clamp(Math.max(1, Math.round(ch.thickness)), 1, 10),
         outlineThickness: clamp(Math.max(1, Math.round(ch.outlineThickness)), 1, 10),
@@ -98,8 +100,10 @@
     }
 
     const val = preview.settings;
+    const hasLines = val.innerEnabled !== false && (val.innerLength ?? 0) > 0;
     return {
-      size: clamp(Math.round(val.innerLength), 2, 30),
+      lines: hasLines,
+      size: hasLines ? clamp(Math.round(val.innerLength), 2, 30) : 10,
       gap: clamp(Math.round(val.innerOffset), 0, 20),
       thickness: clamp(Math.max(1, Math.round(val.innerThickness)), 1, 10),
       outlineThickness: clamp(Math.max(1, Math.round(val.outlineThickness)), 1, 10),
@@ -575,8 +579,27 @@
 
     if (settings.dot) {
       const dotSize = Math.max(1, (settings.dotThickness || 2) * scale);
-      ctx.fillStyle = color.startsWith("#") ? `rgba(${parseInt(color.slice(1, 3), 16)},${parseInt(color.slice(3, 5), 16)},${parseInt(color.slice(5, 7), 16)},${settings.dotOpacity ?? 1})` : color;
-      ctx.fillRect(Math.round(cx - dotSize / 2), Math.round(cy - dotSize / 2), dotSize, dotSize);
+      const dotLeft = Math.round(cx - dotSize / 2);
+      const dotTop = Math.round(cy - dotSize / 2);
+      const dotAlpha = settings.dotOpacity ?? 1;
+
+      if (outlineW > 0) {
+        const outlineSize = dotSize + outlineW * 2;
+        const outlineLeft = Math.round(cx - outlineSize / 2);
+        const outlineTop = Math.round(cy - outlineSize / 2);
+        ctx.fillStyle = `rgba(0,0,0,${dotAlpha})`;
+        ctx.fillRect(outlineLeft, outlineTop, outlineSize, outlineSize);
+      }
+
+      if (color.startsWith("#")) {
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+        ctx.fillStyle = `rgba(${r},${g},${b},${dotAlpha})`;
+      } else {
+        ctx.fillStyle = color;
+      }
+      ctx.fillRect(dotLeft, dotTop, dotSize, dotSize);
     }
   }
 
@@ -616,8 +639,19 @@
 
     if (ch.dot) {
       const dotSize = Math.max(1, Math.round(thickness));
+      const dotLeft = Math.round(cx - dotSize / 2);
+      const dotTop = Math.round(cy - dotSize / 2);
+
+      if (ch.outline && outlineExtra > 0) {
+        const outlineSize = dotSize + outlineExtra * 2;
+        const outlineLeft = Math.round(cx - outlineSize / 2);
+        const outlineTop = Math.round(cy - outlineSize / 2);
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(outlineLeft, outlineTop, outlineSize, outlineSize);
+      }
+
       ctx.fillStyle = color;
-      ctx.fillRect(Math.round(cx - dotSize / 2), Math.round(cy - dotSize / 2), dotSize, dotSize);
+      ctx.fillRect(dotLeft, dotTop, dotSize, dotSize);
     }
   }
 

@@ -7,7 +7,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100..900;1,100..900&family=Space+Grotesk:wght@300..700&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.8.0/fonts/remixicon.css" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
     <script>
@@ -23,6 +23,15 @@
           if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "particles") {
             root.setAttribute("data-bg-pattern", pattern);
           }
+          var fontStacks = {
+            inter: '"Inter", sans-serif',
+            roboto: '"Roboto", sans-serif',
+            poppins: '"Poppins", sans-serif',
+            "space-grotesk": '"Space Grotesk", sans-serif',
+            "dm-sans": '"DM Sans", sans-serif',
+          };
+          var font = localStorage.getItem("prefFontFamily") || "inter";
+          if (fontStacks[font]) root.style.setProperty("--app-font-family", fontStacks[font]);
         } catch (e) {}
         root.classList.add("accent-instant");
       })();
@@ -843,7 +852,7 @@
             </div>
             <span>Viewmodel generator</span>
           </div>
-          <div class="description">Tune your CS2 viewmodel and copy the console commands.</div>
+          <div class="description">Build your viewmodel. Copy your commands. Own your view.</div>
         </div>
 
         <div class="box-container-holder viewmodel-generator-layout">
@@ -1303,7 +1312,7 @@
             </div>
             <span>Lineups</span>
           </div>
-          <div class="description">Utility and grenade lineups for Valorant and CS2.</div>
+          <div class="description">Line up every utility. Land every throw. Own every round.</div>
         </div>
 
         <div class="box-container-holder">
@@ -1378,32 +1387,6 @@
                   </div>
                 </div>
 
-                <div class="lineup-toolbar-meta">
-                  <p class="lineup-filter-counts" id="lineup-filter-counts" aria-live="polite"></p>
-                  <div class="lineup-difficulty-filter" id="lineup-difficulty-filter" role="group" aria-label="Difficulty">
-                    <span class="lineup-difficulty-heading lineup-difficulty-filter-heading">
-                      <span class="lineup-difficulty-label">Difficulty</span>
-                      <span class="lineup-difficulty-dot" aria-hidden="true"></span>
-                    </span>
-                    <div class="lineup-difficulty-tags">
-                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="1" aria-pressed="false" aria-label="1 star">
-                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">1</span>
-                      </button>
-                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="2" aria-pressed="false" aria-label="2 stars">
-                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">2</span>
-                      </button>
-                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="3" aria-pressed="false" aria-label="3 stars">
-                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">3</span>
-                      </button>
-                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="4" aria-pressed="false" aria-label="4 stars">
-                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">4</span>
-                      </button>
-                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="5" aria-pressed="false" aria-label="5 stars">
-                        <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">5</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -1414,12 +1397,37 @@
                 <i class="ri-gamepad-line" aria-hidden="true"></i>
                 <p>Select a game to browse lineups</p>
               </div>
+              <div class="lineup-videos-panel-head hidden" id="lineup-videos-panel-head" hidden>
+                <h4 class="settings-section-title" id="lineup-videos-panel-title"><i class="ri-fire-line" aria-hidden="true"></i> Valorant lineups</h4>
+                <div class="lineup-difficulty-filter" id="lineup-difficulty-filter" role="group" aria-label="Difficulty">
+                  <span class="lineup-difficulty-heading lineup-difficulty-filter-heading">
+                    <span class="lineup-difficulty-label">Difficulty</span>
+                    <span class="lineup-difficulty-dot" aria-hidden="true"></span>
+                  </span>
+                  <div class="lineup-difficulty-tags">
+                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="1" aria-pressed="false" aria-label="1 star">
+                      <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">1</span>
+                    </button>
+                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="2" aria-pressed="false" aria-label="2 stars">
+                      <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">2</span>
+                    </button>
+                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="3" aria-pressed="false" aria-label="3 stars">
+                      <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">3</span>
+                    </button>
+                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="4" aria-pressed="false" aria-label="4 stars">
+                      <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">4</span>
+                    </button>
+                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="5" aria-pressed="false" aria-label="5 stars">
+                      <i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">5</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
               <div class="lineup-videos-panel hidden" id="lineup-valorant-panel" data-lineup-game-panel="valorant" role="tabpanel" hidden>
-                <h4 class="settings-section-title"><i class="ri-fire-line" aria-hidden="true"></i> Valorant lineups</h4>
                 <div class="lineup-video-grid" id="lineup-valorant-grid">
                   <article class="lineup-video-card" data-lineup-map="pearl" data-lineup-side="attacker" data-lineup-agent="veto" data-lineup-ability="snare-trap" data-lineup-callout="B Push" data-lineup-difficulty="2" data-lineup-video-id="veto-pearl-attacker" data-lineup-video-url="assets/lineups/valorant/pearl/veto-pearl-attacker.mp4" data-lineup-search="attacker pearl veto b push flank trip snare trap chokehold">
                     <div class="lineup-video-embed">
-                      <video class="lineup-video-preview" playsinline preload="metadata" muted></video>
+                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">B Push Flank Trip</h3>
@@ -1442,11 +1450,10 @@
               </div>
 
               <div class="lineup-videos-panel hidden" id="lineup-cs2-panel" data-lineup-game-panel="cs2" role="tabpanel" hidden aria-hidden="true">
-                <h4 class="settings-section-title"><i class="ri-fire-line" aria-hidden="true"></i> CS2 lineups</h4>
                 <div class="lineup-video-grid" id="lineup-cs2-grid">
                   <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Window" data-lineup-difficulty="1" data-lineup-utility="smoke" data-lineup-video-id="window-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/window-smoke-from-spawn.mp4" data-lineup-search="t side smoke window spawn mirage">
                     <div class="lineup-video-embed">
-                      <video class="lineup-video-preview" playsinline preload="metadata" muted></video>
+                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Window Smoke From Spawn</h3>
@@ -1467,7 +1474,7 @@
                   </article>
                   <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Connector" data-lineup-difficulty="1" data-lineup-utility="smoke" data-lineup-video-id="connector-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/connector-smoke-from-spawn.mp4" data-lineup-search="t side smoke connector spawn mirage">
                     <div class="lineup-video-embed">
-                      <video class="lineup-video-preview" playsinline preload="metadata" muted></video>
+                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Connector Smoke From Spawn</h3>
@@ -1488,7 +1495,7 @@
                   </article>
                   <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Bench" data-lineup-difficulty="3" data-lineup-utility="smoke" data-lineup-video-id="bench-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/bench-smoke-from-spawn.mp4" data-lineup-search="t side smoke bench spawn mirage">
                     <div class="lineup-video-embed">
-                      <video class="lineup-video-preview" playsinline preload="metadata" muted></video>
+                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Bench Smoke From Spawn</h3>
@@ -1509,7 +1516,7 @@
                   </article>
                   <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Jungle" data-lineup-difficulty="2" data-lineup-utility="smoke" data-lineup-video-id="jungle-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/jungle-smoke-from-spawn.mp4" data-lineup-search="t side smoke jungle spawn mirage">
                     <div class="lineup-video-embed">
-                      <video class="lineup-video-preview" playsinline preload="metadata" muted></video>
+                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Jungle Smoke From A Ramp</h3>
@@ -1530,7 +1537,7 @@
                   </article>
                   <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Stairs" data-lineup-difficulty="5" data-lineup-utility="molotov" data-lineup-video-id="stairs-molotov" data-lineup-video-url="assets/lineups/cs2/mirage/stairs-molotov.mp4" data-lineup-search="t side molotov stairs mirage">
                     <div class="lineup-video-embed">
-                      <video class="lineup-video-preview" playsinline preload="metadata" muted></video>
+                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Stairs Molotov From A Ramp</h3>
@@ -1795,7 +1802,7 @@
             </div>
             <span>Keybinds</span>
           </div>
-          <div class="description">Keyboard shortcuts for navigating Morning Roast.</div>
+          <div class="description">Know your shortcuts. Move faster. Stay in flow.</div>
         </div>
 
         <div class="box-container-holder">
@@ -1831,7 +1838,7 @@
             </div>
             <span>Updates</span>
           </div>
-          <div class="description">Version history and what changed in Morning Roast.</div>
+          <div class="description">See what's new. Track what changed. Stay current.</div>
         </div>
 
         <div class="box-container-holder">
@@ -2246,7 +2253,7 @@
                             <canvas id="crosshair-preview" width="140" height="140"></canvas>
                           </div>
                           <div class="crosshair-options-grid">
-                            <div class="crosshair-options-row crosshair-row-appearance">
+                            <div class="crosshair-options-row crosshair-row-colors">
                               <div class="crosshair-option crosshair-option-colors">
                                 <label>Color</label>
                                 <div class="accent-picker" id="crosshair-color-picker">
@@ -2266,6 +2273,17 @@
                                       <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
                                     </button>
                                   </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="crosshair-options-divider" aria-hidden="true"></div>
+                            <div class="crosshair-options-row crosshair-row-toggles">
+                              <div class="crosshair-option crosshair-option-toggle">
+                                <label>Lines</label>
+                                <div class="trainer-toggle-selector crosshair-toggle" id="ch-lines-selector">
+                                  <div class="glider"></div>
+                                  <button class="toggle-btn active" data-value="true">ON</button>
+                                  <button class="toggle-btn" data-value="false">OFF</button>
                                 </div>
                               </div>
                               <div class="crosshair-option crosshair-option-toggle">
@@ -2333,6 +2351,10 @@
                               <button class="crosshair-preset-btn" type="button" data-preset="bold">
                                 <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
                                 <span>Bold</span>
+                              </button>
+                              <button class="crosshair-preset-btn" type="button" data-preset="dotOnly">
+                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                                <span>Dot</span>
                               </button>
                             </div>
                           </div>
@@ -2402,6 +2424,31 @@
                               <button type="button" class="accent-picker-arrow" id="accent-next" aria-label="Next accent color">
                                 <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
                               </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="setting-block">
+                        <div class="setting-text">
+                          <span>Font Family</span>
+                          <p>Choose the typeface used across the app.</p>
+                        </div>
+                        <div class="control-group">
+                          <div class="pref-dropdown" id="font-family-dropdown">
+                            <button type="button" class="pref-dropdown-trigger" id="font-family-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="font-family-list">
+                              <span class="pref-dropdown-value">
+                                <i class="ri-font-size-2 pref-dropdown-icon" id="font-family-icon" aria-hidden="true"></i>
+                                <span id="font-family-label">Inter</span>
+                              </span>
+                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                            </button>
+                            <div class="pref-dropdown-list hidden" id="font-family-list" role="listbox" aria-labelledby="font-family-trigger">
+                              <button type="button" class="pref-dropdown-option active" data-font-family="inter" role="option"><span>Inter</span></button>
+                              <button type="button" class="pref-dropdown-option" data-font-family="roboto" role="option"><span>Roboto</span></button>
+                              <button type="button" class="pref-dropdown-option" data-font-family="poppins" role="option"><span>Poppins</span></button>
+                              <button type="button" class="pref-dropdown-option" data-font-family="space-grotesk" role="option"><span>Space Grotesk</span></button>
+                              <button type="button" class="pref-dropdown-option" data-font-family="dm-sans" role="option"><span>DM Sans</span></button>
                             </div>
                           </div>
                         </div>

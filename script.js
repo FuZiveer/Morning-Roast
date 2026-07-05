@@ -2120,6 +2120,7 @@ function resetTrainerSettingsDropdowns(overlayId) {
   initTrainerTimerDropdown.close?.();
   initTrainerAspectDropdown.close?.();
   initBgPatternDropdown.close?.();
+  initFontFamilyDropdown.close?.();
 }
 
 function initOfflineStatus() {
@@ -2399,6 +2400,7 @@ const CROSSHAIR_PRESETS = Object.freeze({
     thickness: 2,
     outlineThickness: 2,
     color: "#00ff00",
+    lines: true,
     dot: true,
     outline: false,
     flash: true,
@@ -2410,6 +2412,7 @@ const CROSSHAIR_PRESETS = Object.freeze({
     thickness: 2,
     outlineThickness: 1,
     color: "#00e5ff",
+    lines: true,
     dot: true,
     outline: true,
     flash: true,
@@ -2421,6 +2424,7 @@ const CROSSHAIR_PRESETS = Object.freeze({
     thickness: 1,
     outlineThickness: 1,
     color: "#00ff00",
+    lines: true,
     dot: false,
     outline: true,
     flash: true,
@@ -2432,6 +2436,7 @@ const CROSSHAIR_PRESETS = Object.freeze({
     thickness: 1,
     outlineThickness: 1,
     color: "#ffffff",
+    lines: true,
     dot: false,
     outline: false,
     flash: true,
@@ -2443,8 +2448,21 @@ const CROSSHAIR_PRESETS = Object.freeze({
     thickness: 3,
     outlineThickness: 2,
     color: "#ffea00",
+    lines: true,
     dot: true,
     outline: true,
+    flash: true,
+  },
+  dotOnly: {
+    label: "Dot",
+    size: 10,
+    gap: 0,
+    thickness: 2,
+    outlineThickness: 1,
+    color: "#00ff00",
+    lines: false,
+    dot: true,
+    outline: false,
     flash: true,
   },
 });
@@ -2792,6 +2810,7 @@ const aimTrainer = {
     thickness: 2,
     outlineThickness: 2,
     color: "#00ff00",
+    lines: true,
     dot: true,
     outline: false,
     flash: true,
@@ -3071,12 +3090,16 @@ const aimTrainer = {
   },
 
   drawCrosshairAt(ctx, cx, cy, crosshair, strokeOverride) {
-    const { size, gap, thickness, outlineThickness, color, dot, outline } = crosshair;
+    const { size, gap, thickness, outlineThickness, color, dot, outline, lines = true } = crosshair;
+    const showLines = lines !== false && size > 0;
+    const fillColor = strokeOverride ?? color;
+    const outlinePad = Math.max(1, Math.round(outlineThickness));
     const snapAxis = (value, lineWidth) => (lineWidth % 2 === 0 ? Math.round(value) : Math.round(value - 0.5) + 0.5);
-    const x = snapAxis(cx, thickness);
-    const y = snapAxis(cy, thickness);
 
     const drawLines = (strokeStyle, lineWidth) => {
+      if (!showLines) return;
+      const x = snapAxis(cx, lineWidth);
+      const y = snapAxis(cy, lineWidth);
       ctx.strokeStyle = strokeStyle;
       ctx.lineWidth = lineWidth;
       ctx.lineCap = "butt";
@@ -3092,13 +3115,24 @@ const aimTrainer = {
       ctx.stroke();
     };
 
-    if (outline) drawLines("#000000", thickness + outlineThickness * 2);
-    drawLines(strokeOverride ?? color, thickness);
+    if (outline) drawLines("#000000", thickness + outlinePad * 2);
+    drawLines(fillColor, thickness);
+
     if (dot) {
       const dotSize = Math.max(1, Math.round(thickness));
-      const half = Math.floor(dotSize / 2);
-      ctx.fillStyle = strokeOverride ?? color;
-      ctx.fillRect(Math.round(cx) - half, Math.round(cy) - half, dotSize, dotSize);
+      const dotLeft = Math.round(cx) - Math.floor(dotSize / 2);
+      const dotTop = Math.round(cy) - Math.floor(dotSize / 2);
+
+      if (outline) {
+        const outlineSize = dotSize + outlinePad * 2;
+        const outlineLeft = Math.round(cx) - Math.floor(outlineSize / 2);
+        const outlineTop = Math.round(cy) - Math.floor(outlineSize / 2);
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(outlineLeft, outlineTop, outlineSize, outlineSize);
+      }
+
+      ctx.fillStyle = fillColor;
+      ctx.fillRect(dotLeft, dotTop, dotSize, dotSize);
     }
   },
 
@@ -3115,6 +3149,7 @@ const aimTrainer = {
       const saved = JSON.parse(localStorage.getItem("aimCrosshair"));
       if (saved && typeof saved === "object") {
         this.crosshair = { ...this.crosshair, ...saved };
+        if (this.crosshair.lines === undefined) this.crosshair.lines = true;
       }
     } catch (e) {}
 
@@ -3163,6 +3198,7 @@ const aimTrainer = {
         });
         positionToggleGlider(sel);
       };
+      syncChToggle("ch-lines-selector", "lines");
       syncChToggle("ch-dot-selector", "dot");
       syncChToggle("ch-outline-selector", "outline");
       syncChToggle("ch-flash-selector", "flash");
@@ -3261,6 +3297,7 @@ const aimTrainer = {
         });
       });
     };
+    wireChToggle("ch-lines-selector", "lines");
     wireChToggle("ch-dot-selector", "dot");
     wireChToggle("ch-outline-selector", "outline");
     wireChToggle("ch-flash-selector", "flash");
@@ -3281,7 +3318,7 @@ const aimTrainer = {
     }
 
     syncCrosshairUI();
-    const presetKeys = ["size", "gap", "thickness", "outlineThickness", "color", "dot", "outline", "flash"];
+    const presetKeys = ["size", "gap", "thickness", "outlineThickness", "color", "lines", "dot", "outline", "flash"];
     for (const [key, preset] of Object.entries(CROSSHAIR_PRESETS)) {
       if (presetKeys.every((prop) => this.crosshair[prop] === preset[prop])) {
         document.querySelectorAll(".crosshair-preset-btn").forEach((btn) => {
@@ -6660,13 +6697,30 @@ function getLineupVideoUrl(card) {
   return getLineupVideoAssetPath(card);
 }
 
+function getLineupVideoPosterAssetPath(card) {
+  const direct = card?.dataset.lineupPosterUrl?.trim();
+  if (direct) return resolveAppAssetUrl(direct);
+
+  const videoUrl = getLineupVideoAssetPath(card);
+  if (!videoUrl) return "";
+  return videoUrl.replace(/\.(mp4|webm|mov)(\?.*)?$/i, "-poster.jpg$2");
+}
+
+const LINEUP_VIDEO_POSTER_ROOT_MARGIN = "200px 0px";
 const LINEUP_VIDEO_SPEED_STORAGE_KEY = "lineup-video-speed";
 const LINEUP_VIDEO_SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
+const lineupVideoLoader = {
+  observer: null,
+  observed: new WeakSet(),
+};
+
 const lineupVideoModalState = {
   baseUrl: "",
+  posterUrl: "",
   speed: 1,
   shouldAutoplay: false,
+  loadToken: 0,
 };
 
 function attemptLineupVideoAutoplay(player, { resumeTime = 0 } = {}) {
@@ -6752,22 +6806,43 @@ function setLineupVideoSpeed(speed) {
   syncLineupVideoOptionsUi();
 }
 
-function loadLineupVideoModalSource(url, { resumeTime = 0, autoplay = true } = {}) {
+function loadLineupVideoModalSource(url, { posterUrl = "", resumeTime = 0, autoplay = true } = {}) {
   const player = document.getElementById("lineup-video-modal-player");
   if (!player || !url) return false;
 
+  const loadToken = ++lineupVideoModalState.loadToken;
   lineupVideoModalState.shouldAutoplay = autoplay;
   player.onerror = null;
   player.hidden = false;
-  player.src = url;
-  player.playbackRate = lineupVideoModalState.speed;
+  player.pause();
+  player.removeAttribute("src");
   player.load();
+
+  if (posterUrl) {
+    player.poster = posterUrl;
+  } else {
+    player.removeAttribute("poster");
+  }
+
+  player.playbackRate = lineupVideoModalState.speed;
   syncLineupVideoScrubPlayer();
 
-  const bootPlayback = () => attemptLineupVideoAutoplay(player, { resumeTime });
-  player.addEventListener("loadedmetadata", bootPlayback, { once: true });
-  player.addEventListener("loadeddata", bootPlayback, { once: true });
-  player.addEventListener("canplay", bootPlayback, { once: true });
+  const bootPlayback = () => {
+    if (loadToken !== lineupVideoModalState.loadToken) return;
+    attemptLineupVideoAutoplay(player, { resumeTime });
+    syncLineupVideoBufferUi();
+  };
+
+  const onReady = () => {
+    if (loadToken !== lineupVideoModalState.loadToken) return;
+    bootPlayback();
+  };
+
+  player.addEventListener("loadedmetadata", onReady, { once: true });
+  player.addEventListener("canplay", onReady, { once: true });
+
+  player.src = url;
+  player.load();
   bootPlayback();
   return true;
 }
@@ -6832,13 +6907,8 @@ function bindLineupVideoBufferUi(video, container) {
   if (!video || !container || video.dataset.bufferBound === "1") return;
   video.dataset.bufferBound = "1";
   ensureLineupVideoBufferLoader(container);
-  if (container.classList.contains("lineup-video-embed")) {
-    ensureLineupVideoEmbedProgress(container);
-  }
 
   let hideTimer = 0;
-
-  const kickProgress = () => startLineupVideoProgressLoop();
 
   const showBuffering = () => {
     if (hideTimer) {
@@ -6867,42 +6937,143 @@ function bindLineupVideoBufferUi(video, container) {
   video.addEventListener("seeked", hideBuffering);
   video.addEventListener("error", () => setLineupVideoBuffering(container, false));
   video.addEventListener("emptied", () => setLineupVideoBuffering(container, false));
-  video.addEventListener("progress", kickProgress);
-  video.addEventListener("loadedmetadata", kickProgress);
-  video.addEventListener("loadeddata", kickProgress);
+  video.addEventListener("progress", () => startLineupVideoProgressLoop());
+  video.addEventListener("loadedmetadata", () => startLineupVideoProgressLoop());
+  video.addEventListener("loadeddata", () => startLineupVideoProgressLoop());
 }
 
-function applyLineupVideoSources(root = document) {
+function ensureLineupVideoPosterElement(embed) {
+  let poster = embed.querySelector("img.lineup-video-embed-poster");
+  if (!poster) {
+    poster = document.createElement("img");
+    poster.className = "lineup-video-embed-poster";
+    poster.alt = "";
+    poster.decoding = "async";
+    poster.loading = "lazy";
+    embed.prepend(poster);
+  }
+  embed.querySelector("video.lineup-video-preview")?.remove();
+  return poster;
+}
+
+function resetLineupVideoPosterElement(poster) {
+  if (!poster) return;
+  poster.classList.remove("is-loaded", "is-error");
+  poster.removeAttribute("src");
+}
+
+function loadLineupVideoPoster(card) {
+  const embed = card?.querySelector(".lineup-video-embed");
+  if (!embed || embed.dataset.posterLoaded === "1" || embed.dataset.posterLoading === "1") return;
+
+  const posterUrl = getLineupVideoPosterAssetPath(card);
+  const videoUrl = getLineupVideoUrl(card);
+  const poster = ensureLineupVideoPosterElement(embed);
+
+  card.classList.toggle("lineup-video-card--no-source", !videoUrl);
+
+  if (!videoUrl) {
+    resetLineupVideoPosterElement(poster);
+    embed.dataset.posterLoaded = "1";
+    return;
+  }
+
+  if (!posterUrl) {
+    embed.dataset.posterLoaded = "1";
+    return;
+  }
+
+  const absolutePosterUrl = new URL(posterUrl, window.location.href).href;
+  if (poster.dataset.loadedSrc === absolutePosterUrl) return;
+
+  embed.dataset.posterLoading = "1";
+  poster.classList.remove("is-loaded", "is-error");
+
+  const finish = () => {
+    embed.dataset.posterLoading = "0";
+    embed.dataset.posterLoaded = "1";
+  };
+
+  poster.onload = () => {
+    poster.dataset.loadedSrc = absolutePosterUrl;
+    poster.classList.add("is-loaded");
+    poster.classList.remove("is-error");
+    finish();
+  };
+
+  poster.onerror = () => {
+    poster.classList.add("is-error");
+    poster.classList.remove("is-loaded");
+    poster.removeAttribute("src");
+    finish();
+  };
+
+  poster.src = posterUrl;
+}
+
+function observeLineupVideoCard(card) {
+  if (!card || lineupVideoLoader.observed.has(card)) return;
+  initLineupVideoLazyLoader();
+  lineupVideoLoader.observed.add(card);
+  lineupVideoLoader.observer?.observe(card);
+}
+
+function unobserveLineupVideoCard(card) {
+  lineupVideoLoader.observer?.unobserve(card);
+  lineupVideoLoader.observed.delete(card);
+}
+
+function initLineupVideoLazyLoader() {
+  if (lineupVideoLoader.observer) return;
+
+  if (typeof IntersectionObserver === "undefined") {
+    lineupVideoLoader.observer = null;
+    return;
+  }
+
+  lineupVideoLoader.observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const card = entry.target;
+        if (!(card instanceof HTMLElement) || !card.classList.contains("lineup-video-card")) return;
+
+        if (entry.isIntersecting) {
+          loadLineupVideoPoster(card);
+        }
+      });
+    },
+    { root: null, rootMargin: LINEUP_VIDEO_POSTER_ROOT_MARGIN, threshold: 0.01 },
+  );
+}
+
+function refreshLineupVideoCards(root = document) {
   const scope = root?.querySelectorAll ? root : document;
+
   scope.querySelectorAll(".lineup-video-card").forEach((card) => {
-    const url = getLineupVideoUrl(card);
     const embed = card.querySelector(".lineup-video-embed");
-    const preview = embed?.querySelector("video.lineup-video-preview");
     if (!embed) return;
 
-    ensureLineupVideoEmbedProgress(embed);
-    card.classList.toggle("lineup-video-card--no-source", !url);
+    ensureLineupVideoPosterElement(embed);
+    embed.querySelector(".lineup-video-embed-progress")?.remove();
+    card.classList.toggle("lineup-video-card--no-source", !getLineupVideoUrl(card));
 
-    if (!url || !preview) {
-      preview?.removeAttribute("src");
-      if (preview) preview.hidden = false;
-      setLineupVideoBuffering(embed, false);
+    if (card.hidden || card.classList.contains("hidden")) {
+      unobserveLineupVideoCard(card);
       return;
     }
 
-    preview.hidden = false;
-    preview.muted = true;
-    preview.playsInline = true;
-    preview.preload = "metadata";
-    const absoluteUrl = new URL(url, window.location.href).href;
-    if (preview.src !== absoluteUrl) {
-      preview.src = url;
-      preview.load();
-    }
-    bindLineupVideoBufferUi(preview, embed);
+    observeLineupVideoCard(card);
+
+    const rect = card.getBoundingClientRect();
+    const inView = rect.bottom > -200 && rect.top < window.innerHeight + 200;
+    if (inView) loadLineupVideoPoster(card);
   });
 
   enhanceLineupVideoCardFoots(scope);
+}
+
+function applyLineupVideoSources(root = document) {
+  refreshLineupVideoCards(root);
 }
 
 function getLineupVideoTitle(card) {
@@ -7852,35 +8023,6 @@ function lineupCardMatchesFilters(card, { side, query, map, difficulties }) {
   return sideMatch && mapMatch && searchMatch && difficultyMatch;
 }
 
-function getLineupFilterCounts(game = getActiveLineupGame()) {
-  const grid = getLineupGrid(game);
-  if (!grid) return { attacker: 0, defender: 0 };
-
-  const filters = {
-    ...getLineupFilters(game),
-    side: "all",
-  };
-
-  let attacker = 0;
-  let defender = 0;
-  grid.querySelectorAll(".lineup-video-card").forEach((card) => {
-    if (!lineupCardMatchesFilters(card, filters)) return;
-    const cardSide = (card.dataset.lineupSide || "").toLowerCase();
-    if (cardSide === "attacker") attacker += 1;
-    else if (cardSide === "defender") defender += 1;
-  });
-
-  return { attacker, defender };
-}
-
-function updateLineupFilterCounts(game = getActiveLineupGame()) {
-  const el = document.getElementById("lineup-filter-counts");
-  if (!el) return;
-
-  const { attacker, defender } = getLineupFilterCounts(game);
-  el.textContent = `${attacker} attacker & ${defender} defender`;
-}
-
 function setLineupFilterEmptyState(grid, show) {
   let empty = grid.querySelector(".lineup-filter-empty-state");
   if (show) {
@@ -7942,19 +8084,20 @@ function measureLineupVideosFixedHeight(panel) {
   const cardHeight = cardWidth * (9 / 16) + 4.25 * 16;
   const gridHeight = rows * cardHeight + Math.max(0, rows - 1) * gap;
 
-  const title = panel.querySelector(":scope > .settings-section-title");
-  const titleStyle = title ? getComputedStyle(title) : null;
-  const titleBlock = title
-    ? title.offsetHeight + parseFloat(titleStyle.marginTop || 0) + parseFloat(titleStyle.marginBottom || 0)
-    : 0;
-
   const holder = panel.closest(".lineup-videos-holder");
+  const head = holder?.querySelector("#lineup-videos-panel-head");
+  const headStyle = head ? getComputedStyle(head) : null;
+  const headBlock =
+    head && !head.hidden && !head.classList.contains("hidden")
+      ? head.offsetHeight + parseFloat(headStyle.marginTop || 0) + parseFloat(headStyle.marginBottom || 0)
+      : 0;
+
   const holderStyle = holder ? getComputedStyle(holder) : null;
   const holderPadding = holderStyle
     ? parseFloat(holderStyle.paddingTop || 0) + parseFloat(holderStyle.paddingBottom || 0)
     : 0;
 
-  return holderPadding + titleBlock + gridHeight;
+  return holderPadding + headBlock + gridHeight;
 }
 
 function releaseLineupVideosHolderHeight(holder = document.querySelector(".lineup-videos-holder")) {
@@ -8086,6 +8229,28 @@ function syncLineupFiltersVisibility(game = getActiveLineupGame()) {
   container.classList.toggle("hidden", !hasGame);
 }
 
+const LINEUP_PANEL_HEAD_ICONS = {
+  valorant: "ri-fire-line",
+  cs2: "ri-fire-line",
+};
+
+function syncLineupVideosPanelHead(game = getActiveLineupGame()) {
+  const head = document.getElementById("lineup-videos-panel-head");
+  const title = document.getElementById("lineup-videos-panel-title");
+  if (!head || !title) return;
+
+  const activeGame = LINEUP_GAMES.has(game) ? game : "";
+  const show = !!activeGame;
+  head.hidden = !show;
+  head.classList.toggle("hidden", !show);
+  if (!show) return;
+
+  const option = LINEUP_GAME_OPTIONS[activeGame];
+  const icon = LINEUP_PANEL_HEAD_ICONS[activeGame] || "ri-fire-line";
+  const label = `${option?.label || activeGame} lineups`;
+  title.innerHTML = `<i class="${icon}" aria-hidden="true"></i> ${label}`;
+}
+
 function switchLineupGamePanels(nextGame) {
   const activeGame = LINEUP_GAMES.has(nextGame) ? nextGame : "";
 
@@ -8099,6 +8264,7 @@ function switchLineupGamePanels(nextGame) {
   if (selector) selector.dataset.activeGame = activeGame;
   document.querySelector(".lineup-videos-holder")?.setAttribute("data-active-game", activeGame);
   syncLineupFiltersVisibility(activeGame || null);
+  syncLineupVideosPanelHead(activeGame || null);
 }
 
 function syncLineupGameSelectorUi(game = getActiveLineupGame()) {
@@ -8198,8 +8364,8 @@ function applyLineupFiltersInstant(grid, game, filters) {
 
   setLineupFilterEmptyState(grid, targetCards.length === 0);
   applyLineupSearchHighlights(game);
+  refreshLineupVideoCards(grid);
   updateLineupVideosScrollState(game);
-  updateLineupFilterCounts(game);
 }
 
 function fadeOutLineupCards(cards) {
@@ -8276,7 +8442,6 @@ async function runLineupFilterTransition(grid, game, filters) {
   if (!targetCards.length) {
     applyLineupSearchHighlights(game);
     updateLineupVideosScrollState(game);
-    updateLineupFilterCounts(game);
     return;
   }
 
@@ -8284,8 +8449,8 @@ async function runLineupFilterTransition(grid, game, filters) {
   await fadeInLineupCards(targetCards);
   if (token !== lineupFilterTransitionState.token) return;
 
+  refreshLineupVideoCards(grid);
   updateLineupVideosScrollState(game);
-  updateLineupFilterCounts(game);
 }
 
 function applyLineupFilters() {
@@ -8303,7 +8468,6 @@ function applyLineupFilters() {
     staticEmpty && (staticEmpty.hidden = false);
     setLineupFilterEmptyState(grid, false);
     updateLineupVideosScrollState(game);
-    updateLineupFilterCounts(game);
     return;
   }
 
@@ -8332,7 +8496,6 @@ function applyLineupGridStateInstant() {
   const enterGrid = getLineupGrid(game);
   if (!enterGrid) {
     refreshLineupVideosFixedHeight(game);
-    updateLineupFilterCounts(game);
     return;
   }
 
@@ -8347,7 +8510,6 @@ function applyLineupGridStateInstant() {
     setLineupFilterEmptyState(enterGrid, false);
     refreshLineupVideosFixedHeight(game);
     applyLineupSearchHighlights(game);
-    updateLineupFilterCounts(game);
     return;
   }
 
@@ -8367,8 +8529,8 @@ function applyLineupGridStateInstant() {
 
   setLineupFilterEmptyState(enterGrid, targetCards.length === 0);
   refreshLineupVideosFixedHeight(game);
+  refreshLineupVideoCards(enterGrid);
   applyLineupSearchHighlights(game);
-  updateLineupFilterCounts(game);
 }
 
 function syncLineupFiltersUiControls() {
@@ -8467,9 +8629,13 @@ const lineupVideoSeekState = {
   pendingScrubTime: null,
   lastScrubCaptureAt: 0,
   scrubCaptureTimer: 0,
+  scrubDragTimer: 0,
   progressLoopId: 0,
   lastProgressTs: 0,
 };
+
+const LINEUP_VIDEO_SCRUB_CAPTURE_INTERVAL_MS = 1;
+const LINEUP_VIDEO_SCRUB_SEEK_EPSILON = 0.001;
 
 const LINEUP_VIDEO_PROGRESS_THUMB_PX = 16;
 const LINEUP_VIDEO_PROGRESS_ANIM_RATE = HEALTH_BAR_ANIM_RATE;
@@ -8710,11 +8876,8 @@ function updateLineupVideoProgressForPlayer(video, dt, { snap = false } = {}) {
 }
 
 function collectLineupVideoProgressTargets() {
-  const videos = [];
   const modalPlayer = document.getElementById("lineup-video-modal-player");
-  if (modalPlayer?.src) videos.push(modalPlayer);
-  document.querySelectorAll("video.lineup-video-preview[src]").forEach((video) => videos.push(video));
-  return videos;
+  return modalPlayer?.src ? [modalPlayer] : [];
 }
 
 function tickLineupVideoProgressAnim(ts) {
@@ -8781,6 +8944,7 @@ function updateLineupVideoProgressBars({ playedPct, bufferPct, snap = false, pla
 }
 
 function hideLineupVideoScrubPreview() {
+  stopLineupVideoScrubDragLoop();
   if (lineupVideoSeekState.scrubCaptureTimer) {
     clearTimeout(lineupVideoSeekState.scrubCaptureTimer);
     lineupVideoSeekState.scrubCaptureTimer = 0;
@@ -8788,6 +8952,23 @@ function hideLineupVideoScrubPreview() {
   lineupVideoSeekState.pendingScrubTime = null;
   document.getElementById("lineup-video-scrub-preview")?.classList.add("hidden");
   document.getElementById("lineup-video-progress-wrap")?.classList.remove("is-dragging");
+}
+
+function stopLineupVideoScrubDragLoop() {
+  if (!lineupVideoSeekState.scrubDragTimer) return;
+  clearInterval(lineupVideoSeekState.scrubDragTimer);
+  lineupVideoSeekState.scrubDragTimer = 0;
+}
+
+function startLineupVideoScrubDragLoop() {
+  if (lineupVideoSeekState.scrubDragTimer) return;
+  lineupVideoSeekState.scrubDragTimer = window.setInterval(() => {
+    if (!lineupVideoSeekState.dragging) {
+      stopLineupVideoScrubDragLoop();
+      return;
+    }
+    flushLineupVideoScrubFrame();
+  }, LINEUP_VIDEO_SCRUB_CAPTURE_INTERVAL_MS);
 }
 
 function positionLineupVideoScrubPreview(pct) {
@@ -8830,7 +9011,7 @@ function flushLineupVideoScrubFrame() {
   if (!scrubPlayer || !canvas || !scrubPlayer.src) return;
 
   const captureId = ++lineupVideoSeekState.scrubCaptureId;
-  lineupVideoSeekState.lastScrubCaptureAt = Date.now();
+  lineupVideoSeekState.lastScrubCaptureAt = performance.now();
   const safeTime = Math.max(0, Math.min(captureTime, scrubPlayer.duration || captureTime));
 
   const drawFrame = () => {
@@ -8840,7 +9021,7 @@ function flushLineupVideoScrubFrame() {
     ctx.drawImage(scrubPlayer, 0, 0, canvas.width, canvas.height);
   };
 
-  if (Math.abs(scrubPlayer.currentTime - safeTime) < 0.08 && scrubPlayer.readyState >= 2) {
+  if (Math.abs(scrubPlayer.currentTime - safeTime) <= LINEUP_VIDEO_SCRUB_SEEK_EPSILON && scrubPlayer.readyState >= 2) {
     drawFrame();
     return;
   }
@@ -8850,9 +9031,22 @@ function flushLineupVideoScrubFrame() {
     drawFrame();
   };
 
-  scrubPlayer.addEventListener("seeked", onSeeked);
+  const scheduleDraw = () => {
+    if (typeof scrubPlayer.requestVideoFrameCallback === "function") {
+      scrubPlayer.requestVideoFrameCallback(() => drawFrame());
+      return;
+    }
+    scrubPlayer.addEventListener("seeked", onSeeked, { once: true });
+  };
+
   try {
-    scrubPlayer.currentTime = safeTime;
+    if (typeof scrubPlayer.fastSeek === "function") {
+      scrubPlayer.fastSeek(safeTime);
+      scheduleDraw();
+    } else {
+      scrubPlayer.addEventListener("seeked", onSeeked, { once: true });
+      scrubPlayer.currentTime = safeTime;
+    }
   } catch {
     scrubPlayer.removeEventListener("seeked", onSeeked);
   }
@@ -8861,11 +9055,15 @@ function flushLineupVideoScrubFrame() {
 function requestLineupVideoScrubFrame(time) {
   lineupVideoSeekState.pendingScrubTime = time;
 
-  const now = Date.now();
-  const elapsed = now - (lineupVideoSeekState.lastScrubCaptureAt || 0);
-  const interval = 60;
+  if (lineupVideoSeekState.dragging) {
+    startLineupVideoScrubDragLoop();
+    flushLineupVideoScrubFrame();
+    return;
+  }
 
-  if (elapsed >= interval) {
+  const elapsed = performance.now() - (lineupVideoSeekState.lastScrubCaptureAt || 0);
+
+  if (elapsed >= LINEUP_VIDEO_SCRUB_CAPTURE_INTERVAL_MS) {
     if (lineupVideoSeekState.scrubCaptureTimer) {
       clearTimeout(lineupVideoSeekState.scrubCaptureTimer);
       lineupVideoSeekState.scrubCaptureTimer = 0;
@@ -8875,7 +9073,10 @@ function requestLineupVideoScrubFrame(time) {
   }
 
   if (!lineupVideoSeekState.scrubCaptureTimer) {
-    lineupVideoSeekState.scrubCaptureTimer = window.setTimeout(flushLineupVideoScrubFrame, interval - elapsed);
+    lineupVideoSeekState.scrubCaptureTimer = window.setTimeout(
+      flushLineupVideoScrubFrame,
+      LINEUP_VIDEO_SCRUB_CAPTURE_INTERVAL_MS - elapsed,
+    );
   }
 }
 
@@ -8938,6 +9139,7 @@ function finishLineupVideoProgressSeek() {
   if (!lineupVideoSeekState.dragging || !player || !progress) return;
 
   lineupVideoSeekState.dragging = false;
+  stopLineupVideoScrubDragLoop();
   flushLineupVideoScrubFrame();
   hideLineupVideoScrubPreview();
 
@@ -9031,10 +9233,12 @@ function closeLineupVideoModal() {
     resetLineupVideoProgressAnimState(player);
     setLineupVideoProgressTargets(player, { playedPct: 0, bufferPct: 0, snap: true });
   }
+  lineupVideoModalState.loadToken += 1;
   player?.pause();
   if (player) {
     player.onerror = null;
     player.playbackRate = 1;
+    player.removeAttribute("poster");
     player.removeAttribute("src");
     player.load();
   }
@@ -9046,6 +9250,7 @@ function closeLineupVideoModal() {
   setLineupVideoBuffering(overlay?.querySelector(".lineup-video-modal-body"), false);
 
   lineupVideoModalState.baseUrl = "";
+  lineupVideoModalState.posterUrl = "";
   lineupVideoModalState.speed = 1;
   lineupVideoModalState.shouldAutoplay = false;
 
@@ -9078,7 +9283,7 @@ function syncLineupVideoModalDifficulty(level) {
   el.innerHTML = `<span class="lineup-difficulty-heading"><span class="lineup-difficulty-label">Difficulty</span><span class="lineup-difficulty-dot" aria-hidden="true"></span></span><span class="lineup-difficulty-stars" aria-hidden="true">${renderLineupDifficultyStarsHtml(n)}</span>`;
 }
 
-function openLineupVideoModal(url, title = "", difficulty = "") {
+function openLineupVideoModal(url, title = "", difficulty = "", posterUrl = "") {
   const overlay = document.getElementById("lineup-video-overlay");
   const player = document.getElementById("lineup-video-modal-player");
   const titleEl = document.getElementById("lineup-video-modal-title");
@@ -9090,6 +9295,7 @@ function openLineupVideoModal(url, title = "", difficulty = "") {
   closeLineupVideoOptionsMenu();
 
   lineupVideoModalState.baseUrl = url;
+  lineupVideoModalState.posterUrl = posterUrl;
   lineupVideoModalState.speed = getStoredLineupVideoSpeed();
   lineupVideoModalState.shouldAutoplay = true;
 
@@ -9100,7 +9306,7 @@ function openLineupVideoModal(url, title = "", difficulty = "") {
   resetLineupVideoProgressAnimState(player);
   setLineupVideoProgressTargets(player, { playedPct: 0, bufferPct: 0, snap: true });
 
-  loadLineupVideoModalSource(url, { resumeTime: 0, autoplay: true });
+  loadLineupVideoModalSource(url, { posterUrl, resumeTime: 0, autoplay: true });
 
   overlay.classList.add("active");
   syncBodyScrollLock();
@@ -9138,6 +9344,7 @@ function initLineupVideoModal() {
   overlay.dataset.lineupVideoModalInit = "1";
 
   applyLineupVideoSources();
+  initLineupVideoLazyLoader();
   enhanceLineupVideoEmbeds();
   initLineupVideoOptionsMenu();
   startLineupVideoProgressLoop();
@@ -9157,7 +9364,12 @@ function initLineupVideoModal() {
       const src = card ? getLineupVideoUrl(card) : "";
       if (!src) return;
 
-      openLineupVideoModal(src, card ? getLineupVideoTitle(card) : "", card?.dataset.lineupDifficulty || "");
+      openLineupVideoModal(
+        src,
+        card ? getLineupVideoTitle(card) : "",
+        card?.dataset.lineupDifficulty || "",
+        card ? getLineupVideoPosterAssetPath(card) : "",
+      );
     });
   });
 
@@ -9200,6 +9412,7 @@ function initLineupVideoModal() {
     lineupVideoSeekState.lastScrubCaptureAt = 0;
     player.pause();
     document.getElementById("lineup-video-progress-wrap")?.classList.add("is-dragging");
+    startLineupVideoScrubDragLoop();
 
     const rect = progress.getBoundingClientRect();
     if (rect.width) {
@@ -9227,6 +9440,7 @@ function initLineupVideoModal() {
       lineupVideoSeekState.wasPlaying = !player.paused;
       player.pause();
       document.getElementById("lineup-video-progress-wrap")?.classList.add("is-dragging");
+      startLineupVideoScrubDragLoop();
     }
     handleLineupVideoProgressInput();
   });
@@ -10909,6 +11123,50 @@ const BG_PATTERN_ICONS = {
   none: "ri-prohibited-line",
 };
 
+const FONT_FAMILY_IDS = new Set(["inter", "roboto", "poppins", "space-grotesk", "dm-sans"]);
+
+const FONT_FAMILY_STACKS = {
+  inter: '"Inter", sans-serif',
+  roboto: '"Roboto", sans-serif',
+  poppins: '"Poppins", sans-serif',
+  "space-grotesk": '"Space Grotesk", sans-serif',
+  "dm-sans": '"DM Sans", sans-serif',
+};
+
+const FONT_FAMILY_LABELS = {
+  inter: "Inter",
+  roboto: "Roboto",
+  poppins: "Poppins",
+  "space-grotesk": "Space Grotesk",
+  "dm-sans": "DM Sans",
+};
+
+function normalizeFontFamily(stored) {
+  const value = String(stored || "inter").trim().toLowerCase();
+  return FONT_FAMILY_IDS.has(value) ? value : "inter";
+}
+
+function applyFontFamily(value) {
+  const normalized = normalizeFontFamily(value);
+  const stack = FONT_FAMILY_STACKS[normalized] || FONT_FAMILY_STACKS.inter;
+  document.documentElement.style.setProperty("--app-font-family", stack);
+  document.documentElement.dataset.fontFamily = normalized;
+  requestProfileChartsRedraw();
+}
+
+function syncFontFamilyDropdownUi(value) {
+  const normalized = normalizeFontFamily(value);
+  const label = document.getElementById("font-family-label");
+  const list = document.getElementById("font-family-list");
+  if (label) {
+    label.textContent = FONT_FAMILY_LABELS[normalized] || normalized;
+    label.dataset.fontFamily = normalized;
+  }
+  list?.querySelectorAll(".pref-dropdown-option").forEach((opt) => {
+    opt.classList.toggle("active", opt.getAttribute("data-font-family") === normalized);
+  });
+}
+
 const bgParticles = {
   canvas: null,
   ctx: null,
@@ -11250,6 +11508,7 @@ function initBgPatternDropdown(savedValue) {
 
   const open = () => {
     initTrainerModeDropdown.close?.();
+    initFontFamilyDropdown.close?.();
     dropdown.classList.add("is-open");
     trigger.setAttribute("aria-expanded", "true");
     list.classList.remove("hidden");
@@ -11271,6 +11530,62 @@ function initBgPatternDropdown(savedValue) {
       applyBgPattern(value);
       localStorage.setItem("prefBgPattern", value);
       syncBgPatternDropdownUi(value);
+      close();
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (dropdown.contains(e.target) || list.contains(e.target)) return;
+    close();
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && dropdown.classList.contains("is-open")) {
+      e.preventDefault();
+      close();
+      trigger.blur();
+    }
+  });
+}
+
+function initFontFamilyDropdown(savedValue) {
+  const dropdown = document.getElementById("font-family-dropdown");
+  const trigger = document.getElementById("font-family-trigger");
+  const list = document.getElementById("font-family-list");
+  if (!dropdown || !trigger || !list || initFontFamilyDropdown._init) return;
+  initFontFamilyDropdown._init = true;
+
+  const close = () => {
+    dropdown.classList.remove("is-open");
+    trigger.setAttribute("aria-expanded", "false");
+    list.classList.add("hidden");
+    unmountPrefDropdownPortal(list);
+  };
+
+  const open = () => {
+    initTrainerModeDropdown.close?.();
+    initBgPatternDropdown.close?.();
+    dropdown.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    list.classList.remove("hidden");
+    mountPrefDropdownPortal(list, trigger);
+  };
+
+  initFontFamilyDropdown.close = close;
+  syncFontFamilyDropdownUi(savedValue);
+
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (dropdown.classList.contains("is-open")) close();
+    else open();
+  });
+
+  list.querySelectorAll(".pref-dropdown-option").forEach((opt) => {
+    opt.addEventListener("click", () => {
+      const value = normalizeFontFamily(opt.getAttribute("data-font-family"));
+      applyFontFamily(value);
+      localStorage.setItem("prefFontFamily", value);
+      syncFontFamilyDropdownUi(value);
       close();
     });
   });
@@ -11436,6 +11751,7 @@ function initThemeSettingsMenu() {
   const close = () => {
     overlay.classList.remove("active");
     initBgPatternDropdown.close?.();
+    initFontFamilyDropdown.close?.();
     resetSettingsModalSearch("theme-settings-overlay");
     resetTrainerSettingsDropdowns("theme-settings-overlay");
     syncBodyScrollLock();
@@ -11552,13 +11868,16 @@ function initPreferences() {
   const savedRefresh = normalizeUiRefreshMode(localStorage.getItem("prefUiRefresh") || localStorage.getItem("prefHighRefresh"));
   const savedConfirmReset = localStorage.getItem("prefConfirmReset") !== "false";
   const savedBgPattern = normalizeBgPattern(localStorage.getItem("prefBgPattern"));
+  const savedFontFamily = normalizeFontFamily(localStorage.getItem("prefFontFamily"));
 
   if (savedAccent) applyAccent(savedAccent, { instant: true });
   if (savedFont) applyFontSize(savedFont);
+  applyFontFamily(savedFontFamily);
   applyContrast(savedContrast);
   applyMotion(savedMotion);
   applyBgPattern(savedBgPattern);
   initBgPatternDropdown(savedBgPattern);
+  initFontFamilyDropdown(savedFontFamily);
   bgParticles.init();
   setUiRefreshMode(savedRefresh);
 

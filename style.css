@@ -6,6 +6,7 @@
 
 :root {
   --accent-color: #ef0141;
+  --app-font-family: "Inter", sans-serif;
   --logo-mask: url("./logo.png");
   --rich-black: 0 0% 5%;
   --eerie-black: 0 0% 8%;
@@ -204,7 +205,7 @@ body.app-ready .app-sidebar {
 html *,
 body * {
   box-sizing: border-box;
-  font-family: "Inter", sans-serif;
+  font-family: var(--app-font-family);
   -webkit-user-drag: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -305,7 +306,7 @@ input[type="number"] {
   padding: 0 0.85rem 0 calc(0.65rem + 1.5rem + 0.75rem);
   border: var(--border-width) solid transparent;
   border-radius: 0.85rem;
-  background: transparent;
+  background-color: transparent;
   color: hsl(0, 0%, 72%);
   font: inherit;
   font-size: 0.8rem;
@@ -320,7 +321,9 @@ input[type="number"] {
   -webkit-appearance: none;
   transition:
     background-color var(--button-motion-duration) var(--button-motion-ease),
-    color var(--button-motion-duration) var(--button-motion-ease);
+    color var(--button-motion-duration) var(--button-motion-ease),
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
 }
 
 .app-sidebar-more-item:hover,
@@ -487,7 +490,7 @@ input[type="number"] {
     padding: 0 var(--sidebar-inset-x);
     border: none;
     border-radius: 0.85rem;
-    background: transparent;
+    background-color: transparent;
     color: hsl(0, 0%, 72%);
     font: inherit;
     font-size: 0.8rem;
@@ -498,7 +501,9 @@ input[type="number"] {
     overflow: hidden;
     transition:
       background-color var(--button-motion-duration) var(--button-motion-ease),
-      color var(--button-motion-duration) var(--button-motion-ease);
+      color var(--button-motion-duration) var(--button-motion-ease),
+      border-color var(--button-motion-duration) var(--button-motion-ease),
+      box-shadow var(--button-motion-duration) var(--button-motion-ease);
   }
 
   .app-sidebar-item i {
@@ -1129,12 +1134,15 @@ html.logo-mask-ready .logo-mark {
   display: flex;
   align-items: center;
   height: 3rem;
-  background: hsl(0, 0%, 4%);
+  background-color: hsl(0, 0%, 4%);
   border: var(--border-width) solid hsl(0, 0%, 13%);
   border-radius: 1rem;
   padding: 0 0.75rem;
   box-sizing: border-box;
-  transition: all 300ms ease;
+  transition:
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
 }
 
 .section .box-container-holder .box-container .box-holder .selected-view .input-wrapper {
@@ -1814,7 +1822,7 @@ html.logo-mask-ready .logo-mark {
   position: relative;
   z-index: 2;
   flex: 1;
-  background: transparent;
+  background-color: transparent;
   border: none;
   color: hsl(0, 0%, 40%);
   padding: 0 1rem;
@@ -1823,9 +1831,30 @@ html.logo-mask-ready .logo-mark {
   text-transform: capitalize;
   cursor: pointer;
   border-radius: 0.75rem;
+  isolation: isolate;
   transition:
     color var(--button-motion-duration) var(--button-motion-ease),
-    background-color var(--button-motion-duration) var(--button-motion-ease);
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.trainer-timer-selector .timer-btn::before,
+.trainer-timer-selector .toggle-btn::before,
+.trainer-toggle-selector .timer-btn::before,
+.trainer-toggle-selector .toggle-btn::before,
+.trainer-mode-trigger .timer-btn::before,
+.trainer-mode-trigger .toggle-btn::before,
+.trainer-spread-selector .spread-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: hsla(0, 0%, 100%, 0.05);
+  opacity: 0;
+  transition: opacity var(--button-motion-duration) var(--button-motion-ease);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .trainer-spread-selector .spread-btn {
@@ -1843,7 +1872,16 @@ html.logo-mask-ready .logo-mark {
 .trainer-mode-trigger .toggle-btn:hover:not(.active),
 .trainer-spread-selector .spread-btn:hover:not(.active) {
   color: hsl(0, 0%, 70%);
-  background-color: hsla(0, 0%, 100%, 0.05);
+}
+
+.trainer-timer-selector .timer-btn:hover:not(.active)::before,
+.trainer-timer-selector .toggle-btn:hover:not(.active)::before,
+.trainer-toggle-selector .timer-btn:hover:not(.active)::before,
+.trainer-toggle-selector .toggle-btn:hover:not(.active)::before,
+.trainer-mode-trigger .timer-btn:hover:not(.active)::before,
+.trainer-mode-trigger .toggle-btn:hover:not(.active)::before,
+.trainer-spread-selector .spread-btn:hover:not(.active)::before {
+  opacity: 1;
 }
 
 .trainer-timer-selector .timer-btn.active,
@@ -1859,17 +1897,22 @@ html.logo-mask-ready .logo-mark {
 .trainer-timer-selector .glider,
 .trainer-toggle-selector .glider,
 .trainer-mode-trigger .glider,
-.trainer-spread-selector .glider {
+.trainer-spread-selector .glider,
+.profile-mode-selector .glider,
+.profile-timer-selector .glider,
+.crosshair-converter-zoom-selector .glider {
   position: absolute;
   z-index: 1;
   background-color: var(--accent-color);
   border-radius: 0.75rem;
   transition:
-    transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    width 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    left 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    top 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    transform var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    width var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    left var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    top var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    height var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
   box-shadow: 0 0 0.75rem hsl(from var(--accent-color) h s l / 0.4);
   pointer-events: none;
 }
@@ -2152,7 +2195,7 @@ html.logo-mask-ready .logo-mark {
   z-index: 2;
   flex: 1 1 calc(25% - 0.35rem);
   min-width: 3.5rem;
-  background: transparent;
+  background-color: transparent;
   border: none;
   color: hsl(0, 0%, 40%);
   padding: 0 0.35rem;
@@ -2161,9 +2204,27 @@ html.logo-mask-ready .logo-mark {
   text-transform: capitalize;
   cursor: pointer;
   border-radius: 0.75rem;
+  isolation: isolate;
   transition:
     color var(--button-motion-duration) var(--button-motion-ease),
-    background-color var(--button-motion-duration) var(--button-motion-ease);
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.profile-mode-selector .profile-mode-btn::before,
+.profile-mode-selector .profile-timer-btn::before,
+.profile-timer-selector .profile-mode-btn::before,
+.profile-timer-selector .profile-timer-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: hsla(0, 0%, 100%, 0.05);
+  opacity: 0;
+  transition: opacity var(--button-motion-duration) var(--button-motion-ease);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .profile-timer-selector .profile-mode-btn,
@@ -2179,7 +2240,13 @@ html.logo-mask-ready .logo-mark {
 .profile-timer-selector .profile-mode-btn:hover:not(.active),
 .profile-timer-selector .profile-timer-btn:hover:not(.active) {
   color: hsl(0, 0%, 70%);
-  background-color: hsla(0, 0%, 100%, 0.05);
+}
+
+.profile-mode-selector .profile-mode-btn:hover:not(.active)::before,
+.profile-mode-selector .profile-timer-btn:hover:not(.active)::before,
+.profile-timer-selector .profile-mode-btn:hover:not(.active)::before,
+.profile-timer-selector .profile-timer-btn:hover:not(.active)::before {
+  opacity: 1;
 }
 
 .profile-mode-selector .profile-mode-btn.active,
@@ -2197,11 +2264,13 @@ html.logo-mask-ready .logo-mark {
   background-color: var(--accent-color);
   border-radius: 0.75rem;
   transition:
-    transform 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    width 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    left 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    top 300ms cubic-bezier(0.4, 0, 0.2, 1),
-    height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    transform var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    width var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    left var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    top var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    height var(--button-motion-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
   box-shadow: 0 0 0.75rem hsl(from var(--accent-color) h s l / 0.4);
   pointer-events: none;
 }
@@ -2474,6 +2543,17 @@ body.reduce-motion .sens-finder-hint {
   min-height: 1.2rem;
 }
 
+#edpi-calculator-tab .result-container > .result-display {
+  flex: 1 1 auto;
+  justify-content: space-between;
+  gap: 0;
+  min-height: 9.3125rem;
+}
+
+#edpi-calculator-tab .result-container > .result-display .edpi-info-row {
+  margin-top: 0;
+}
+
 #edpi-rank {
   font-weight: 600;
   font-size: 0.75rem;
@@ -2526,7 +2606,7 @@ body.reduce-motion .sens-finder-hint {
   flex-shrink: 0;
   align-items: center;
   gap: 0.5rem;
-  background: hsl(0, 0%, 7%);
+  background-color: hsl(0, 0%, 7%);
   border: var(--border-width) solid hsl(0, 0%, 15%);
   color: white;
   padding: 0.625rem 1.25rem;
@@ -2534,7 +2614,7 @@ body.reduce-motion .sens-finder-hint {
   cursor: pointer;
   transition:
     opacity var(--button-motion-duration) var(--button-motion-ease),
-    background var(--button-motion-duration) var(--button-motion-ease),
+    background-color var(--button-motion-duration) var(--button-motion-ease),
     border-color var(--button-motion-duration) var(--button-motion-ease),
     box-shadow var(--button-motion-duration) var(--button-motion-ease),
     color var(--button-motion-duration) var(--button-motion-ease);
@@ -2546,7 +2626,7 @@ body.reduce-motion .sens-finder-hint {
 .reset-button:hover,
 .share-button:hover,
 .use-button:hover {
-  background: hsl(0, 0%, 10%);
+  background-color: hsl(0, 0%, 10%);
   border-color: var(--accent-color);
   box-shadow: 0 0 0.9375rem hsl(from var(--accent-color) h s l / 0.15);
 }
@@ -2662,7 +2742,7 @@ body.reduce-motion .sens-finder-hint {
 }
 
 .preset-btn {
-  background: hsl(0, 0%, 7%);
+  background-color: hsl(0, 0%, 7%);
   border: var(--border-width) solid hsl(0, 0%, 13%);
   color: hsl(0, 0%, 94%);
   height: 3.25rem;
@@ -2671,7 +2751,6 @@ body.reduce-motion .sens-finder-hint {
   font-size: 1rem;
   cursor: pointer;
   outline: none;
-  transition: all 300ms ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2679,7 +2758,7 @@ body.reduce-motion .sens-finder-hint {
 }
 
 .preset-btn:hover {
-  background: hsl(from var(--accent-color) h s l / 0.05);
+  background-color: hsl(from var(--accent-color) h s l / 0.05);
   border-color: hsl(from var(--accent-color) h s l / 0.5);
   color: hsl(0, 0%, 100%);
   box-shadow: 0 0.25rem 0.75rem hsla(0, 0%, 0%, 0.3);
@@ -2687,7 +2766,7 @@ body.reduce-motion .sens-finder-hint {
 
 .preset-btn:active {
   transform: scale(0.95);
-  background: hsl(from var(--accent-color) h s l / 0.1);
+  background-color: hsl(from var(--accent-color) h s l / 0.1);
 }
 
 .preset-btn::before {
@@ -2701,12 +2780,12 @@ body.reduce-motion .sens-finder-hint {
 }
 
 .preset-btn:hover::before {
-  background: var(--accent-color);
+  background-color: var(--accent-color);
   box-shadow: 0 0 0.5rem var(--accent-color);
 }
 
 .preset-btn.active-preset {
-  background: hsl(from var(--accent-color) h s l / 0.1);
+  background-color: hsl(from var(--accent-color) h s l / 0.1);
   border-color: hsl(from var(--accent-color) h s l / 0.8);
   color: hsl(0, 0%, 100%);
   box-shadow: 0 0.25rem 0.75rem hsla(0, 0%, 0%, 0.3);
@@ -2715,7 +2794,7 @@ body.reduce-motion .sens-finder-hint {
 }
 
 .preset-btn.active-preset::before {
-  background: var(--accent-color);
+  background-color: var(--accent-color);
   box-shadow: 0 0 0.5rem var(--accent-color);
 }
 
@@ -3895,22 +3974,28 @@ html {
 }
 
 /* === CROSSHAIR / TARGET CONTROLS === */
-.trainer-settings-integrated .setting-block.crosshair-setting-block {
+.trainer-settings-integrated .setting-block.crosshair-setting-block,
+.trainer-settings-overlay .setting-block.crosshair-setting-block {
   flex-direction: column;
   align-items: stretch;
   gap: 2rem;
 }
-.trainer-settings-integrated .setting-block:has(.crosshair-controls) {
+.trainer-settings-integrated .setting-block:has(.crosshair-controls),
+.trainer-settings-overlay .setting-block:has(.crosshair-controls) {
   flex-direction: column;
   align-items: stretch;
   gap: 1.25rem;
 }
 .trainer-settings-integrated .setting-block.crosshair-setting-block .setting-text,
-.trainer-settings-integrated .setting-block:has(.crosshair-controls) .setting-text {
+.trainer-settings-integrated .setting-block:has(.crosshair-controls) .setting-text,
+.trainer-settings-overlay .setting-block.crosshair-setting-block .setting-text,
+.trainer-settings-overlay .setting-block:has(.crosshair-controls) .setting-text {
   text-align: left;
 }
 .trainer-settings-integrated .setting-block.crosshair-setting-block .control-group,
-.trainer-settings-integrated .setting-block:has(.crosshair-controls) .control-group {
+.trainer-settings-integrated .setting-block:has(.crosshair-controls) .control-group,
+.trainer-settings-overlay .setting-block.crosshair-setting-block .control-group,
+.trainer-settings-overlay .setting-block:has(.crosshair-controls) .control-group {
   width: 100%;
   flex-direction: column;
   align-items: stretch;
@@ -3947,7 +4032,7 @@ html {
   padding: 0.45rem 0.6rem 0.5rem;
   border: var(--border-width) solid hsl(0, 0%, 13%);
   border-radius: 0.65rem;
-  background: hsl(0, 0%, 7%);
+  background-color: hsl(0, 0%, 7%);
   color: hsl(0, 0%, 72%);
   font-size: 0.62rem;
   font-weight: 600;
@@ -3955,14 +4040,15 @@ html {
   text-transform: uppercase;
   cursor: pointer;
   transition:
-    border-color 300ms ease,
-    background 300ms ease,
-    color 300ms ease,
-    transform 300ms ease;
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease),
+    transform var(--button-motion-duration) var(--button-motion-ease);
 }
 .crosshair-preset-btn:hover {
   border-color: hsl(from var(--accent-color) h s l / 0.45);
-  background: hsl(from var(--accent-color) h s l / 0.06);
+  background-color: hsl(from var(--accent-color) h s l / 0.06);
   color: hsl(0, 0%, 92%);
 }
 .crosshair-preset-btn:active {
@@ -3970,7 +4056,7 @@ html {
 }
 .crosshair-preset-btn.active {
   border-color: hsl(from var(--accent-color) h s l / 0.75);
-  background: hsl(from var(--accent-color) h s l / 0.1);
+  background-color: hsl(from var(--accent-color) h s l / 0.1);
   color: hsl(0, 0%, 100%);
   box-shadow: 0 0 0.5rem hsl(from var(--accent-color) h s l / 0.15);
 }
@@ -4006,6 +4092,19 @@ html {
   gap: 1rem 1.75rem;
   justify-content: center;
   align-items: flex-end;
+}
+.crosshair-row-colors {
+  width: 100%;
+  justify-content: center;
+}
+.crosshair-row-colors .crosshair-option-colors {
+  align-items: center;
+  text-align: center;
+}
+.crosshair-row-toggles {
+  width: 100%;
+  justify-content: center;
+  gap: 1rem 1.25rem;
 }
 .crosshair-row-sizing .crosshair-option {
   flex: 1 1 5.5rem;
@@ -4353,7 +4452,8 @@ html {
   font-size: 0.7rem;
 }
 @media (max-width: 700px) {
-  .crosshair-row-appearance,
+  .crosshair-row-colors,
+  .crosshair-row-toggles,
   .crosshair-row-sizing {
     justify-content: stretch;
   }
@@ -4370,8 +4470,9 @@ html {
   justify-content: space-between;
   padding: 1.25rem;
   transition:
-    border-color 300ms ease,
-    box-shadow 300ms ease;
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
 }
 
 .settings-general-option:hover,
@@ -4897,6 +4998,7 @@ body.reduce-motion .app-status-dropdown {
 #theme-settings-overlay .setting-block,
 #theme-settings-overlay .control-group,
 #theme-settings-overlay #bg-pattern-dropdown,
+#theme-settings-overlay #font-family-dropdown,
 #trainer-settings-overlay .trainer-settings-sections,
 #trainer-settings-overlay .trainer-settings-section,
 #trainer-settings-overlay .trainer-settings-dropdown,
@@ -4913,13 +5015,38 @@ body.reduce-motion .app-status-dropdown {
   overflow: visible;
 }
 
+.pref-dropdown-option[data-font-family="inter"],
+#font-family-label[data-font-family="inter"] {
+  font-family: "Inter", sans-serif;
+}
+
+.pref-dropdown-option[data-font-family="roboto"],
+#font-family-label[data-font-family="roboto"] {
+  font-family: "Roboto", sans-serif;
+}
+
+.pref-dropdown-option[data-font-family="poppins"],
+#font-family-label[data-font-family="poppins"] {
+  font-family: "Poppins", sans-serif;
+}
+
+.pref-dropdown-option[data-font-family="space-grotesk"],
+#font-family-label[data-font-family="space-grotesk"] {
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.pref-dropdown-option[data-font-family="dm-sans"],
+#font-family-label[data-font-family="dm-sans"] {
+  font-family: "DM Sans", sans-serif;
+}
+
 .pref-dropdown-option {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
   padding: 0.65rem 0.75rem;
-  background: transparent;
+  background-color: transparent;
   border: none;
   border-radius: 0.75rem;
   color: hsl(0, 0%, 65%);
@@ -4931,7 +5058,9 @@ body.reduce-motion .app-status-dropdown {
   cursor: pointer;
   transition:
     background-color var(--button-motion-duration) var(--button-motion-ease),
-    color var(--button-motion-duration) var(--button-motion-ease);
+    color var(--button-motion-duration) var(--button-motion-ease),
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
 }
 
 .pref-dropdown-option-icon {
@@ -4968,7 +5097,7 @@ body.reduce-motion .app-status-dropdown {
 
 .pref-dropdown-option:hover,
 .pref-dropdown-option.hover {
-  background: hsl(0, 0%, 8%);
+  background-color: hsl(0, 0%, 8%);
   color: hsl(var(--text-primary));
 }
 
@@ -4980,7 +5109,7 @@ body.reduce-motion .app-status-dropdown {
 }
 
 .pref-dropdown-option.active {
-  background: hsl(from var(--accent-color) h s l / 0.12);
+  background-color: hsl(from var(--accent-color) h s l / 0.12);
   color: var(--accent-color);
 }
 
@@ -5443,14 +5572,6 @@ body.high-contrast .preset-btn {
   width: 100%;
 }
 
-.lineup-toolbar-meta {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  min-width: 0;
-}
-
 .lineup-side-selector {
   width: 100%;
 }
@@ -5460,14 +5581,34 @@ body.high-contrast .preset-btn {
   min-width: 0;
 }
 
-.lineup-filter-counts {
-  flex: 1 1 auto;
-  min-width: 0;
+.lineup-videos-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 1.25rem;
+}
+
+.lineup-videos-panel-head.hidden {
+  display: none;
+}
+
+.lineup-videos-panel-head .settings-section-title {
   margin: 0;
-  text-align: left;
-  color: hsl(var(--text-muted));
-  font-size: 0.8125rem;
-  line-height: 1.35;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.lineup-videos-panel-head .lineup-difficulty-filter {
+  flex: 1 1 14rem;
+  max-width: 18rem;
+  justify-content: flex-end;
+}
+
+.lineup-videos-panel-head .lineup-difficulty-tags {
+  flex: 1 1 auto;
+  max-width: 14rem;
 }
 
 .lineup-difficulty-filter {
@@ -5877,7 +6018,8 @@ body.high-contrast .preset-btn {
 }
 
 .lineup-video-embed iframe,
-.lineup-video-embed video {
+.lineup-video-embed video,
+.lineup-video-embed-poster {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -5888,12 +6030,16 @@ body.high-contrast .preset-btn {
 }
 
 .lineup-video-embed-poster {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.lineup-video-embed-poster.is-loaded {
+  opacity: 1;
+}
+
+.lineup-video-embed-poster.is-error {
+  opacity: 0;
 }
 
 .lineup-video-utility-badge {
@@ -6925,7 +7071,6 @@ body.high-contrast .preset-btn {
   .lineup-toolbar {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(10rem, 14rem) minmax(0, 1fr);
-    grid-template-rows: auto auto;
     column-gap: 0.75rem;
     row-gap: 0.5rem;
     align-items: start;
@@ -6951,24 +7096,6 @@ body.high-contrast .preset-btn {
   .lineup-search-column {
     grid-column: 3;
     grid-row: 1;
-  }
-
-  .lineup-toolbar-meta {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: subgrid;
-    align-items: center;
-  }
-
-  .lineup-filter-counts {
-    grid-column: 1;
-    text-align: center;
-  }
-
-  .lineup-difficulty-filter {
-    grid-column: 3;
-    width: 100%;
-    min-width: 0;
   }
 
   .lineup-search-wrap {
@@ -7526,7 +7653,8 @@ button.scrollToTop {
 .trainer-mode-trigger .glider,
 .trainer-spread-selector .glider,
 .profile-mode-selector .glider,
-.profile-timer-selector .glider {
+.profile-timer-selector .glider,
+.crosshair-converter-zoom-selector .glider {
   transition-duration: var(--button-motion-duration);
   transition-timing-function: var(--button-motion-ease);
 }
@@ -7543,12 +7671,18 @@ button.scrollToTop {
   .trainer-settings-dropdown-title,
   .game-search,
   .nav-bar .button-container .button,
+  .nav-menu-container .button-container .button,
+  .nav-menu-container .nav-more-menu .button,
   .toggle-btn,
   .timer-btn,
   .spread-btn,
   .app-status-trigger,
   .settings-general-option,
-  .in-text-button
+  .in-text-button,
+  .lineup-difficulty-tag,
+  .crosshair-preset-btn,
+  .lineup-video-options-item,
+  .selected-view
 ) {
   transition-property: background-color, border-color, color, box-shadow, opacity, filter;
   transition-duration: var(--button-motion-duration);
@@ -7573,35 +7707,35 @@ button.scrollToTop {
 button.preset-btn {
   transform: scale(1);
   transition-property: background-color, border-color, color, box-shadow, transform;
-  transition-duration: 300ms;
-  transition-timing-function: ease;
+  transition-duration: var(--button-motion-duration);
+  transition-timing-function: var(--button-motion-ease);
 }
 
 button.preset-btn::before {
   transition-property: background-color, box-shadow;
-  transition-duration: 300ms;
-  transition-timing-function: ease;
+  transition-duration: var(--button-motion-duration);
+  transition-timing-function: var(--button-motion-ease);
 }
 
 button.preset-btn:hover {
-  background: hsl(from var(--accent-color) h s l / 0.05);
+  background-color: hsl(from var(--accent-color) h s l / 0.05);
   border-color: hsl(from var(--accent-color) h s l / 0.5);
   color: hsl(0, 0%, 100%);
   box-shadow: 0 0.25rem 0.75rem hsla(0, 0%, 0%, 0.3);
 }
 
 button.preset-btn:hover::before {
-  background: var(--accent-color);
+  background-color: var(--accent-color);
   box-shadow: 0 0 0.5rem var(--accent-color);
 }
 
 button.preset-btn:active {
   transform: scale(0.95);
-  background: hsl(from var(--accent-color) h s l / 0.1);
+  background-color: hsl(from var(--accent-color) h s l / 0.1);
 }
 
 button.preset-btn.active-preset {
-  background: hsl(from var(--accent-color) h s l / 0.1);
+  background-color: hsl(from var(--accent-color) h s l / 0.1);
   border-color: hsl(from var(--accent-color) h s l / 0.8);
   color: hsl(0, 0%, 100%);
   box-shadow: 0 0.25rem 0.75rem hsla(0, 0%, 0%, 0.3);
@@ -7610,8 +7744,14 @@ button.preset-btn.active-preset {
 }
 
 button.preset-btn.active-preset::before {
-  background: var(--accent-color);
+  background-color: var(--accent-color);
   box-shadow: 0 0 0.5rem var(--accent-color);
+}
+
+button.crosshair-preset-btn {
+  transition-property: background-color, border-color, color, box-shadow, transform;
+  transition-duration: var(--button-motion-duration);
+  transition-timing-function: var(--button-motion-ease);
 }
 
 /* Reduced motion */
