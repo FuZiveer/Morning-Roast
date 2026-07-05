@@ -12,7 +12,7 @@ function bindHeightResizeAnimation(el, { durationMs = 300, onSettle } = {}) {
   function settleHeight(animatedTo) {
     el.style.height = "";
     el.style.overflow = "";
-    el.style.transition = ""; 
+    el.style.transition = "";
     animating = false;
     const actual = el.offsetHeight;
     lastHeight = actual;
@@ -1272,10 +1272,7 @@ function initTrainerTimerDropdown(savedTimer) {
 
 function renderGameOptions(list, valueAttr = "data-game") {
   if (!list) return;
-  list.innerHTML = SUPPORTED_GAMES.map(
-    (name) =>
-      `<button type="button" class="pref-dropdown-option" ${valueAttr}="${name}" role="option">${renderGameOptionIcon(name)}<span>${name}</span></button>`,
-  ).join("");
+  list.innerHTML = SUPPORTED_GAMES.map((name) => `<button type="button" class="pref-dropdown-option" ${valueAttr}="${name}" role="option">${renderGameOptionIcon(name)}<span>${name}</span></button>`).join("");
 }
 
 function getGameOptionLabel(opt) {
@@ -1316,7 +1313,7 @@ let isCopying = false;
 
 const elements = {};
 const cacheElements = () => {
-  const ids = ["base-sens", "from-dpi", "to-dpi", "new-sens-value", "from-search", "to-search", "edpi-dpi", "edpi-sens", "edpi-game-search", "edpi-value", "spectrum-pointer", "edpi-rank", "pro-comparison", "pro-name", "canvas-sens", "canvas-dpi", "profile-best-spatial-canvas", "profile-best-precision-canvas", "finder-reset-btn"];
+  const ids = ["base-sens", "from-dpi", "to-dpi", "new-sens-value", "from-search", "to-search", "edpi-dpi", "edpi-sens", "edpi-game-search", "edpi-value", "edpi-cm360", "spectrum-pointer", "edpi-rank", "pro-comparison", "pro-name", "canvas-sens", "canvas-dpi", "profile-best-spatial-canvas", "profile-best-precision-canvas", "finder-reset-btn"];
   ids.forEach((id) => {
     elements[id] = document.getElementById(id);
   });
@@ -1334,12 +1331,69 @@ function scrollToTop(ms) {
   }, ms);
 }
 
-function calculateCm360(sens, dpi, game) {
-  const multipliers = { Valorant: 0.07, CS2: 0.022, "Apex Legends": 0.022, "Overwatch 2": 0.0066 };
-  const m_yaw = multipliers[game] || 0.022;
-  if (!sens || !dpi || sens <= 0 || dpi <= 0) return 0;
+const DISTANCE_360_UNIT_KEY = "prefDistance360Unit";
+const DEFAULT_DISTANCE_360_UNIT = "cm";
+const CM360_INCH_TO_CM = 2.54;
 
-  return ((360 / (dpi * sens * m_yaw)) * 2.54).toFixed(1);
+function getDistance360Unit() {
+  return localStorage.getItem(DISTANCE_360_UNIT_KEY) === "in" ? "in" : "cm";
+}
+
+function getGameYaw(game) {
+  return trainerConfigs[game]?.constant ?? 0.022;
+}
+
+function calculateCm360Value(sens, dpi, game) {
+  const yaw = getGameYaw(game);
+  if (!sens || !dpi || sens <= 0 || dpi <= 0 || !yaw) return null;
+  return (360 * CM360_INCH_TO_CM) / (dpi * sens * yaw);
+}
+
+function calculateIn360Value(sens, dpi, game) {
+  const cm = calculateCm360Value(sens, dpi, game);
+  return cm == null ? null : cm / CM360_INCH_TO_CM;
+}
+
+function formatEdpiInlineDistance360(sens, dpi, game, unit = getDistance360Unit()) {
+  const value = unit === "in" ? calculateIn360Value(sens, dpi, game) : calculateCm360Value(sens, dpi, game);
+  const label = `${unit}/360`;
+  if (value == null || !Number.isFinite(value) || value <= 0) return label;
+  return `${value.toFixed(3)} ${label}`;
+}
+
+function formatDistance360(sens, dpi, game, unit = getDistance360Unit()) {
+  const value = unit === "in" ? calculateIn360Value(sens, dpi, game) : calculateCm360Value(sens, dpi, game);
+  if (value == null || !Number.isFinite(value)) {
+    return unit === "in" ? "- in/360" : "- cm/360";
+  }
+  return `${value.toFixed(2)} ${unit}/360`;
+}
+
+function formatDistance360Short(sens, dpi, game, unit = getDistance360Unit()) {
+  const value = unit === "in" ? calculateIn360Value(sens, dpi, game) : calculateCm360Value(sens, dpi, game);
+  if (value == null || !Number.isFinite(value)) return "-";
+  return `${value.toFixed(3)} ${unit}`;
+}
+
+function formatDistance360ShortFromCm(cmValue, unit = getDistance360Unit()) {
+  const cm = parseFloat(cmValue);
+  if (!cm || !Number.isFinite(cm) || cm <= 0) return "-";
+  const value = unit === "in" ? cm / CM360_INCH_TO_CM : cm;
+  return `${value.toFixed(3)} ${unit}`;
+}
+
+function refreshDistance360Displays() {
+  updateEDPI();
+  const savedEdpiCm = localStorage.getItem("lastEdpiCm");
+  const profileCm = document.getElementById("profile-edpi-cm");
+  if (profileCm && savedEdpiCm) {
+    profileCm.textContent = formatDistance360ShortFromCm(savedEdpiCm);
+  }
+}
+
+function calculateCm360(sens, dpi, game) {
+  const cm = calculateCm360Value(sens, dpi, game);
+  return cm == null ? 0 : cm.toFixed(2);
 }
 
 function toggleVisibility(element, isVisible) {
@@ -1648,9 +1702,7 @@ function syncMiscMenuBorder({ freezeTop = false } = {}) {
   const sidebarRect = sidebar.getBoundingClientRect();
   const toggleRect = toggle?.getBoundingClientRect();
   const menuRect = menu.getBoundingClientRect();
-  const topOffset = Math.round(
-    toggleRect ? Math.max(0, toggleRect.top - sidebarRect.top) : Math.max(0, menuRect.top - sidebarRect.top),
-  );
+  const topOffset = Math.round(toggleRect ? Math.max(0, toggleRect.top - sidebarRect.top) : Math.max(0, menuRect.top - sidebarRect.top));
   const currentTop = sidebar.style.getPropertyValue("--misc-menu-top");
 
   if (!freezeTop || !currentTop) {
@@ -2469,9 +2521,7 @@ const CROSSHAIR_PRESETS = Object.freeze({
 
 function positionToggleGlider(container) {
   if (!container) return;
-  const activeBtn = container.querySelector(
-    ".toggle-btn.active, .timer-btn.active, .spread-btn.active, .profile-mode-btn.active, .profile-timer-btn.active",
-  );
+  const activeBtn = container.querySelector(".toggle-btn.active, .timer-btn.active, .spread-btn.active, .profile-mode-btn.active, .profile-timer-btn.active");
   const glider = container.querySelector(".glider, .toggle-glider");
   if (!activeBtn || !glider || activeBtn.offsetWidth <= 0) return;
 
@@ -2486,8 +2536,7 @@ function positionToggleGlider(container) {
   glider.style.height = `calc(100% - ${padTop + padBottom}px)`;
 }
 
-const GLIDER_SELECTOR_CONTAINERS =
-  ".trainer-timer-selector, .trainer-toggle-selector, .trainer-spread-selector, .trainer-mode-trigger, .profile-mode-selector, .profile-timer-selector, .crosshair-converter-zoom-selector";
+const GLIDER_SELECTOR_CONTAINERS = ".trainer-timer-selector, .trainer-toggle-selector, .trainer-spread-selector, .trainer-mode-trigger, .profile-mode-selector, .profile-timer-selector, .crosshair-converter-zoom-selector";
 
 function updateAllToggleGliders() {
   document.querySelectorAll(GLIDER_SELECTOR_CONTAINERS).forEach(positionToggleGlider);
@@ -6038,6 +6087,7 @@ function updateEDPI() {
     sensVal = elements["edpi-sens"].value,
     gameVal = elements["edpi-game-search"].value,
     display = elements["edpi-value"],
+    cmDisplay = elements["edpi-cm360"],
     pointer = elements["spectrum-pointer"],
     rankLabel = elements["edpi-rank"],
     proDisplay = elements["pro-comparison"],
@@ -6060,6 +6110,7 @@ function updateEDPI() {
 
   if (gameVal === "" || isNaN(edpi) || edpi === 0) {
     if (display) display.innerText = "0";
+    if (cmDisplay) cmDisplay.textContent = formatEdpiInlineDistance360(parseFloat(sensVal.replace(",", ".")), parseFloat(dpiVal), gameVal);
     if (rankLabel) rankLabel.style.opacity = "0";
     if (proDisplay) proDisplay.style.opacity = "0";
     hideSensSuggestion();
@@ -6074,6 +6125,9 @@ function updateEDPI() {
   }
 
   if (display) display.innerText = edpi;
+  const sensNum = parseFloat(sensVal.replace(",", "."));
+  const dpiNum = parseFloat(dpiVal);
+  if (cmDisplay) cmDisplay.textContent = formatEdpiInlineDistance360(sensNum, dpiNum, gameVal);
   toggleVisibility(copyBtn, edpi !== 0);
   toggleVisibility(shareBtn, edpi !== 0);
 
@@ -6101,7 +6155,6 @@ function updateEDPI() {
 
   if (edpi > 0 && gameVal) {
     localStorage.setItem("lastEdpiCalc", edpi);
-    localStorage.setItem("lastEdpiGame", gameVal);
     localStorage.setItem("lastEdpiSens", sensVal);
     localStorage.setItem("lastEdpiDpi", dpiVal);
     localStorage.setItem("lastEdpiColor", color);
@@ -6117,13 +6170,13 @@ function updateEDPI() {
     if (pGame) pGame.innerText = gameVal;
     if (pSens) pSens.innerText = sensVal;
     if (pDpi) pDpi.innerText = dpiVal;
-    const cmVal = calculateCm360(parseFloat(sensVal.replace(",", ".")), parseFloat(dpiVal), gameVal);
-    if (pCm) pCm.innerText = cmVal + "cm";
+    const cmVal = calculateCm360Value(sensNum, dpiNum, gameVal);
+    if (pCm) pCm.textContent = formatDistance360Short(sensNum, dpiNum, gameVal);
     if (pDot) {
       pDot.style.display = "block";
       pDot.style.backgroundColor = color;
     }
-    localStorage.setItem("lastEdpiCm", cmVal);
+    if (cmVal != null) localStorage.setItem("lastEdpiCm", String(cmVal));
   }
 
   toggleProfileSensConvButtons();
@@ -6187,9 +6240,8 @@ function updateGameInfoPanelVisibility() {
 
   const edpiInfo = document.getElementById("edpi-game-info");
   if (edpiInfo) {
-    const eGame = localStorage.getItem("lastEdpiGame");
     const eVal = localStorage.getItem("lastEdpiCalc");
-    const hasEdpi = eGame && eVal && eVal !== "0";
+    const hasEdpi = eVal && eVal !== "0";
     edpiInfo.style.display = "";
     edpiInfo.classList.toggle("is-empty", !hasEdpi);
   }
@@ -6465,6 +6517,7 @@ function initMobileNavMoreMenu() {
 }
 
 const LINEUP_GAME_STORAGE_KEY = "lineupGame";
+let activeLineupGame = null;
 const LINEUP_SIDE_STORAGE_KEY = "lineupSide";
 const LINEUP_DIFFICULTY_STORAGE_KEY = "lineupDifficulty";
 const LINEUP_MAP_STORAGE_PREFIX = "lineupMap:";
@@ -7692,8 +7745,7 @@ function applyLineupSearchHighlights(game = getActiveLineupGame()) {
 }
 
 function getActiveLineupGame() {
-  const game = localStorage.getItem(LINEUP_GAME_STORAGE_KEY);
-  return LINEUP_GAMES.has(game) ? game : null;
+  return LINEUP_GAMES.has(activeLineupGame) ? activeLineupGame : null;
 }
 
 function getLineupGrid(game = getActiveLineupGame()) {
@@ -8087,15 +8139,10 @@ function measureLineupVideosFixedHeight(panel) {
   const holder = panel.closest(".lineup-videos-holder");
   const head = holder?.querySelector("#lineup-videos-panel-head");
   const headStyle = head ? getComputedStyle(head) : null;
-  const headBlock =
-    head && !head.hidden && !head.classList.contains("hidden")
-      ? head.offsetHeight + parseFloat(headStyle.marginTop || 0) + parseFloat(headStyle.marginBottom || 0)
-      : 0;
+  const headBlock = head && !head.hidden && !head.classList.contains("hidden") ? head.offsetHeight + parseFloat(headStyle.marginTop || 0) + parseFloat(headStyle.marginBottom || 0) : 0;
 
   const holderStyle = holder ? getComputedStyle(holder) : null;
-  const holderPadding = holderStyle
-    ? parseFloat(holderStyle.paddingTop || 0) + parseFloat(holderStyle.paddingBottom || 0)
-    : 0;
+  const holderPadding = holderStyle ? parseFloat(holderStyle.paddingTop || 0) + parseFloat(holderStyle.paddingBottom || 0) : 0;
 
   return holderPadding + headBlock + gridHeight;
 }
@@ -8592,7 +8639,7 @@ function setLineupSearch(query) {
 
 function setLineupGame(game) {
   if (!LINEUP_GAMES.has(game)) return;
-  localStorage.setItem(LINEUP_GAME_STORAGE_KEY, game);
+  activeLineupGame = game;
 
   syncLineupGameSelectorUi(game);
   switchLineupGamePanels(game);
@@ -8604,7 +8651,7 @@ function setLineupGame(game) {
 }
 
 function clearLineupGame() {
-  localStorage.removeItem(LINEUP_GAME_STORAGE_KEY);
+  activeLineupGame = null;
   initLineupGameDropdown.close?.();
   syncLineupGameSelectorUi(null);
   switchLineupGamePanels(null);
@@ -9073,10 +9120,7 @@ function requestLineupVideoScrubFrame(time) {
   }
 
   if (!lineupVideoSeekState.scrubCaptureTimer) {
-    lineupVideoSeekState.scrubCaptureTimer = window.setTimeout(
-      flushLineupVideoScrubFrame,
-      LINEUP_VIDEO_SCRUB_CAPTURE_INTERVAL_MS - elapsed,
-    );
+    lineupVideoSeekState.scrubCaptureTimer = window.setTimeout(flushLineupVideoScrubFrame, LINEUP_VIDEO_SCRUB_CAPTURE_INTERVAL_MS - elapsed);
   }
 }
 
@@ -9364,12 +9408,7 @@ function initLineupVideoModal() {
       const src = card ? getLineupVideoUrl(card) : "";
       if (!src) return;
 
-      openLineupVideoModal(
-        src,
-        card ? getLineupVideoTitle(card) : "",
-        card?.dataset.lineupDifficulty || "",
-        card ? getLineupVideoPosterAssetPath(card) : "",
-      );
+      openLineupVideoModal(src, card ? getLineupVideoTitle(card) : "", card?.dataset.lineupDifficulty || "", card ? getLineupVideoPosterAssetPath(card) : "");
     });
   });
 
@@ -9763,10 +9802,9 @@ function toggleResetButton() {
 function toggleEDPIResetButton() {
   const resetBtn = document.getElementById("edpi-reset");
   if (!resetBtn) return;
-  const gameVal = elements["edpi-game-search"].value;
   const sensVal = elements["edpi-sens"].value;
   const dpiVal = document.getElementById("edpi-dpi").value;
-  const isDefault = gameVal === "" && (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0");
+  const isDefault = (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0");
   toggleVisibility(resetBtn, !isDefault);
 }
 
@@ -11056,9 +11094,7 @@ function initHotkeys() {
 function syncKeybindLabels() {
   const key7Label = document.getElementById("keybind-7-label");
   if (!key7Label) return;
-  key7Label.textContent = LINEUP_TAB_ENABLED
-    ? "Open Lineups"
-    : "Cycle More pages (Keybinds / Updates / Privacy / Terms / Credit)";
+  key7Label.textContent = LINEUP_TAB_ENABLED ? "Open Lineups" : "Cycle More pages (Keybinds / Updates / Privacy / Terms / Credit)";
 }
 
 function initLogoMask() {
@@ -11142,7 +11178,9 @@ const FONT_FAMILY_LABELS = {
 };
 
 function normalizeFontFamily(stored) {
-  const value = String(stored || "inter").trim().toLowerCase();
+  const value = String(stored || "inter")
+    .trim()
+    .toLowerCase();
   return FONT_FAMILY_IDS.has(value) ? value : "inter";
 }
 
@@ -11867,6 +11905,7 @@ function initPreferences() {
   const savedMotion = localStorage.getItem("prefMotion") === "true";
   const savedRefresh = normalizeUiRefreshMode(localStorage.getItem("prefUiRefresh") || localStorage.getItem("prefHighRefresh"));
   const savedConfirmReset = localStorage.getItem("prefConfirmReset") !== "false";
+  const savedDistance360Unit = getDistance360Unit();
   const savedBgPattern = normalizeBgPattern(localStorage.getItem("prefBgPattern"));
   const savedFontFamily = normalizeFontFamily(localStorage.getItem("prefFontFamily"));
 
@@ -12002,6 +12041,15 @@ function initPreferences() {
     savedMotion ? "true" : "false",
   );
   wireToggle(
+    "distance360-unit-selector",
+    "data-distance360-unit",
+    (v) => {
+      localStorage.setItem(DISTANCE_360_UNIT_KEY, v === "in" ? "in" : "cm");
+      refreshDistance360Displays();
+    },
+    savedDistance360Unit,
+  );
+  wireToggle(
     "refresh-selector",
     "data-refresh",
     (v) => {
@@ -12016,6 +12064,77 @@ function initPreferences() {
   enableAccentTransitions();
 }
 
+function initChangelogDateFilter() {
+  const picker = document.getElementById("changelog-date-picker");
+  const trigger = document.getElementById("changelog-date-trigger");
+  const label = document.getElementById("changelog-date-label");
+  const menu = document.getElementById("changelog-date-menu");
+  const panel = document.getElementById("changelog-panel");
+  if (!picker || !trigger || !label || !menu || !panel || initChangelogDateFilter._init) return;
+  initChangelogDateFilter._init = true;
+
+  const groups = [...panel.querySelectorAll(".changelog-date-group")];
+  const options = [...menu.querySelectorAll(".changelog-date-option")];
+  let selected = "all";
+
+  const closeMenu = () => {
+    picker.classList.remove("is-open");
+    trigger.setAttribute("aria-expanded", "false");
+    menu.classList.add("hidden");
+  };
+
+  const openMenu = () => {
+    picker.classList.add("is-open");
+    trigger.setAttribute("aria-expanded", "true");
+    menu.classList.remove("hidden");
+  };
+
+  const applyFilter = () => {
+    groups.forEach((group) => {
+      const show = selected === "all" || group.dataset.changelogDate === selected;
+      group.classList.toggle("is-filtered-out", !show);
+    });
+  };
+
+  const setSelection = (value, text) => {
+    selected = value;
+    label.textContent = text;
+    options.forEach((option) => {
+      const active = option.dataset.changelogFilter === value;
+      option.classList.toggle("active", active);
+      option.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    applyFilter();
+    closeMenu();
+  };
+
+  trigger.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (picker.classList.contains("is-open")) closeMenu();
+    else openMenu();
+  });
+
+  options.forEach((option) => {
+    option.addEventListener("click", (e) => {
+      e.stopPropagation();
+      setSelection(option.dataset.changelogFilter, option.textContent.trim());
+    });
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!picker.contains(e.target)) closeMenu();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && picker.classList.contains("is-open")) {
+      e.preventDefault();
+      closeMenu();
+    }
+  });
+
+  applyFilter();
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initAppLoadingScreen();
   initAppSidebar();
@@ -12024,6 +12143,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (LINEUP_TAB_ENABLED) initLineupTab();
   initCrosshairConverterTab?.();
   initViewmodelGeneratorTab?.();
+  initChangelogDateFilter();
   cacheElements();
   initLogoMask();
   renderGameOptions(document.getElementById("from-list"), "data-game");
@@ -12346,11 +12466,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("profile-edpi-calc-reset")?.addEventListener("click", () => {
     confirmBeforeReset("Clear saved eDPI calculator stats?", () => {
       localStorage.removeItem("lastEdpiCalc");
-      localStorage.removeItem("lastEdpiGame");
       localStorage.removeItem("lastEdpiSens");
       localStorage.removeItem("lastEdpiDpi");
       localStorage.removeItem("lastEdpiColor");
       localStorage.removeItem("lastEdpiCm");
+      localStorage.removeItem("lastEdpiGame");
 
       const pEdpi = document.getElementById("last-edpi-calc");
       const pGame = document.getElementById("profile-edpi-game");
@@ -12386,10 +12506,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("edpi-reset")?.addEventListener("click", () => {
     confirmBeforeReset("Reset the eDPI calculator fields?", () => {
-      const eG = document.getElementById("edpi-game-search"),
-        eD = document.getElementById("edpi-dpi"),
-        eS = document.getElementById("edpi-sens");
-      if (eG) eG.value = "";
+      const eD = document.getElementById("edpi-dpi");
+      const eS = document.getElementById("edpi-sens");
       if (eD) eD.value = "";
       if (eS) eS.value = "";
       updateEDPI();
@@ -12474,11 +12592,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const savedFromDpi = localStorage.getItem("lastFromDpi");
   const savedToDpi = localStorage.getItem("lastToDpi");
   const savedEdpi = localStorage.getItem("lastEdpiCalc");
-  const savedEdpiGame = localStorage.getItem("lastEdpiGame");
   const savedEdpiSens = localStorage.getItem("lastEdpiSens");
   const savedEdpiDpi = localStorage.getItem("lastEdpiDpi");
   const savedEdpiColor = localStorage.getItem("lastEdpiColor");
   const savedEdpiCm = localStorage.getItem("lastEdpiCm");
+
+  localStorage.removeItem("lastEdpiGame");
+  localStorage.removeItem(LINEUP_GAME_STORAGE_KEY);
 
   const pFrom = document.getElementById("profile-from-game");
   const pTo = document.getElementById("profile-to-game");
@@ -12487,7 +12607,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const pFromDpi = document.getElementById("profile-from-dpi");
   const pToDpi = document.getElementById("profile-to-dpi");
   const pEdpi = document.getElementById("last-edpi-calc");
-  const pEdpiGame = document.getElementById("profile-edpi-game");
   const pEdpiSens = document.getElementById("profile-edpi-sens");
   const pEdpiDpi = document.getElementById("profile-edpi-dpi");
   const pEdpiCm = document.getElementById("profile-edpi-cm");
@@ -12500,10 +12619,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (savedFromDpi && pFromDpi) pFromDpi.innerText = savedFromDpi;
   if (savedToDpi && pToDpi) pToDpi.innerText = savedToDpi;
   if (savedEdpi && pEdpi) pEdpi.innerText = savedEdpi;
-  if (savedEdpiGame && pEdpiGame) pEdpiGame.innerText = savedEdpiGame;
   if (savedEdpiSens && pEdpiSens) pEdpiSens.innerText = savedEdpiSens;
   if (savedEdpiDpi && pEdpiDpi) pEdpiDpi.innerText = savedEdpiDpi;
-  if (savedEdpiCm && pEdpiCm) pEdpiCm.innerText = savedEdpiCm + "cm";
+  if (savedEdpiCm && pEdpiCm) pEdpiCm.textContent = formatDistance360ShortFromCm(savedEdpiCm);
   if (savedEdpiColor && pEdpiDot) {
     pEdpiDot.style.display = "block";
     pEdpiDot.style.backgroundColor = savedEdpiColor;
