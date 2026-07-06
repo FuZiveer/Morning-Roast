@@ -1793,16 +1793,33 @@
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
                     <h3 class="changelog-version">0.2.3</h3>
-                    <ul class="changelog-list">
-                      <li>Game registry moved to <code>games.js</code> with per-game yaw and editable multipliers</li>
-                      <li>Curated game list: original titles plus Marvel Rivals; Black Ops 6 and Black Ops 7 listed separately</li>
-                      <li>Swap button spins on hover; fixed swap when only one game field is filled</li>
-                      <li>Game dropdowns restore the last valid selection after clear, blur, or partial search</li>
-                      <li>Input icons glow and scale on hover; section title icons no longer react to nearby inputs</li>
-                      <li>Faster load: Inter font only at startup, lazy font picker loading, crosshair script deferred</li>
-                      <li>Debounced sensitivity and eDPI recalculation while typing</li>
-                      <li>Service worker cache bumped to morning-roast-v6 with a leaner precache list</li>
-                    </ul>
+                    <div class="changelog-type-groups">
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Curated game list: original titles plus Marvel Rivals; Black Ops 6 and Black Ops 7 listed separately</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Game registry moved to <code>games.js</code> with per-game yaw and editable multipliers</li>
+                          <li>Input icons glow and scale on hover; section title icons no longer react to nearby inputs</li>
+                          <li>Faster load: Inter font only at startup, lazy font picker loading, crosshair script deferred</li>
+                          <li>Debounced sensitivity and eDPI recalculation while typing</li>
+                          <li>Service worker cache bumped to morning-roast-v6 with a leaner precache list</li>
+                          <li>Updates tab groups changes by New, Improve, and Fix with privacy-style fieldset legends</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>Swap button spins on hover; fixed swap when only one game field is filled</li>
+                          <li>Game dropdowns restore the last valid selection after clear, blur, or partial search</li>
+                          <li>Sensitivity converter reset now clears both game fields</li>
+                        </ul>
+                      </fieldset>
+                    </div>
                   </section>
                 </div>
               </article>
@@ -1814,39 +1831,74 @@
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
                     <h3 class="changelog-version">0.2.2</h3>
-                    <ul class="changelog-list">
-                      <li>Updates tab groups releases by date, with a filter to jump to a specific day</li>
-                      <li>eDPI total is centered in the result card; cm/360° sits in the bottom-right corner</li>
-                      <li>cm/360° and in/360° readouts use three decimal places on the calculator and stats profile</li>
-                    </ul>
+                    <div class="changelog-type-groups">
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Updates tab groups releases by date, with a filter to jump to a specific day</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>eDPI total is centered in the result card; cm/360° sits in the bottom-right corner</li>
+                          <li>cm/360° and in/360° readouts use three decimal places on the calculator and stats profile</li>
+                        </ul>
+                      </fieldset>
+                    </div>
                   </section>
                   <section class="changelog-version-block">
                     <h3 class="changelog-version">0.2.1</h3>
-                    <ul class="changelog-list">
-                      <li>Loading screen: animated gradient border on the logo tile while the app loads</li>
-                      <li>eDPI result card layout: rank and pro comparison flank the title, value and spectrum spaced below</li>
-                      <li>eDPI shows cm/360° (or in/360°) beside the total, using per-game yaw values</li>
-                      <li>General settings: toggle 360° distance unit between centimeters and inches</li>
-                      <li>eDPI reset clears sensitivity and DPI only — your selected game stays put</li>
-                      <li>eDPI and lineup game selections no longer persist in local storage</li>
-                      <li>Clear buttons on search and dropdown fields are vertically centered</li>
-                    </ul>
+                    <div class="changelog-type-groups">
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Loading screen: animated gradient border on the logo tile while the app loads</li>
+                          <li>eDPI shows cm/360° (or in/360°) beside the total, using per-game yaw values</li>
+                          <li>General settings: toggle 360° distance unit between centimeters and inches</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>eDPI result card layout: rank and pro comparison flank the title, value and spectrum spaced below</li>
+                          <li>eDPI reset clears sensitivity and DPI only — your selected game stays put</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>eDPI and lineup game selections no longer persist in local storage</li>
+                          <li>Clear buttons on search and dropdown fields are vertically centered</li>
+                        </ul>
+                      </fieldset>
+                    </div>
                   </section>
                   <section class="changelog-version-block">
                     <h3 class="changelog-version">0.2.0</h3>
-                    <ul class="changelog-list">
-                      <li>Added Lineups tab with CS2 and Valorant utility videos, map filters, and difficulty tags</li>
-                      <li>Lineup grid uses lazy poster thumbnails; full video loads only when you open the modal</li>
-                      <li>Added local utility icons for smokes, molotovs, flashes, and side badges</li>
-                      <li>Crosshair settings: turn lines off for dot-only crosshairs, with outline wrapping lines and dot</li>
-                      <li>Crosshair panel layout: color picker on its own row, toggles below with dividers</li>
-                      <li>Crosshair converter preview improvements and Apply to aim trainer for converted crosshairs</li>
-                      <li>Theme settings: font family picker (Inter, Roboto, Poppins, Space Grotesk, DM Sans)</li>
-                      <li>Smoother button transitions when toggling selected states across the site</li>
-                      <li>eDPI result card spacing polish for value, tier, and pro comparison</li>
-                      <li>Lineup filter toolbar refinements and faster video scrub preview while dragging</li>
-                      <li>Updated tab taglines for Lineups, Viewmodel, Keybinds, and Updates</li>
-                    </ul>
+                    <div class="changelog-type-groups">
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Added Lineups tab with CS2 and Valorant utility videos, map filters, and difficulty tags</li>
+                          <li>Added local utility icons for smokes, molotovs, flashes, and side badges</li>
+                          <li>Crosshair settings: turn lines off for dot-only crosshairs, with outline wrapping lines and dot</li>
+                          <li>Theme settings: font family picker (Inter, Roboto, Poppins, Space Grotesk, DM Sans)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Lineup grid uses lazy poster thumbnails; full video loads only when you open the modal</li>
+                          <li>Crosshair panel layout: color picker on its own row, toggles below with dividers</li>
+                          <li>Crosshair converter preview improvements and Apply to aim trainer for converted crosshairs</li>
+                          <li>Smoother button transitions when toggling selected states across the site</li>
+                          <li>eDPI result card spacing polish for value, tier, and pro comparison</li>
+                          <li>Lineup filter toolbar refinements and faster video scrub preview while dragging</li>
+                          <li>Updated tab taglines for Lineups, Viewmodel, Keybinds, and Updates</li>
+                        </ul>
+                      </fieldset>
+                    </div>
                   </section>
                 </div>
               </article>
@@ -1858,18 +1910,28 @@
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
                     <h3 class="changelog-version">0.1.0</h3>
-                    <ul class="changelog-list">
-                      <li>Added Crosshair Converter and Viewmodel Generator under Misc</li>
-                      <li>Added pro viewmodel presets for donk, ZywOo, sh1ro, and xantares</li>
-                      <li>Added Sonner-style notification toasts with timer rings and stacking</li>
-                      <li>Moved tactical advice into notification toasts</li>
-                      <li>Added Keybinds tab and keyboard shortcuts (1–7, C, R, ?)</li>
-                      <li>Aim trainer: press R during a session to restart countdown</li>
-                      <li>Polished sidebar More / Misc menus and open/close behavior</li>
-                      <li>Added right-edge scroll-to-top control</li>
-                      <li>Improved stats cards, action bars, and result layouts</li>
-                      <li>Added this Updates tab for version history</li>
-                    </ul>
+                    <div class="changelog-type-groups">
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Added Crosshair Converter and Viewmodel Generator under Misc</li>
+                          <li>Added pro viewmodel presets for donk, ZywOo, sh1ro, and xantares</li>
+                          <li>Added Sonner-style notification toasts with timer rings and stacking</li>
+                          <li>Added Keybinds tab and keyboard shortcuts (1–7, C, R, ?)</li>
+                          <li>Aim trainer: press R during a session to restart countdown</li>
+                          <li>Added right-edge scroll-to-top control</li>
+                          <li>Added this Updates tab for version history</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Moved tactical advice into notification toasts</li>
+                          <li>Polished sidebar More / Misc menus and open/close behavior</li>
+                          <li>Improved stats cards, action bars, and result layouts</li>
+                        </ul>
+                      </fieldset>
+                    </div>
                   </section>
                 </div>
               </article>
@@ -1881,15 +1943,20 @@
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
                     <h3 class="changelog-version">0.0.1</h3>
-                    <ul class="changelog-list">
-                      <li>Sensitivity Converter across supported games</li>
-                      <li>Mouse eDPI Calculator with pro tiers and presets</li>
-                      <li>Aim Trainer with session stats and sharing</li>
-                      <li>Stats tab for last conversions, eDPI, and aim progress</li>
-                      <li>Settings for theme, general preferences, and reaction test</li>
-                      <li>Privacy Policy, Terms of Service, and Credit pages</li>
-                      <li>Offline-ready install with service worker caching</li>
-                    </ul>
+                    <div class="changelog-type-groups">
+                      <fieldset class="privacy-policy-fieldset-holder changelog-fieldset">
+                        <legend class="privacy-policy-fieldset changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Sensitivity Converter across supported games</li>
+                          <li>Mouse eDPI Calculator with pro tiers and presets</li>
+                          <li>Aim Trainer with session stats and sharing</li>
+                          <li>Stats tab for last conversions, eDPI, and aim progress</li>
+                          <li>Settings for theme, general preferences, and reaction test</li>
+                          <li>Privacy Policy, Terms of Service, and Credit pages</li>
+                          <li>Offline-ready install with service worker caching</li>
+                        </ul>
+                      </fieldset>
+                    </div>
                   </section>
                 </div>
               </article>

@@ -3245,12 +3245,41 @@ body.reduce-motion .sens-finder-hint {
   font-weight: 600;
 }
 
+.changelog-type-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.changelog-fieldset {
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.changelog-legend--new {
+  --privacy-policy-color: var(--accent-color);
+}
+
+.changelog-legend--improve {
+  --privacy-policy-color: hsl(210, 70%, 68%);
+}
+
+.changelog-legend--fix {
+  --privacy-policy-color: hsl(38, 90%, 62%);
+}
+
+.changelog-fieldset .changelog-list {
+  margin-top: 0.35rem;
+}
+
 .changelog-list {
   margin: 0;
   padding: 0 0 0 1.1rem;
+  list-style: disc;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.35rem;
 }
 
 .changelog-list li {

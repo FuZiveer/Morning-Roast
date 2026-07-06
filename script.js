@@ -12881,14 +12881,16 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("reset-btn")?.addEventListener("click", () => {
     confirmBeforeReset("Reset the sensitivity converter fields?", () => {
-      ["from-search", "to-search", "base-sens"].forEach((id) => {
-        const el = document.getElementById(id);
-        if (el) el.value = "";
-      });
+      setConverterGameState(document.getElementById("from-search"), "");
+      setConverterGameState(document.getElementById("to-search"), "");
+      const baseSens = document.getElementById("base-sens");
+      if (baseSens) baseSens.value = "";
       const fD = document.getElementById("from-dpi"),
         tD = document.getElementById("to-dpi");
       if (fD) fD.value = "800";
       if (tD) tD.value = "800";
+      syncGameClearButton("from-search", "from-clear");
+      syncGameClearButton("to-search", "to-clear");
       updateConversion();
       syncGameTriggerIcon("from");
       syncGameTriggerIcon("to");
