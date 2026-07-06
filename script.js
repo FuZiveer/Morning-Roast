@@ -535,22 +535,177 @@ function copyText(text, toastBody) {
     });
 }
 
-const gameMultipliers = Object.freeze({
-  "Call of Duty: Black Ops 7": 10.61,
-  "Rainbow Six Siege": 12.22,
-  "Escape From Tarkov": 0.56,
-  "Apex Legends": 3.18,
-  "ARC Raiders": 51.43,
-  "Overwatch 2": 10.61,
-  "Delta Force": 7.0,
-  Fortnite: 12.6,
-  Valorant: 1.0,
-  Roblox: 0.18,
-  Aimlabs: 1.4,
-  "osu!": 0.88,
-  Rust: 0.62,
-  CS2: 3.18,
+const trainerConfigs = MorningRoastGames.buildTrainerConfigs();
+
+const SUPPORTED_GAMES = MorningRoastGames.SUPPORTED_GAMES;
+
+function getGameConversionFactor(game) {
+  return MorningRoastGames.getGameConversionFactor(game);
+}
+
+function resolveConverterGameInput(idPrefix) {
+  const input = elements[`${idPrefix}-search`] || document.getElementById(`${idPrefix}-search`);
+  if (!input) return null;
+  return getCommittedGameFromInput(input);
+}
+
+function getConverterGameState(input) {
+  if (!input) return "";
+  const committed = getCommittedGameFromInput(input);
+  if (committed) return committed;
+  const lastValid = input.dataset.lastValid || "";
+  return lastValid ? MorningRoastGames.resolveGameName(lastValid) || "" : "";
+}
+
+function setConverterGameState(input, game) {
+  if (!input) return;
+  const resolved = game ? MorningRoastGames.resolveGameName(game) || game : "";
+  input.value = resolved;
+  input.dataset.lastValid = resolved;
+}
+
+function resolveEdpiGameInput() {
+  const input = elements["edpi-game-search"] || document.getElementById("edpi-game-search");
+  if (!input) return null;
+  return getCommittedGameFromInput(input);
+}
+
+/** Simple Icons + fallback colors for game dropdowns and triggers. */
+const GAME_ICON_DEFS = Object.freeze({
+  Aimlabs: { fallback: "hsl(190, 80%, 50%)" },
+  "Apex Legends": { slug: "ea", color: "DA292A", fallback: "hsl(0, 80%, 55%)" },
+  "ARC Raiders": { slug: "ea", color: "6BB7FF", fallback: "hsl(200, 70%, 55%)" },
+  "Black Ops 6": { slug: "activision", color: "000000", fallback: "hsl(95, 45%, 50%)" },
+  "Black Ops 7": { slug: "activision", color: "000000", fallback: "hsl(95, 45%, 50%)" },
+  CS2: { slug: "counterstrike", color: "DE9B35", fallback: "hsl(37, 90%, 51%)" },
+  "Delta Force": { fallback: "hsl(150, 60%, 45%)" },
+  "Escape from Tarkov": { fallback: "hsl(40, 30%, 50%)" },
+  Fortnite: { slug: "fortnite", color: "9D4DBB", fallback: "hsl(265, 70%, 60%)" },
+  "Marvel Rivals": { fallback: "hsl(355, 85%, 55%)" },
+  Overwatch: { slug: "activision", color: "FA9C1E", fallback: "hsl(28, 90%, 55%)" },
+  "osu!": { slug: "osu", color: "FF66AA", fallback: "hsl(330, 80%, 60%)" },
+  "Rainbow 6 Siege": { slug: "ubisoft", color: "0080FF", fallback: "hsl(210, 90%, 55%)" },
+  Roblox: { slug: "roblox", color: "E2231A", fallback: "hsl(0, 0%, 60%)" },
+  Rust: { slug: "rust", color: "CE422B", fallback: "hsl(15, 55%, 50%)" },
+  Valorant: { slug: "valorant", color: "FF4655", fallback: "hsl(355, 100%, 64%)" },
 });
+
+const DEFAULT_GAME_TRIGGER_ICON =
+  '<svg class="icon-game" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2" aria-hidden="true"><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/><path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z"/></svg>';
+
+const GAME_TRIGGER_PREFIXES = ["from", "to", "edpi-game", "trainer-game", "profile-game", "lineup-game"];
+
+function resolveGameIconName(gameName) {
+  return MorningRoastGames.resolveGameName(gameName) || gameName || "";
+}
+
+function getGameIconDef(gameName) {
+  const resolved = resolveGameIconName(gameName);
+  return GAME_ICON_DEFS[resolved] || null;
+}
+
+function getGameIconSrc(gameName) {
+  const resolved = resolveGameIconName(gameName);
+  const def = GAME_ICON_DEFS[resolved];
+  if (!def?.slug) return "";
+  return `https://cdn.simpleicons.org/${def.slug}/${def.color || "ffffff"}`;
+}
+
+function getGameIconFallbackColor(gameName) {
+  const def = getGameIconDef(gameName);
+  return def?.fallback || "hsl(0, 0%, 55%)";
+}
+
+function getGameIconInitial(gameName) {
+  const cleaned = String(gameName || "").replace(/[^A-Za-z0-9]/g, "");
+  return (cleaned.charAt(0) || "?").toUpperCase();
+}
+
+function renderGameIconFallbackMarkup(gameName, className = "game-option-icon") {
+  const resolved = resolveGameIconName(gameName);
+  const color = getGameIconFallbackColor(resolved);
+  const initial = getGameIconInitial(resolved);
+  return `<span class="${className} game-option-icon--fallback" style="--game-icon-color:${color}" aria-hidden="true">${initial}</span>`;
+}
+
+function renderGameOptionIcon(gameName) {
+  const resolved = resolveGameIconName(gameName);
+  const src = getGameIconSrc(resolved);
+  if (src) {
+    return `<img class="game-option-icon" src="${src}" alt="" width="18" height="18" loading="lazy" decoding="async" data-game-icon-name="${encodeURIComponent(resolved)}" />`;
+  }
+  return renderGameIconFallbackMarkup(resolved);
+}
+
+function renderGameTriggerIconContent(gameName) {
+  const resolved = resolveGameIconName(gameName);
+  const src = getGameIconSrc(resolved);
+  if (src) {
+    return `<img class="game-option-icon game-trigger-icon__img" src="${src}" alt="" width="18" height="18" decoding="async" data-game-icon-name="${encodeURIComponent(resolved)}" />`;
+  }
+  return renderGameIconFallbackMarkup(resolved, "game-option-icon game-trigger-icon__img");
+}
+
+function ensureGameTriggerIconSlot(trigger) {
+  if (!trigger) return null;
+  let slot = trigger.querySelector(".game-trigger-icon");
+  if (slot) return slot;
+
+  const svg = trigger.querySelector(".icon-game");
+  if (!svg) return null;
+
+  slot = document.createElement("span");
+  slot.className = "game-trigger-icon icon-game";
+  slot.setAttribute("aria-hidden", "true");
+  slot.dataset.defaultIcon = DEFAULT_GAME_TRIGGER_ICON;
+  svg.replaceWith(slot);
+  slot.innerHTML = DEFAULT_GAME_TRIGGER_ICON;
+  return slot;
+}
+
+function syncGameTriggerIcon(idPrefix) {
+  const trigger = document.getElementById(`${idPrefix}-trigger`);
+  const slot = ensureGameTriggerIconSlot(trigger);
+  if (!slot) return;
+
+  let gameName = "";
+  if (idPrefix === "lineup-game") {
+    const activeGame = getActiveLineupGame();
+    gameName = activeGame ? LINEUP_GAME_OPTIONS[activeGame]?.gameName || "" : "";
+  } else {
+    const input = document.getElementById(`${idPrefix}-search`);
+    gameName = getCommittedGameFromInput(input) || "";
+  }
+
+  slot.innerHTML = gameName ? renderGameTriggerIconContent(gameName) : slot.dataset.defaultIcon || DEFAULT_GAME_TRIGGER_ICON;
+}
+
+function syncAllGameTriggerIcons() {
+  GAME_TRIGGER_PREFIXES.forEach(syncGameTriggerIcon);
+}
+
+function handleGameIconError(img) {
+  if (!(img instanceof HTMLImageElement)) return;
+  const name = decodeURIComponent(img.dataset.gameIconName || "");
+  if (!name) return;
+  const isTrigger = img.classList.contains("game-trigger-icon__img");
+  const replacement = document.createElement("span");
+  replacement.innerHTML = renderGameIconFallbackMarkup(name, isTrigger ? "game-option-icon game-trigger-icon__img" : "game-option-icon");
+  img.replaceWith(replacement.firstElementChild);
+}
+
+function initGameIconErrorFallback() {
+  document.addEventListener(
+    "error",
+    (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLImageElement)) return;
+      if (!target.classList.contains("game-option-icon") && !target.classList.contains("game-trigger-icon__img")) return;
+      handleGameIconError(target);
+    },
+    true,
+  );
+}
 
 const proDatabase = {
   Valorant: {
@@ -569,220 +724,6 @@ const proDatabase = {
     high: ["Pro High"],
   },
 };
-
-const edpiPresets = Object.freeze({
-  Valorant: {
-    color: "hsl(355, 100%, 64%)",
-    presets: [
-      { name: "Demon1", dpi: 1600, sens: 0.1 },
-      { name: "TenZ", dpi: 1600, sens: 0.173 },
-      { name: "Zekken", dpi: 1600, sens: 0.175 },
-      { name: "aspas", dpi: 800, sens: 0.37 },
-      { name: "f0rsakeN", dpi: 800, sens: 0.645 },
-      { name: "ScreaM", dpi: 400, sens: 2.35 },
-    ],
-  },
-  CS2: {
-    color: "hsl(37, 90%, 51%)",
-    presets: [
-      { name: "ropz", dpi: 400, sens: 1.77 },
-      { name: "ZywOo", dpi: 400, sens: 2 },
-      { name: "m0NESY", dpi: 400, sens: 2.3 },
-      { name: "donk", dpi: 800, sens: 1.25 },
-      { name: "flameZ", dpi: 400, sens: 3 },
-      { name: "s1mple", dpi: 400, sens: 3.09 },
-    ],
-  },
-  "Apex Legends": {
-    color: "hsl(0, 80%, 55%)",
-    presets: [
-      { name: "ImperialHal", dpi: 400, sens: 1.6 },
-      { name: "Genburten", dpi: 400, sens: 2 },
-      { name: "Sweet", dpi: 800, sens: 1.2 },
-      { name: "Verhulst", dpi: 400, sens: 1.5 },
-      { name: "HisWattson", dpi: 400, sens: 1.8 },
-      { name: "Zer0", dpi: 800, sens: 1.1 },
-    ],
-  },
-  "Rainbow Six Siege": {
-    color: "hsl(210, 90%, 55%)",
-    presets: [
-      { name: "Beaulo", dpi: 1600, sens: 8 },
-      { name: "Pengu", dpi: 400, sens: 12 },
-      { name: "Shaiiko", dpi: 800, sens: 9 },
-      { name: "Bryan", dpi: 400, sens: 14 },
-      { name: "CTZN", dpi: 400, sens: 11 },
-      { name: "Doki", dpi: 800, sens: 8.5 },
-    ],
-  },
-  "Overwatch 2": {
-    color: "hsl(28, 90%, 55%)",
-    presets: [
-      { name: "Sparkr", dpi: 800, sens: 5 },
-      { name: "Kariv", dpi: 400, sens: 8.6 },
-      { name: "Profit", dpi: 800, sens: 5.5 },
-      { name: "Carpe", dpi: 800, sens: 6 },
-      { name: "Happy", dpi: 1600, sens: 3 },
-      { name: "Fleta", dpi: 800, sens: 5.2 },
-    ],
-  },
-  Fortnite: {
-    color: "hsl(265, 70%, 60%)",
-    presets: [
-      { name: "Bugha", dpi: 400, sens: 0.08 },
-      { name: "Clix", dpi: 400, sens: 0.09 },
-      { name: "Mongraal", dpi: 400, sens: 0.07 },
-      { name: "Benjyfishy", dpi: 400, sens: 0.085 },
-      { name: "Cooper", dpi: 800, sens: 0.05 },
-      { name: "Peterbot", dpi: 400, sens: 0.075 },
-    ],
-  },
-  "Call of Duty: Black Ops 7": {
-    color: "hsl(95, 45%, 50%)",
-    presets: [
-      { name: "Scump", dpi: 800, sens: 6 },
-      { name: "Shotzzy", dpi: 800, sens: 7 },
-      { name: "aBeZy", dpi: 800, sens: 6.5 },
-      { name: "Simp", dpi: 800, sens: 7.5 },
-      { name: "Dashy", dpi: 800, sens: 6 },
-      { name: "Cellium", dpi: 800, sens: 6.8 },
-    ],
-  },
-  "Delta Force": {
-    color: "hsl(150, 60%, 45%)",
-    presets: [
-      { name: "Balanced", dpi: 800, sens: 35 },
-      { name: "Low", dpi: 400, sens: 30 },
-      { name: "High", dpi: 1600, sens: 25 },
-      { name: "Tracker", dpi: 800, sens: 28 },
-      { name: "Flicker", dpi: 800, sens: 45 },
-      { name: "Hybrid", dpi: 400, sens: 50 },
-    ],
-  },
-  "Escape From Tarkov": {
-    color: "hsl(40, 30%, 50%)",
-    presets: [
-      { name: "Balanced", dpi: 800, sens: 0.4 },
-      { name: "Low", dpi: 400, sens: 0.45 },
-      { name: "High", dpi: 1600, sens: 0.25 },
-      { name: "Sniper", dpi: 800, sens: 0.3 },
-      { name: "CQB", dpi: 800, sens: 0.5 },
-      { name: "Hybrid", dpi: 400, sens: 0.6 },
-    ],
-  },
-  Rust: {
-    color: "hsl(15, 55%, 50%)",
-    presets: [
-      { name: "Balanced", dpi: 800, sens: 0.4 },
-      { name: "Low", dpi: 400, sens: 0.5 },
-      { name: "High", dpi: 1600, sens: 0.25 },
-      { name: "AK Control", dpi: 800, sens: 0.3 },
-      { name: "Aggressive", dpi: 800, sens: 0.55 },
-      { name: "Hybrid", dpi: 400, sens: 0.65 },
-    ],
-  },
-  Aimlabs: {
-    color: "hsl(190, 80%, 50%)",
-    presets: [
-      { name: "Valorant-like", dpi: 800, sens: 0.4 },
-      { name: "CS2-like", dpi: 400, sens: 1 },
-      { name: "Low", dpi: 400, sens: 0.5 },
-      { name: "High", dpi: 1600, sens: 0.3 },
-      { name: "Tracking", dpi: 800, sens: 0.45 },
-      { name: "Flicking", dpi: 800, sens: 0.6 },
-    ],
-  },
-  "osu!": {
-    color: "hsl(330, 80%, 60%)",
-    presets: [
-      { name: "Standard", dpi: 800, sens: 1 },
-      { name: "Low", dpi: 400, sens: 1.5 },
-      { name: "High", dpi: 1600, sens: 0.6 },
-      { name: "Tablet-like", dpi: 800, sens: 0.8 },
-      { name: "Stream", dpi: 800, sens: 1.2 },
-      { name: "Jump", dpi: 1600, sens: 0.7 },
-    ],
-  },
-  Roblox: {
-    color: "hsl(0, 0%, 60%)",
-    presets: [
-      { name: "Balanced", dpi: 800, sens: 0.5 },
-      { name: "Low", dpi: 400, sens: 0.6 },
-      { name: "High", dpi: 1600, sens: 0.3 },
-      { name: "Arsenal", dpi: 800, sens: 0.4 },
-      { name: "Aggressive", dpi: 800, sens: 0.7 },
-      { name: "Hybrid", dpi: 400, sens: 0.8 },
-    ],
-  },
-  "ARC Raiders": {
-    color: "hsl(180, 50%, 50%)",
-    presets: [
-      { name: "Balanced", dpi: 800, sens: 5 },
-      { name: "Low", dpi: 400, sens: 6 },
-      { name: "High", dpi: 1600, sens: 3 },
-      { name: "Tracker", dpi: 800, sens: 4 },
-      { name: "Aggressive", dpi: 800, sens: 7 },
-      { name: "Hybrid", dpi: 400, sens: 8 },
-    ],
-  },
-});
-
-const trainerConfigs = {
-  Aimlabs: { constant: 0.05, fov: 103 },
-  "Apex Legends": { constant: 0.022, fov: 90 },
-  "ARC Raiders": { constant: 0.00136, fov: 90 },
-  "Call of Duty: Black Ops 7": { constant: 0.0066, fov: 103 },
-  CS2: { constant: 0.022, fov: 90 },
-  "Delta Force": { constant: 0.01, fov: 103 },
-  "Escape From Tarkov": { constant: 0.125, fov: 90 },
-  Fortnite: { constant: 0.0055, fov: 103 },
-  "osu!": { constant: 0.0795, fov: 90 },
-  "Overwatch 2": { constant: 0.0066, fov: 103 },
-  "Rainbow Six Siege": { constant: 0.0057, fov: 90 },
-  Roblox: { constant: 0.3888, fov: 90 },
-  Rust: { constant: 0.1129, fov: 90 },
-  Valorant: { constant: 0.07, fov: 103 },
-};
-
-const SUPPORTED_GAMES = Object.freeze(Object.keys(trainerConfigs).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })));
-
-/** Simple Icons brand marks for game dropdown options. */
-const GAME_ICON_BRANDS = Object.freeze({
-  Valorant: { slug: "valorant", color: "FF4655" },
-  CS2: { slug: "counterstrike", color: "DE9B35" },
-  "Apex Legends": { slug: "apexlegends", color: "DA292A" },
-  Fortnite: { slug: "fortnite", color: "9D4DBB" },
-  "Overwatch 2": { slug: "overwatch", color: "F99E1A" },
-  "Rainbow Six Siege": { slug: "ubisoft", color: "0080FF" },
-  Roblox: { slug: "roblox", color: "E2231A" },
-  "osu!": { slug: "osu", color: "FF66AA" },
-  "Call of Duty: Black Ops 7": { slug: "callofduty", color: "8B8B8B" },
-});
-
-function getGameIconSrc(gameName) {
-  const brand = GAME_ICON_BRANDS[gameName];
-  if (!brand) return "";
-  return `https://cdn.simpleicons.org/${brand.slug}/${brand.color}`;
-}
-
-function getGameIconFallbackColor(gameName) {
-  return edpiPresets[gameName]?.color || "hsl(0, 0%, 55%)";
-}
-
-function getGameIconInitial(gameName) {
-  const cleaned = String(gameName || "").replace(/^[^A-Za-z0-9]+/, "");
-  return (cleaned.charAt(0) || "?").toUpperCase();
-}
-
-function renderGameOptionIcon(gameName) {
-  const src = getGameIconSrc(gameName);
-  if (src) {
-    return `<img class="game-option-icon" src="${src}" alt="" width="18" height="18" loading="lazy" decoding="async" />`;
-  }
-  const color = getGameIconFallbackColor(gameName);
-  const initial = getGameIconInitial(gameName);
-  return `<span class="game-option-icon game-option-icon--fallback" style="--game-icon-color:${color}" aria-hidden="true">${initial}</span>`;
-}
 
 const TRAINER_MODES = Object.freeze([
   { id: "static", label: "Static", icon: "ri-focus-3-line", scoreType: "hits", maxTargets: 4, spawnBand: { yaw: 0.2, pitch: 0.1 } },
@@ -1339,13 +1280,9 @@ function getDistance360Unit() {
   return localStorage.getItem(DISTANCE_360_UNIT_KEY) === "in" ? "in" : "cm";
 }
 
-function getGameYaw(game) {
-  return trainerConfigs[game]?.constant ?? 0.022;
-}
-
 function calculateCm360Value(sens, dpi, game) {
-  const yaw = getGameYaw(game);
-  if (!sens || !dpi || sens <= 0 || dpi <= 0 || !yaw) return null;
+  const yaw = MorningRoastGames.getGameYaw(game);
+  if (!sens || !dpi || sens <= 0 || dpi <= 0 || yaw == null || yaw <= 0) return null;
   return (360 * CM360_INCH_TO_CM) / (dpi * sens * yaw);
 }
 
@@ -1661,17 +1598,27 @@ function initAppSidebar() {
   sidebar.addEventListener("mouseenter", cancelAppMiscMenuClose);
 
   initAppMoreMenu();
-  initAppMiscMenu();
+  if (MISC_TAB_ENABLED) initAppMiscMenu();
 }
 
 function syncMoreMenuBorder() {
   const sidebar = document.querySelector(".app-sidebar");
   const menu = document.getElementById("sidebar-more-menu");
   const more = document.getElementById("app-sidebar-more");
+  const misc = document.getElementById("app-sidebar-misc");
   if (!sidebar) return;
+
+  if (misc?.classList.contains("is-open")) {
+    syncMiscMenuBorder();
+    return;
+  }
 
   const menuActive = more?.classList.contains("is-open") || more?.classList.contains("is-closing");
   if (!menuActive || !menu) {
+    if (misc?.classList.contains("is-closing")) {
+      syncMiscMenuBorder();
+      return;
+    }
     sidebar.style.removeProperty("--sidebar-border-cutoff");
     sidebar.style.removeProperty("--sidebar-border-cutoff-end");
     return;
@@ -1689,10 +1636,20 @@ function syncMiscMenuBorder({ freezeTop = false } = {}) {
   const menu = document.getElementById("sidebar-misc-menu");
   const toggle = document.getElementById("sidebar-misc-button");
   const misc = document.getElementById("app-sidebar-misc");
+  const more = document.getElementById("app-sidebar-more");
   if (!sidebar) return;
+
+  if (more?.classList.contains("is-open")) {
+    syncMoreMenuBorder();
+    return;
+  }
 
   const menuActive = misc?.classList.contains("is-open") || misc?.classList.contains("is-closing");
   if (!menuActive || !menu) {
+    if (more?.classList.contains("is-closing")) {
+      syncMoreMenuBorder();
+      return;
+    }
     sidebar.style.removeProperty("--misc-menu-top");
     sidebar.style.removeProperty("--sidebar-border-cutoff");
     sidebar.style.removeProperty("--sidebar-border-cutoff-end");
@@ -1712,6 +1669,36 @@ function syncMiscMenuBorder({ freezeTop = false } = {}) {
 
   const topPx = parseFloat(sidebar.style.getPropertyValue("--misc-menu-top")) || topOffset;
   sidebar.style.setProperty("--sidebar-border-cutoff-end", `${Math.round(topPx + menu.offsetHeight)}px`);
+}
+
+function closeAppMoreMenuForHandoff() {
+  const more = document.getElementById("app-sidebar-more");
+  const toggle = document.getElementById("sidebar-more-button");
+  const menu = document.getElementById("sidebar-more-menu");
+  if (!more || !toggle || !menu) return;
+  if (!more.classList.contains("is-open") && !more.classList.contains("is-closing")) return;
+
+  clearTimeout(setAppMoreMenuOpen.closeTimer);
+  clearTimeout(setAppMoreMenuOpen.closeFallback);
+  toggle.setAttribute("aria-expanded", "false");
+  more.classList.remove("is-open", "is-closing");
+  menu.hidden = true;
+  menu.setAttribute("aria-hidden", "true");
+}
+
+function closeAppMiscMenuForHandoff() {
+  const misc = document.getElementById("app-sidebar-misc");
+  const toggle = document.getElementById("sidebar-misc-button");
+  const menu = document.getElementById("sidebar-misc-menu");
+  if (!misc || !toggle || !menu) return;
+  if (!misc.classList.contains("is-open") && !misc.classList.contains("is-closing")) return;
+
+  clearTimeout(setAppMiscMenuOpen.closeTimer);
+  clearTimeout(setAppMiscMenuOpen.closeFallback);
+  toggle.setAttribute("aria-expanded", "false");
+  misc.classList.remove("is-open", "is-closing");
+  menu.hidden = true;
+  menu.setAttribute("aria-hidden", "true");
 }
 
 function finishAppMoreMenuClose() {
@@ -1737,7 +1724,7 @@ function setAppMoreMenuOpen(open) {
 
   if (open) {
     more.classList.remove("is-closing");
-    setAppMiscMenuOpen(false);
+    closeAppMiscMenuForHandoff();
     menu.hidden = false;
     menu.setAttribute("aria-hidden", "false");
     toggle.setAttribute("aria-expanded", "true");
@@ -1874,7 +1861,7 @@ function setAppMiscMenuOpen(open) {
 
   if (open) {
     misc.classList.remove("is-closing");
-    setAppMoreMenuOpen(false);
+    closeAppMoreMenuForHandoff();
     menu.hidden = false;
     menu.setAttribute("aria-hidden", "false");
     toggle.setAttribute("aria-expanded", "true");
@@ -2040,7 +2027,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v2";
+const APP_CACHE_VERSION = "morning-roast-v6";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -2405,7 +2392,7 @@ function renderTargetSpreadPreviewCanvas(animScale) {
   ctx.fill();
 
   ctx.fillStyle = "hsla(0, 0%, 100%, 0.38)";
-  ctx.font = "600 9px Inter, sans-serif";
+  ctx.font = canvasFont("600 9px");
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText("Screen spawn zone", 10, 8);
@@ -3865,7 +3852,7 @@ const aimTrainer = {
     this.ctx.save();
     this.ctx.globalAlpha = 0.25;
     this.ctx.fillStyle = "white";
-    this.ctx.font = `600 ${Math.round(13 * scaleY)}px Inter`;
+    this.ctx.font = canvasFont(`600 ${Math.round(13 * scaleY)}px`);
     this.ctx.textAlign = "left";
     this.ctx.textBaseline = "bottom";
     this.ctx.fillText("Press R to restart", padX, this.canvas.height - padY);
@@ -4136,7 +4123,7 @@ const aimTrainer = {
     if (!sensInput || !dpiInput) return;
 
     const dpi = parseFloat(dpiInput.value) || 800;
-    const multiplier = gameMultipliers[this.game] || 1.0;
+    const multiplier = getGameConversionFactor(this.game);
 
     const lowBound = 160 * multiplier;
     const highBound = 450 * multiplier;
@@ -4186,11 +4173,11 @@ const aimTrainer = {
     }
 
     sCtx.fillStyle = accentColor();
-    sCtx.font = "bold 60px Inter";
+    sCtx.font = canvasFont("bold 60px");
     sCtx.textAlign = "center";
     sCtx.fillText("MORNING ROAST", 500, 120);
     sCtx.fillStyle = "white";
-    sCtx.font = "24px Inter";
+    sCtx.font = canvasFont("24px");
     sCtx.globalAlpha = 0.5;
     sCtx.fillText("AIM TRAINER PERFORMANCE REPORT", 500, 160);
     sCtx.globalAlpha = 1.0;
@@ -4207,12 +4194,12 @@ const aimTrainer = {
     stats.forEach((s, i) => {
       const x = 200 + i * 300;
       sCtx.fillStyle = "white";
-      sCtx.font = "bold 18px Inter";
+      sCtx.font = canvasFont("bold 18px");
       sCtx.globalAlpha = 0.4;
       sCtx.fillText(s.label, x, 280);
       sCtx.globalAlpha = 1.0;
       sCtx.fillStyle = s.color;
-      sCtx.font = "bold 72px Inter";
+      sCtx.font = canvasFont("bold 72px");
       sCtx.fillText(s.value, x, 350);
     });
 
@@ -4223,7 +4210,7 @@ const aimTrainer = {
     sCtx.stroke();
 
     sCtx.fillStyle = "white";
-    sCtx.font = "bold 20px Inter";
+    sCtx.font = canvasFont("bold 20px");
     sCtx.fillText(`${this.game.toUpperCase()} • ${this.mode.toUpperCase()} MODE`, 500, 500);
 
     const mapScale = 2.6;
@@ -4234,7 +4221,7 @@ const aimTrainer = {
 
     sCtx.fillStyle = "white";
     sCtx.globalAlpha = 0.3;
-    sCtx.font = "bold 16px Inter";
+    sCtx.font = canvasFont("bold 16px");
     sCtx.fillText("HTTPS://FUZIVEER.GITHUB.IO/MORNING-ROAST/", 500, 960);
 
     return sCanvas;
@@ -4289,18 +4276,18 @@ const aimTrainer = {
     const subtitleSize = Math.max(12, (14 * panelW) / 384);
     const subtitleGap = (12 * panelW) / 384;
     const titleY = panelY + pad;
-    this.ctx.font = `600 ${titleSize}px Inter`;
+    this.ctx.font = canvasFont(`600 ${titleSize}px`);
     this.ctx.fillText("Share score", panelX + pad, titleY);
 
     this.ctx.fillStyle = "hsl(0, 0%, 55%)";
-    this.ctx.font = `${subtitleSize}px Inter`;
+    this.ctx.font = canvasFont(`${subtitleSize}px`);
     this.ctx.fillText("Choose how to share your aim trainer score.", panelX + pad, titleY + titleSize + subtitleGap);
 
     const btnH = Math.max(28, (32 * panelW) / 384);
     const btnPadX = Math.max(10, (14 * panelW) / 384);
     const btnY = panelY + panelH - pad - btnH;
     const btnRadius = Math.max(6, (8 * panelW) / 384);
-    const btnFont = `600 ${Math.max(11, (13 * panelW) / 384)}px Inter`;
+    const btnFont = canvasFont(`600 ${Math.max(11, (13 * panelW) / 384)}px`);
     const buttons = [
       { ref: "shareMenuCancelBtn", label: "Cancel" },
       { ref: "shareMenuDownloadBtn", label: "Download image" },
@@ -4500,7 +4487,7 @@ const aimTrainer = {
     const cy = this.canvas.height / 2;
     const textY = cy + 7;
     const standbyText = document.fullscreenElement ? "CLICK TO START" : "CLICK TO OPEN";
-    this.ctx.font = "bold 20px Inter";
+    this.ctx.font = canvasFont("bold 20px");
     const metrics = this.ctx.measureText(standbyText);
     const textWidth = metrics.width;
     const textAscent = metrics.actualBoundingBoxAscent || 16;
@@ -4587,7 +4574,7 @@ const aimTrainer = {
     ctx.globalAlpha = 0.96;
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.font = "bold 20px Inter";
+    ctx.font = canvasFont("bold 20px");
     ctx.fillText(standbyText, cx, textY);
     ctx.shadowBlur = 0;
     ctx.restore();
@@ -5075,7 +5062,7 @@ const aimTrainer = {
 
     if (this.showTargetHealthText) {
       this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.75)";
-      this.ctx.font = "bold 9px Inter";
+      this.ctx.font = canvasFont("bold 9px");
       this.ctx.textAlign = "center";
       if (this.showTargetHealthBar) {
         this.ctx.textBaseline = "bottom";
@@ -5110,7 +5097,7 @@ const aimTrainer = {
 
     ctx.save();
     ctx.fillStyle = "hsla(0, 0%, 100%, 0.4)";
-    ctx.font = `bold ${9 * scale}px Inter`;
+    ctx.font = canvasFont(`bold ${9 * scale}px`);
     ctx.textAlign = "center";
     ctx.fillText("SPATIAL (CLICKS)", x, y - mapR * scale - 12 * scale);
 
@@ -5154,7 +5141,7 @@ const aimTrainer = {
     const mapR = 55;
     ctx.save();
     ctx.fillStyle = "hsla(0, 0%, 100%, 0.4)";
-    ctx.font = `bold ${9 * scale}px Inter`;
+    ctx.font = canvasFont(`bold ${9 * scale}px`);
     ctx.textAlign = "center";
     ctx.fillText("PRECISION (OFFSETS)", x, y - mapR * scale - 12 * scale);
 
@@ -5211,20 +5198,20 @@ const aimTrainer = {
           this.drawPrecisionMap(pCtx, pW / 2, pH / 2 + 10, data.sessionOffsets, precisionScale);
         } else if (data) {
           ctx.fillStyle = "hsla(0, 0%, 100%, 0.2)";
-          ctx.font = "10px Inter";
+          ctx.font = canvasFont("10px");
           ctx.textAlign = "center";
           ctx.fillText("NEW SESSION REQUIRED", cssW / 2, cssH / 2);
           pCtx.fillStyle = "hsla(0, 0%, 100%, 0.2)";
-          pCtx.font = "10px Inter";
+          pCtx.font = canvasFont("10px");
           pCtx.textAlign = "center";
           pCtx.fillText("NEW SESSION REQUIRED", pW / 2, pH / 2);
         } else {
           ctx.fillStyle = "hsla(0, 0%, 100%, 0.1)";
-          ctx.font = "10px Inter";
+          ctx.font = canvasFont("10px");
           ctx.textAlign = "center";
           ctx.fillText("NO DATA FOUND", cssW / 2, cssH / 2);
           pCtx.fillStyle = "hsla(0, 0%, 100%, 0.1)";
-          pCtx.font = "10px Inter";
+          pCtx.font = canvasFont("10px");
           pCtx.textAlign = "center";
           pCtx.fillText("NO DATA FOUND", pW / 2, pH / 2);
         }
@@ -5538,7 +5525,7 @@ const aimTrainer = {
     this.ctx.save();
     this.ctx.textBaseline = "top";
     this.ctx.fillStyle = accentAlpha(0.8);
-    this.ctx.font = "bold 14px Inter";
+    this.ctx.font = canvasFont("bold 14px");
     this.ctx.textAlign = "right";
     this.ctx.fillText(`FINDER: SESSION ${this.finderSessionIndex + 1}/10`, this.canvas.width - pad, topY);
     this.ctx.restore();
@@ -5570,7 +5557,7 @@ const aimTrainer = {
     this.ctx.stroke();
 
     this.ctx.fillStyle = accentColor();
-    this.ctx.font = "bold 10px Inter";
+    this.ctx.font = canvasFont("bold 10px");
     this.ctx.textAlign = "center";
     this.ctx.fillText(`${this.randomScale.toFixed(2)}x`, fillX, y - 8);
     this.ctx.beginPath();
@@ -5591,7 +5578,7 @@ const aimTrainer = {
     this.ctx.roundRect(x, y, fillW, h, 4);
     this.ctx.fill();
     this.ctx.fillStyle = "white";
-    this.ctx.font = "11px Inter";
+    this.ctx.font = canvasFont("11px");
     this.ctx.textAlign = "left";
     this.ctx.fillText(label, x, y - 8);
 
@@ -5602,12 +5589,12 @@ const aimTrainer = {
       this.ctx.roundRect(x + labelWidth + 8, y - 18, 22, 12, 3);
       this.ctx.fill();
       this.ctx.fillStyle = "black";
-      this.ctx.font = "bold 8px Inter";
+      this.ctx.font = canvasFont("bold 8px");
       this.ctx.fillText("PB", x + labelWidth + 12, y - 9);
     }
 
     this.ctx.fillStyle = "white";
-    this.ctx.font = "11px Inter";
+    this.ctx.font = canvasFont("11px");
     this.ctx.textAlign = "right";
     this.ctx.fillText(`${value}${unit}`, x + w, y - 8);
   },
@@ -5625,7 +5612,7 @@ const aimTrainer = {
     this.ctx.save();
     this.ctx.textBaseline = "top";
     this.ctx.textAlign = "left";
-    this.ctx.font = "bold 14px Inter";
+    this.ctx.font = canvasFont("bold 14px");
     this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.88)";
     const hitsLabel = isTrainerAccuracyMode(this.mode) ? "KILLS" : "HITS";
     this.ctx.fillText(`${hitsLabel}: ${this.hits}`, pad, topY);
@@ -5660,7 +5647,7 @@ const aimTrainer = {
     this.ctx.textAlign = "center";
     this.ctx.shadowBlur = 0;
     this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.92)";
-    this.ctx.font = `bold ${timerFontSize}px Inter`;
+    this.ctx.font = canvasFont(`bold ${timerFontSize}px`);
     this.ctx.fillText(timerText, timerX, timerY);
 
     if (this.timerPulseAlpha > 0) {
@@ -5680,7 +5667,7 @@ const aimTrainer = {
     const bulletCounter = `${bulletsHit} / ${bulletsShot}`;
     this.ctx.textAlign = "right";
     this.ctx.textBaseline = "alphabetic";
-    this.ctx.font = "bold 13px Inter";
+    this.ctx.font = canvasFont("bold 13px");
     this.ctx.shadowBlur = 0;
     this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.8)";
     this.ctx.fillText(bulletCounter, this.canvas.width - pad, this.canvas.height - pad);
@@ -5864,7 +5851,7 @@ const aimTrainer = {
       this.ctx.fillStyle = "hsla(214, 41%, 3%, 0.95)";
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.fillStyle = "white";
-      this.ctx.font = "bold 26px Inter";
+      this.ctx.font = canvasFont("bold 26px");
       this.ctx.textAlign = "center";
       this.ctx.fillText("SESSION SUMMARY", cx, cy - 225);
 
@@ -5887,7 +5874,7 @@ const aimTrainer = {
       this.drawPrecisionMap(this.ctx, cx + 162, cy + 72, this.sessionOffsets, mapScale);
 
       this.ctx.fillStyle = "white";
-      this.ctx.font = "bold 11px Inter";
+      this.ctx.font = canvasFont("bold 11px");
       this.ctx.textAlign = "center";
       this.ctx.globalAlpha = 0.7;
       this.ctx.fillText(`${this.underFlicks} UNDER-FLICKS | ${this.overFlicks} OVER-FLICKS`, cx, cy + 183);
@@ -5912,7 +5899,7 @@ const aimTrainer = {
       this.ctx.fill();
 
       this.ctx.fillStyle = "white";
-      this.ctx.font = "bold 13px Inter";
+      this.ctx.font = canvasFont("bold 13px");
       this.ctx.textAlign = "center";
       this.ctx.textBaseline = "middle";
       this.ctx.fillText(restartLabel, b.x + b.w / 2, b.y + b.h / 2);
@@ -5952,7 +5939,7 @@ const aimTrainer = {
       this.ctx.fillStyle = "hsla(0, 0%, 0%, 0.6)";
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.fillStyle = "white";
-      this.ctx.font = "bold 80px Inter";
+      this.ctx.font = canvasFont("bold 80px");
       this.ctx.textAlign = "center";
       this.ctx.textBaseline = "middle";
       this.ctx.fillText(String(this.countdownValue), cx, cy + 25);
@@ -6018,7 +6005,7 @@ const aimTrainer = {
 
       if (m.type) {
         this.ctx.fillStyle = `rgba(255, 255, 255, ${m.alpha * 0.8})`;
-        this.ctx.font = "bold 10px Inter";
+        this.ctx.font = canvasFont("bold 10px");
         this.ctx.textAlign = "center";
         this.ctx.fillText(m.type, p.x, p.y - 15);
       }
@@ -6032,60 +6019,16 @@ const aimTrainer = {
   },
 };
 
-function applyEdpiPreset(game, dpi, sens) {
-  const eG = document.getElementById("edpi-game-search"),
-    eD = document.getElementById("edpi-dpi"),
-    eS = document.getElementById("edpi-sens"),
-    eTabBtn = document.querySelector('[onclick*="edpi-calculator-tab"]');
-  if (eG && eD && eS) {
-    if (eTabBtn) eTabBtn.click();
-    eG.value = game;
-    eD.value = dpi;
-    eS.value = sens;
-    updateEDPI();
-  }
-}
-
-function initEdpiPresetsResizeAnimation() {
-  const box = document.getElementById("edpi-presets-box");
-  if (box) bindHeightResizeAnimation(box);
-}
-
-let lastRenderedPresetGame = null;
-function renderEdpiPresets(game) {
-  const container = document.getElementById("edpi-presets-dynamic");
-  if (!container) return;
-  if (game === lastRenderedPresetGame) {
-    checkActivePresets();
-    return;
-  }
-  lastRenderedPresetGame = game;
-
-  const data = edpiPresets[game];
-  if (!game || !data) {
-    container.innerHTML = '<p id="edpi-presets-hint" style="color: gray; font-size: 0.85rem; text-align: center; margin: 0.5rem 0">Select a game above to see its presets.</p>';
-    return;
-  }
-
-  const buttons = data.presets
-    .map((p) => {
-      const g = game.replace(/'/g, "\\'");
-      return `<button class="preset-btn" onclick="applyEdpiPreset('${g}', ${p.dpi}, ${p.sens})">${p.name}</button>`;
-    })
-    .join("");
-
-  container.innerHTML = `
-    <fieldset class="preset-topic-holder">
-      <legend class="preset-topic" style="--preset-topic-color: ${data.color}">${game}</legend>
-      <div class="preset-grid">${buttons}</div>
-    </fieldset>`;
-  checkActivePresets();
+let updateEdpiTimer = 0;
+function scheduleUpdateEDPI() {
+  clearTimeout(updateEdpiTimer);
+  updateEdpiTimer = setTimeout(updateEDPI, 64);
 }
 
 function updateEDPI() {
   const dpiVal = elements["edpi-dpi"].value,
     sensVal = elements["edpi-sens"].value,
-    gameVal = elements["edpi-game-search"].value,
+    gameVal = resolveEdpiGameInput(),
     display = elements["edpi-value"],
     cmDisplay = elements["edpi-cm360"],
     pointer = elements["spectrum-pointer"],
@@ -6100,15 +6043,12 @@ function updateEDPI() {
 
   if (clearBtn) clearBtn.style.display = gameVal ? "flex" : "none";
 
-  renderEdpiPresets(gameVal);
-
   const rawEdpi = parseFloat(dpiVal) * parseFloat(sensVal.replace(",", "."));
   const edpi = Math.round(rawEdpi);
 
-  checkActivePresets();
   toggleEDPIResetButton();
 
-  if (gameVal === "" || isNaN(edpi) || edpi === 0) {
+  if (!gameVal || isNaN(edpi) || edpi === 0) {
     if (display) display.innerText = "0";
     if (cmDisplay) cmDisplay.textContent = formatEdpiInlineDistance360(parseFloat(sensVal.replace(",", ".")), parseFloat(dpiVal), gameVal);
     if (rankLabel) rankLabel.style.opacity = "0";
@@ -6132,7 +6072,19 @@ function updateEDPI() {
   toggleVisibility(shareBtn, edpi !== 0);
 
   let percent, color, label, tier;
-  const multiplier = gameMultipliers[gameVal] || 1.0;
+  const multiplier = getGameConversionFactor(gameVal);
+  if (multiplier == null) {
+    if (rankLabel) rankLabel.style.opacity = "0";
+    if (proDisplay) proDisplay.style.opacity = "0";
+    if (pointer) {
+      pointer.style.left = "0%";
+      pointer.style.backgroundColor = defaultColor;
+      pointer.style.boxShadow = "none";
+    }
+    toggleProfileSensConvButtons();
+    updateGameInfoPanelVisibility();
+    return;
+  }
   const lowThreshold = 200 * multiplier;
   const midThreshold = 320 * multiplier;
 
@@ -6193,14 +6145,9 @@ function updateEDPI() {
     rankLabel.style.opacity = "1";
   }
   if (proDisplay && proName) {
-    const activeBtn = document.querySelector(".preset-btn.active-preset"),
-      activeName = activeBtn ? activeBtn.innerText.trim().toLowerCase() : null;
     const poolKey = gameVal === "CS2" ? "CS2" : gameVal === "Valorant" ? "Valorant" : "General";
     const gamePool = proDatabase[poolKey] || proDatabase.General;
-    let pros = [...(gamePool[tier] || [])];
-    if (activeName) {
-      pros = pros.filter((p) => p.toLowerCase() !== activeName);
-    }
+    const pros = [...(gamePool[tier] || [])];
     if (pros.length > 0) {
       proName.innerText = pros[Math.floor(Math.random() * pros.length)];
       proName.style.color = color;
@@ -6210,21 +6157,6 @@ function updateEDPI() {
   if (isEdpiTabVisible()) {
     showTacticalAdvice(edpi, gameVal, tier);
   }
-}
-
-function checkActivePresets() {
-  const eG = document.getElementById("edpi-game-search")?.value || "",
-    eD = parseFloat(document.getElementById("edpi-dpi")?.value || "0"),
-    eS_val = document.getElementById("edpi-sens")?.value || "0",
-    eS = parseFloat(eS_val.replace(",", "."));
-  document.querySelectorAll(".preset-btn").forEach((btn) => {
-    const attr = btn.getAttribute("onclick") || "",
-      matches = attr.match(/'([^']+)',\s*([\d.]+),\s*([\d.]+)/);
-    if (matches) {
-      const isMatch = eG === matches[1] && eD === parseFloat(matches[2]) && eS === parseFloat(matches[3]);
-      btn.classList.toggle("active-preset", isMatch);
-    }
-  });
 }
 
 function updateGameInfoPanelVisibility() {
@@ -6277,12 +6209,13 @@ function syncAimTrainerForViewport() {
   wasMobile = mobile;
 }
 
-const SENS_SUGGESTION_HIDDEN_TABS = new Set(["sensitivity-converter-tab", "aim-training-tab", "settings-tab", "stats-tab", "lineup-tab", "crosshair-converter-tab", "viewmodel-generator-tab", "privacy-policy-tab", "terms-of-service-tab", "keybinds-tab", "updates-tab", "credit-tab"]);
+const SENS_SUGGESTION_HIDDEN_TABS = new Set(["sensitivity-converter-tab", "aim-training-tab", "settings-tab", "stats-tab", "lineup-tab", "crosshair-converter-tab", "privacy-policy-tab", "terms-of-service-tab", "keybinds-tab", "updates-tab", "credit-tab"]);
 
 let lastTacticalAdviceKey = "";
 
 function getEdpiAdviceTier(edpi, game) {
-  const multiplier = gameMultipliers[game] || 1.0;
+  const multiplier = getGameConversionFactor(game);
+  if (multiplier == null) return "average";
   const lowThreshold = 200 * multiplier;
   const midThreshold = 320 * multiplier;
   if (edpi < lowThreshold) return "low";
@@ -6314,12 +6247,28 @@ function isEdpiTabVisible() {
 }
 
 const LINEUP_TAB_ENABLED = true;
+const MISC_TAB_ENABLED = false;
+
+let crosshairConverterLoadPromise = null;
+
+function ensureCrosshairConverterLoaded() {
+  if (typeof window.initCrosshairConverterTab === "function") return Promise.resolve();
+  if (!crosshairConverterLoadPromise) {
+    crosshairConverterLoadPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "./crosshair-converter.js";
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Failed to load crosshair-converter.js"));
+      document.head.appendChild(script);
+    });
+  }
+  return crosshairConverterLoadPromise;
+}
 
 const TAB_SLUGS = {
   "sensitivity-converter-tab": "sensitivity-converter",
   "edpi-calculator-tab": "edpi-calculator",
   "crosshair-converter-tab": "crosshair-converter",
-  "viewmodel-generator-tab": "viewmodel-generator",
   "settings-tab": "settings",
   "stats-tab": "stats",
   "lineup-tab": "lineups",
@@ -6361,6 +6310,7 @@ function getTabIdFromPath() {
   const slug = getTabSlugFromPath();
   if (!slug) return DEFAULT_TAB_ID;
   if (!LINEUP_TAB_ENABLED && slug === TAB_SLUGS["lineup-tab"]) return DEFAULT_TAB_ID;
+  if (!MISC_TAB_ENABLED && slug === TAB_SLUGS["crosshair-converter-tab"]) return DEFAULT_TAB_ID;
   return SLUG_TO_TAB[slug] || DEFAULT_TAB_ID;
 }
 
@@ -6399,9 +6349,8 @@ function initTabRouting() {
 
 const FOOTER_TAB_IDS = new Set(["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"]);
 
-const MISC_TAB_IDS = new Set(["crosshair-converter-tab", "viewmodel-generator-tab"]);
+const MISC_TAB_IDS = new Set(["crosshair-converter-tab"]);
 
-const MISC_HOTKEY_TAB_ORDER = ["crosshair-converter-tab", "viewmodel-generator-tab"];
 const MORE_HOTKEY_TAB_ORDER = ["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
 const FOOTER_BUTTON_IDS = {
@@ -6421,11 +6370,12 @@ const NAV_BUTTON_IDS = {
   "aim-training-tab": "aim-training-button",
 };
 
-const LOGO_CYCLE_TAB_IDS = ["sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "viewmodel-generator-tab", "settings-tab", "stats-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
+const LOGO_CYCLE_TAB_IDS = ["sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
 function getLogoCycleTabIds() {
   return LOGO_CYCLE_TAB_IDS.filter((id) => {
     if (id === "lineup-tab" && !LINEUP_TAB_ENABLED) return false;
+    if (id === "crosshair-converter-tab" && !MISC_TAB_ENABLED) return false;
     if (id === "aim-training-tab" && isMobileViewport()) return false;
     return Boolean(document.getElementById(id));
   });
@@ -7889,6 +7839,174 @@ function syncLineupMapDropdownUi(game = getActiveLineupGame()) {
   });
 }
 
+function isFocusInsideDropdownList(list) {
+  const active = document.activeElement;
+  return !!(list && active instanceof Node && list.contains(active));
+}
+
+function resetGameSearchDropdownOptions(list, optionSelector = ".pref-dropdown-option") {
+  if (!list) return;
+  list.querySelectorAll(optionSelector).forEach((opt) => {
+    opt.style.display = "";
+    opt.classList.remove("hover");
+  });
+}
+
+function restoreGameSearchDropdown(idPrefix) {
+  const list = document.getElementById(`${idPrefix}-list`);
+  const input = document.getElementById(`${idPrefix}-search`);
+  if (!input) return;
+
+  resetGameSearchDropdownOptions(list);
+
+  if (idPrefix === "profile-game") {
+    ensureProfileGameValue();
+    aimTrainer.displayResultsOnProfile();
+    syncGameTriggerIcon(idPrefix);
+    return;
+  }
+
+  if (idPrefix === "trainer-game") {
+    const game = aimTrainer.game || localStorage.getItem("aimGame") || "";
+    input.value = game;
+    syncGameClearButton(`${idPrefix}-search`, `${idPrefix}-clear`);
+    syncGameTriggerIcon(idPrefix);
+    return;
+  }
+
+  const resolved = getCommittedGameFromInput(input);
+  if (resolved) {
+    input.value = resolved;
+    input.dataset.lastValid = resolved;
+  } else {
+    input.value = input.dataset.lastValid || "";
+  }
+  syncGameClearButton(`${idPrefix}-search`, `${idPrefix}-clear`);
+
+  if (idPrefix === "edpi-game") {
+    updateEDPI();
+  } else {
+    updateConversion();
+    updateGameInfoPanelVisibility();
+    toggleProfileSensConvButtons();
+  }
+  syncGameTriggerIcon(idPrefix);
+}
+
+function dismissGameSearchDropdown(idPrefix, { force = false } = {}) {
+  const list = document.getElementById(`${idPrefix}-list`);
+  const input = document.getElementById(`${idPrefix}-search`);
+  if (!list || !input) return;
+  if (!force && input === document.activeElement) return;
+
+  hideGameDropdownList(idPrefix);
+  restoreGameSearchDropdown(idPrefix);
+}
+
+function restoreLineupGameSearchInput() {
+  const input = document.getElementById("lineup-game-search");
+  const list = document.getElementById("lineup-game-list");
+  if (!input) return;
+
+  resetGameSearchDropdownOptions(list, "[data-lineup-game]");
+
+  const game = getActiveLineupGame();
+  const option = game ? LINEUP_GAME_OPTIONS[game] : null;
+  input.value = option?.label || "";
+  input.dataset.lastValid = game || "";
+  syncGameClearButton("lineup-game-search", "lineup-game-clear");
+  syncGameTriggerIcon("lineup-game");
+}
+
+function dismissLineupGameSearchDropdown({ force = false } = {}) {
+  const list = document.getElementById("lineup-game-list");
+  const input = document.getElementById("lineup-game-search");
+  if (!list || !input) return;
+  if (!force && input === document.activeElement) return;
+
+  hideLineupGameList();
+  restoreLineupGameSearchInput();
+}
+
+function restoreLineupMapSearchInput() {
+  const input = document.getElementById("lineup-map-search");
+  const list = document.getElementById("lineup-map-list");
+  if (!input) return;
+
+  resetGameSearchDropdownOptions(list);
+
+  const game = getActiveLineupGame();
+  if (!game) {
+    input.value = "All maps";
+    input.dataset.lastValid = "all";
+    return;
+  }
+
+  const map = resolveLineupMapFilter(game);
+  input.value = getLineupMapDisplayLabel(map, game);
+  input.dataset.lastValid = map;
+}
+
+function dismissLineupMapSearchDropdown({ force = false } = {}) {
+  const list = document.getElementById("lineup-map-list");
+  const input = document.getElementById("lineup-map-search");
+  if (!list || !input) return;
+  if (!force && input === document.activeElement) return;
+
+  hideLineupMapList();
+  restoreLineupMapSearchInput();
+}
+
+function dismissAllSearchDropdowns({ force = false } = {}) {
+  GAME_DROPDOWN_PREFIXES.forEach((idPrefix) => dismissGameSearchDropdown(idPrefix, { force }));
+  dismissLineupGameSearchDropdown({ force });
+  dismissLineupMapSearchDropdown({ force });
+}
+
+function initSearchDropdownFocusLossHandlers() {
+  if (initSearchDropdownFocusLossHandlers._init) return;
+  initSearchDropdownFocusLossHandlers._init = true;
+
+  window.addEventListener("blur", () => dismissAllSearchDropdowns({ force: true }));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") dismissAllSearchDropdowns({ force: true });
+  });
+}
+
+function hideLineupGameList() {
+  const dropdown = document.getElementById("lineup-game-selector");
+  const trigger = document.getElementById("lineup-game-trigger");
+  const list = document.getElementById("lineup-game-list");
+  if (!list) return;
+  dropdown?.classList.remove("is-open");
+  trigger?.setAttribute("aria-expanded", "false");
+  list.classList.add("hidden");
+  unmountPrefDropdownPortal(list);
+}
+
+function showLineupGameList() {
+  const dropdown = document.getElementById("lineup-game-selector");
+  const trigger = document.getElementById("lineup-game-trigger");
+  const list = document.getElementById("lineup-game-list");
+  if (!dropdown || !trigger || !list) return;
+
+  hideAllGameDropdownLists();
+  dismissLineupMapSearchDropdown({ force: true });
+  initTrainerModeDropdown.close?.();
+  initTrainerTimerDropdown.close?.();
+  initTrainerAspectDropdown.close?.();
+  initBgPatternDropdown.close?.();
+
+  dropdown.classList.add("is-open");
+  trigger.setAttribute("aria-expanded", "true");
+  list.classList.remove("hidden");
+  if (list.classList.contains("pref-dropdown-list-portal")) {
+    startPrefDropdownPortalTracking(list, trigger);
+    return;
+  }
+  mountPrefDropdownPortal(list, trigger);
+}
+
 function hideLineupMapList() {
   const list = document.getElementById("lineup-map-list");
   if (!list) return;
@@ -7902,7 +8020,7 @@ function showLineupMapList() {
   if (!list || !trigger) return;
 
   hideAllGameDropdownLists();
-  initLineupGameDropdown.close?.();
+  dismissLineupGameSearchDropdown({ force: true });
   initTrainerModeDropdown.close?.();
   initTrainerTimerDropdown.close?.();
   initTrainerAspectDropdown.close?.();
@@ -7956,9 +8074,8 @@ function initLineupMapDropdown() {
 
   input.addEventListener("blur", () => {
     setTimeout(() => {
-      const map = getLineupMapFilter();
-      input.value = getLineupMapDisplayLabel(map);
-      input.dataset.lastValid = map;
+      if (isFocusInsideDropdownList(list)) return;
+      dismissLineupMapSearchDropdown();
     }, 120);
   });
 
@@ -8316,10 +8433,8 @@ function switchLineupGamePanels(nextGame) {
 
 function syncLineupGameSelectorUi(game = getActiveLineupGame()) {
   const selector = document.getElementById("lineup-game-selector");
-  const label = document.getElementById("lineup-game-label");
-  const iconHost = document.getElementById("lineup-game-icon");
+  const input = document.getElementById("lineup-game-search");
   const list = document.getElementById("lineup-game-list");
-  const clearBtn = document.getElementById("lineup-game-clear");
   if (!selector) return;
 
   const activeGame = LINEUP_GAMES.has(game) ? game : "";
@@ -8328,44 +8443,19 @@ function syncLineupGameSelectorUi(game = getActiveLineupGame()) {
   selector.dataset.activeGame = activeGame;
   selector.dataset.value = activeGame;
   selector.classList.toggle("has-game", !!activeGame);
-  if (label) label.textContent = option?.label || "Select game";
-  if (clearBtn) {
-    clearBtn.hidden = !activeGame;
-    clearBtn.style.display = activeGame ? "flex" : "none";
-  }
 
-  if (iconHost) {
-    if (option?.iconSrc) {
-      if (iconHost.tagName === "IMG") {
-        iconHost.className = "game-option-icon";
-        iconHost.src = option.iconSrc;
-      } else {
-        const img = document.createElement("img");
-        img.id = "lineup-game-icon";
-        img.className = "game-option-icon";
-        img.src = option.iconSrc;
-        img.alt = "";
-        img.width = 18;
-        img.height = 18;
-        img.decoding = "async";
-        iconHost.replaceWith(img);
-      }
-    } else if (iconHost.tagName === "IMG") {
-      const icon = document.createElement("i");
-      icon.id = "lineup-game-icon";
-      icon.className = "ri-gamepad-line pref-dropdown-icon";
-      icon.setAttribute("aria-hidden", "true");
-      iconHost.replaceWith(icon);
-    } else {
-      iconHost.className = "ri-gamepad-line pref-dropdown-icon";
-    }
+  if (input && document.activeElement !== input) {
+    input.value = option?.label || "";
+    input.dataset.lastValid = activeGame;
   }
+  syncGameClearButton("lineup-game-search", "lineup-game-clear");
 
   list?.querySelectorAll("[data-lineup-game]").forEach((opt) => {
     const active = opt.dataset.lineupGame === activeGame;
     opt.classList.toggle("active", active);
     opt.setAttribute("aria-selected", active ? "true" : "false");
   });
+  syncGameTriggerIcon("lineup-game");
 }
 
 function countVisibleLineupCards(grid) {
@@ -9571,66 +9661,112 @@ function scheduleLineupVideosScrollStateUpdate() {
 }
 
 function initLineupGameDropdown() {
-  const dropdown = document.getElementById("lineup-game-selector");
-  const trigger = document.getElementById("lineup-game-trigger");
+  const input = document.getElementById("lineup-game-search");
   const list = document.getElementById("lineup-game-list");
   const clearBtn = document.getElementById("lineup-game-clear");
-  if (!dropdown || !trigger || !list || initLineupGameDropdown._init) return;
+  if (!input || !list || initLineupGameDropdown._init) return;
   initLineupGameDropdown._init = true;
 
-  const close = () => {
-    dropdown.classList.remove("is-open");
-    trigger.setAttribute("aria-expanded", "false");
-    list.classList.add("hidden");
-    unmountPrefDropdownPortal(list);
-  };
+  initLineupGameDropdown.close = hideLineupGameList;
 
-  const open = () => {
-    hideAllGameDropdownLists();
-    hideLineupMapList();
-    dropdown.classList.add("is-open");
-    trigger.setAttribute("aria-expanded", "true");
-    list.classList.remove("hidden");
-    mountPrefDropdownPortal(list, trigger);
-  };
-
-  initLineupGameDropdown.close = close;
-
-  trigger.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (dropdown.classList.contains("is-open")) close();
-    else open();
-  });
-
-  clearBtn?.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    clearLineupGame();
-  });
-
-  list.querySelectorAll("[data-lineup-game]").forEach((opt) => {
-    opt.addEventListener("click", () => {
-      const value = opt.dataset.lineupGame;
-      if (!LINEUP_GAMES.has(value) || value === getActiveLineupGame()) {
-        close();
-        return;
-      }
-      setLineupGame(value);
-      close();
-    });
-  });
-
-  document.addEventListener("click", (e) => {
-    if (dropdown.contains(e.target) || list.contains(e.target)) return;
-    close();
-  });
-
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && dropdown.classList.contains("is-open")) {
-      e.preventDefault();
-      close();
-      trigger.blur();
+  let activeIndex = -1;
+  const getVisible = () => Array.from(list.querySelectorAll("[data-lineup-game]")).filter((opt) => opt.style.display !== "none");
+  const syncHover = (visible) => {
+    visible.forEach((opt, i) => opt.classList.toggle("hover", i === activeIndex));
+    if (activeIndex >= 0 && visible[activeIndex]) {
+      visible[activeIndex].scrollIntoView({ block: "nearest" });
     }
+  };
+  const getOptionLabel = (opt) => opt.querySelector("span")?.textContent?.trim() || "";
+  const selectLineupGameOption = (opt) => {
+    if (!opt) return;
+    const value = opt.dataset.lineupGame;
+    if (!LINEUP_GAMES.has(value)) return;
+    if (value !== getActiveLineupGame()) {
+      setLineupGame(value);
+    } else {
+      syncLineupGameSelectorUi(value);
+    }
+    hideLineupGameList();
+    input.blur();
+  };
+
+  input.addEventListener("focus", () => {
+    const previous = getActiveLineupGame() || "";
+    input.dataset.lastValid = previous;
+    input.value = "";
+    list.querySelectorAll("[data-lineup-game]").forEach((opt) => {
+      opt.style.display = "";
+      opt.classList.remove("hover");
+    });
+    const visible = getVisible();
+    const selectedIndex = visible.findIndex((opt) => opt.dataset.lineupGame === previous);
+    activeIndex = selectedIndex >= 0 ? selectedIndex : 0;
+    syncHover(visible);
+    syncGameClearButton("lineup-game-search", "lineup-game-clear");
+    showLineupGameList();
+  });
+
+  input.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (isFocusInsideDropdownList(list)) return;
+      dismissLineupGameSearchDropdown();
+    }, 120);
+  });
+
+  input.addEventListener("input", () => {
+    const filter = input.value.toLowerCase();
+    list.querySelectorAll("[data-lineup-game]").forEach((opt) => {
+      opt.style.display = getOptionLabel(opt).toLowerCase().includes(filter) ? "" : "none";
+    });
+    showLineupGameList();
+    syncGameClearButton("lineup-game-search", "lineup-game-clear");
+    activeIndex = 0;
+    syncHover(getVisible());
+  });
+
+  input.addEventListener("keydown", (e) => {
+    const visible = getVisible();
+    if (!visible.length) return;
+    if (e.key === "ArrowDown") {
+      activeIndex = (activeIndex + 1) % visible.length;
+      syncHover(visible);
+      e.preventDefault();
+    } else if (e.key === "ArrowUp") {
+      activeIndex = (activeIndex - 1 + visible.length) % visible.length;
+      syncHover(visible);
+      e.preventDefault();
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      selectLineupGameOption(visible[activeIndex]);
+      e.preventDefault();
+    } else if (e.key === "Escape") {
+      hideLineupGameList();
+      input.blur();
+    }
+  });
+
+  list.addEventListener("mousedown", (e) => {
+    const opt = e.target.closest("[data-lineup-game]");
+    if (!opt) return;
+    e.preventDefault();
+    selectLineupGameOption(opt);
+  });
+
+  list.addEventListener("mouseover", (e) => {
+    const opt = e.target.closest("[data-lineup-game]");
+    if (!opt) return;
+    const visible = getVisible();
+    activeIndex = visible.indexOf(opt);
+    syncHover(visible);
+  });
+
+  clearBtn?.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    input.value = "";
+    input.dataset.lastValid = "";
+    hideLineupGameList();
+    syncGameClearButton("lineup-game-search", "lineup-game-clear");
+    if (getActiveLineupGame()) clearLineupGame();
   });
 }
 
@@ -9691,6 +9827,7 @@ function initLineupTab() {
 
 function switchTab(_evt, id, { updateHistory = true } = {}) {
   if (id === "lineup-tab" && !LINEUP_TAB_ENABLED) return;
+  if (id === "crosshair-converter-tab" && !MISC_TAB_ENABLED) return;
 
   if (id === "aim-training-tab" && isMobileViewport()) {
     id = "sensitivity-converter-tab";
@@ -9760,15 +9897,13 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
   } else if (id === "edpi-calculator-tab") {
     updateEDPI();
   } else if (id === "crosshair-converter-tab") {
-    setTimeout(() => {
-      updateCrosshairConverterUi?.();
-      updateAllToggleGliders();
-    }, 50);
-  } else if (id === "viewmodel-generator-tab") {
-    setTimeout(() => {
-      initViewmodelGeneratorTab?.();
-      updateViewmodelGeneratorUi?.();
-    }, 50);
+    ensureCrosshairConverterLoaded()
+      .then(() => {
+        initCrosshairConverterTab?.();
+        updateCrosshairConverterUi?.();
+        updateAllToggleGliders();
+      })
+      .catch(() => {});
   } else if (id === "settings-tab") {
     setTimeout(() => {
       aimTrainer.drawCrosshairPreview();
@@ -9804,8 +9939,19 @@ function toggleEDPIResetButton() {
   if (!resetBtn) return;
   const sensVal = elements["edpi-sens"].value;
   const dpiVal = document.getElementById("edpi-dpi").value;
-  const isDefault = (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0");
+  const gameVal = elements["edpi-game-search"]?.value || "";
+  const isDefault = (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0") && gameVal === "";
   toggleVisibility(resetBtn, !isDefault);
+}
+
+function clearEdpiGameDropdown() {
+  const input = document.getElementById("edpi-game-search");
+  if (input) {
+    input.value = "";
+    input.dataset.lastValid = "";
+  }
+  syncGameClearButton("edpi-game-search", "edpi-game-clear");
+  syncGameTriggerIcon("edpi-game");
 }
 
 function toggleProfileSensConvButtons() {
@@ -9841,9 +9987,15 @@ function toggleProfileSensConvButtons() {
   syncProfileAimResetVisibility(hist, resolveProgressChartSelectedDay(hist));
 }
 
+let updateConversionTimer = 0;
+function scheduleUpdateConversion() {
+  clearTimeout(updateConversionTimer);
+  updateConversionTimer = setTimeout(updateConversion, 64);
+}
+
 function updateConversion() {
-  const fromGame = elements["from-search"].value,
-    toGame = elements["to-search"].value,
+  const fromGame = resolveConverterGameInput("from"),
+    toGame = resolveConverterGameInput("to"),
     baseSens = elements["base-sens"].value,
     fDpi = parseFloat(elements["from-dpi"].value),
     tDpi = parseFloat(elements["to-dpi"].value),
@@ -9863,21 +10015,29 @@ function updateConversion() {
   if (!display) return;
 
   const sens = parseFloat(baseSens.replace(",", "."));
-  const fromFactor = gameMultipliers[fromGame];
-  const toFactor = gameMultipliers[toGame];
 
   if (fromGame) {
     localStorage.setItem("fromGame", fromGame);
     const pFrom = document.getElementById("profile-from-game");
     if (pFrom) pFrom.innerText = fromGame;
+  } else {
+    localStorage.removeItem("fromGame");
+    const pFrom = document.getElementById("profile-from-game");
+    if (pFrom) pFrom.innerText = "";
   }
   if (toGame) {
     localStorage.setItem("toGame", toGame);
     const pTo = document.getElementById("profile-to-game");
     if (pTo) pTo.innerText = toGame;
+  } else {
+    localStorage.removeItem("toGame");
+    const pTo = document.getElementById("profile-to-game");
+    if (pTo) pTo.innerText = "";
   }
 
-  if (!fromGame || !toGame || baseSens === "" || isNaN(fDpi) || isNaN(tDpi) || isNaN(sens) || !fromFactor || !toFactor || sens <= 0 || fDpi <= 0 || tDpi <= 0) {
+  const converted = MorningRoastGames.convertSensitivity(sens, fromGame, toGame, fDpi, tDpi);
+
+  if (converted == null) {
     display.innerText = "0.00";
     toggleVisibility(copyBtn, false);
     toggleVisibility(shareBtn, false);
@@ -9886,7 +10046,7 @@ function updateConversion() {
     return;
   }
 
-  const result = (sens * (toFactor / fromFactor) * (fDpi / tDpi)).toFixed(3);
+  const result = converted.toFixed(3);
   display.innerText = result;
 
   if (parseFloat(result) > 0) {
@@ -9959,17 +10119,22 @@ const tacticalAdvice = {
     average: ["CS2: The 'Golden Ratio'. You have enough speed for 180s and enough control for micro-adjustments.", "CS2: Hybrid aiming style. Use your arm for large turns and your wrist for fine-tuning.", "CS2: Very versatile. This sensitivity works well across different roles and agent types.", "CS2: Easier to track moving targets. The balance helps keep your crosshair glued to enemies.", "CS2: Lower fatigue. You don't have to move your whole arm as much as low-sens players.", "CS2: Standard Pro range. Most top-tier players in Valorant and CS2 land in this bracket."],
     high: ["CS2: Wrist-heavy aiming. Use small, precise flick motions rather than large arm sweeps.", "CS2: Lighting fast 180s. You can react to flankers much faster than low-sens players.", "CS2: High precision mouse needed. Ensure your sensor can handle micro-movements without jitter.", "CS2: Keep a light grip. Tensing your hand too much will make your aim shaky at high speeds.", "CS2: Great for verticality. If you play agents with movement abilities, high sens helps you keep up.", "CS2: Focus on smoothness. Practice 'smooth tracking' drills to avoid jumpy crosshair movement."],
   },
-  "Call of Duty: Black Ops 7": {
+  "Black Ops 6": {
     low: ["CoD: Best for holding lanes and long-range AR beams.", "CoD: Slide-canceling and 180s will be more physically demanding.", "CoD: Superior stability for high-magnification sniper scopes."],
     average: ["CoD: The versatile choice for SMG rushing and AR anchoring.", "CoD: Balanced for reactive flicking and target switching.", "CoD: Good for tracking through fast movement and omnimovement dives."],
     high: ["CoD: Essential for ultra-aggressive play and rapid room clearing.", "CoD: Reactive 180s to counter enemies coming from any direction.", "CoD: Perfect for tracking high-speed targets in close-quarters combat."],
   },
-  "Rainbow Six Siege": {
+  "Black Ops 7": {
+    low: ["CoD: Best for holding lanes and long-range AR beams.", "CoD: Slide-canceling and 180s will be more physically demanding.", "CoD: Superior stability for high-magnification sniper scopes."],
+    average: ["CoD: The versatile choice for SMG rushing and AR anchoring.", "CoD: Balanced for reactive flicking and target switching.", "CoD: Good for tracking through fast movement and omnimovement dives."],
+    high: ["CoD: Essential for ultra-aggressive play and rapid room clearing.", "CoD: Reactive 180s to counter enemies coming from any direction.", "CoD: Perfect for tracking high-speed targets in close-quarters combat."],
+  },
+  "Rainbow 6 Siege": {
     low: ["Siege: Pixel-perfect angle holding. Ideal for anchors on site.", "Siege: High stability for one-tap headshots through barricades.", "Siege: Focus on crosshair placement as room clearing requires arm swipes."],
     average: ["Siege: Great for flex players who switch between entry and support.", "Siege: Balanced for clearing utility and hitting moving targets.", "Siege: Enough control to hold tight peeks while still being able to flick."],
     high: ["Siege: Faster target acquisition when clearing multiple rooms.", "Siege: Easier to react to roamers and flankers behind you.", "Siege: Ideal for high-mobility ops and quick-scope entries."],
   },
-  "Escape From Tarkov": {
+  "Escape from Tarkov": {
     low: ["EFT: Maximum precision for long-distance sniping on Woods or Shoreline.", "EFT: Inertia feels heavy; low sens encourages deliberate movement.", "EFT: Superior control for managing horizontal recoil at a distance."],
     average: ["EFT: The standard for most PMC engagements and CQB.", "EFT: Balanced for loot-goblin speed and tactical precision.", "EFT: Good for tracking moving targets while wearing heavy armor."],
     high: ["EFT: Faster 180s to check your six in high-tension areas.", "EFT: Easier to manage mouse movement with heavy gear penalties.", "EFT: Better for aggressive 'point-firing' in close quarters."],
@@ -9984,7 +10149,7 @@ const tacticalAdvice = {
     average: ["ARC: Balanced for third-person perspective and combat mobility.", "ARC: Good for tracking flying drones and moving Raider units.", "ARC: The standard range for a mix of melee and ranged combat."],
     high: ["ARC: Quick reactions to unexpected machine ambushes.", "ARC: Faster 360-degree awareness in vertical environments.", "ARC: Essential for high-octane close-quarters evasion."],
   },
-  "Overwatch 2": {
+  Overwatch: {
     low: ["OW2: Ideal for Hitscan heroes like Cassidy, Ashe, and Widowmaker.", "OW2: Very difficult for high-mobility heroes like Genji or Tracer.", "OW2: Precision is key; focus on headclick consistency."],
     average: ["OW2: The ultimate 'Flex' sensitivity. Handles most heroes well.", "OW2: Balanced for tracking as Soldier: 76 and flicking as Sojourn.", "OW2: Great for dealing with vertical movement from Pharah or Echo."],
     high: ["OW2: Necessary for Tracer blinks and Genji Dragonblade swings.", "OW2: Reactive tracking for fast-paced close-range tank brawls.", "OW2: Better for heroes that require frequent 180-degree turns."],
@@ -10009,11 +10174,6 @@ const tacticalAdvice = {
     average: ["Aimlabs: The benchmark range for general aim improvement.", "Aimlabs: Balanced for both flicking and tracking scenarios.", "Aimlabs: Ideal for Gridshot speed and SphereTrack smoothness."],
     high: ["Aimlabs: Best for high-speed target switching and reactiveness.", "Aimlabs: Focus on wrist precision for small target micro-flicks.", "Aimlabs: Perfect for close-range tracking and fast reaction tasks."],
   },
-  "osu!": {
-    low: ["osu!: High precision for small circles and technical maps.", "osu!: Requires large physical movements; prepare for high fatigue.", "osu!: Best for accuracy-focused players on lower BPM maps."],
-    average: ["osu!: The standard balance for speed and aim consistency.", "osu!: Good for jumps and streams across a wide range of star ratings.", "osu!: Versatile for most playstyles and grip types."],
-    high: ["osu!: Essential for high-speed jump maps and high BPM.", "osu!: Minimize physical movement to increase tapping speed.", "osu!: Perfect for small-area tablet users or high-DPI mouse players."],
-  },
   Rust: {
     low: ["Rust: Superior control for managing high-recoil AK sprays.", "Rust: Precision for long-distance roof camping and bolt-action shots.", "Rust: Low sensitivity helps smooth out shaky tracking during raids."],
     average: ["Rust: The all-rounder for farming, roaming, and base defense.", "Rust: Balanced for bow fights and automatic weapon tracking.", "Rust: Versatile enough for both long-range and close-range combat."],
@@ -10022,7 +10182,8 @@ const tacticalAdvice = {
 };
 
 function getAdvice(edpi, game) {
-  const multiplier = gameMultipliers[game] || 1.0;
+  const multiplier = getGameConversionFactor(game);
+  if (multiplier == null) return tacticalAdvice.General.average[0];
   const lowThreshold = 200 * multiplier;
   const midThreshold = 320 * multiplier;
   let tier;
@@ -10031,7 +10192,8 @@ function getAdvice(edpi, game) {
   else if (edpi < midThreshold) tier = "average";
   else tier = "high";
 
-  const adviceForGame = tacticalAdvice[game] || tacticalAdvice.General;
+  const resolvedGame = MorningRoastGames.resolveGameName(game) || game;
+  const adviceForGame = tacticalAdvice[resolvedGame] || tacticalAdvice.General;
   const options = adviceForGame[tier];
   return options[Math.floor(Math.random() * options.length)];
 }
@@ -10218,7 +10380,7 @@ function ensureProfileGameValue() {
   const input = document.getElementById("profile-game-search");
   if (!input) return DEFAULT_PROFILE_FILTER_GAME;
 
-  const resolved = resolveGameFromInput(input);
+  const resolved = getCommittedGameFromInput(input);
   if (resolved) {
     input.value = resolved;
     input.dataset.lastValid = resolved;
@@ -10235,6 +10397,22 @@ function ensureProfileGameValue() {
   localStorage.setItem(PROFILE_FILTER_GAME_KEY, validRestore);
   syncProfileGameDropdownUi(validRestore);
   return validRestore;
+}
+
+function getCommittedGameFromInput(input) {
+  if (!input) return null;
+  const fromRegistry = MorningRoastGames.resolveGameName(input.value);
+  if (fromRegistry) return fromRegistry;
+
+  const val = input.value.trim();
+  if (!val) return null;
+
+  const list = document.getElementById(input.id.replace("-search", "-list"));
+  if (!list) return null;
+
+  const options = Array.from(list.querySelectorAll(".pref-dropdown-option"));
+  const exact = options.find((opt) => getGameOptionLabel(opt).toLowerCase() === val.toLowerCase());
+  return exact ? getGameOptionLabel(exact) : null;
 }
 
 function resolveGameFromInput(input, listId) {
@@ -10812,7 +10990,7 @@ function renderProgressChart(game, mode, timer) {
     closeProgressChartCalendar();
     if (label) label.textContent = "";
     ctx.fillStyle = "hsla(0, 0%, 100%, 0.35)";
-    ctx.font = "0.75rem Inter, sans-serif";
+    ctx.font = canvasFont("0.75rem");
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("Select a game to view daily progress", cssW / 2, h / 2);
@@ -10868,7 +11046,7 @@ function renderProgressChart(game, mode, timer) {
     canvas._progressChartState = null;
     hideProgressChartTooltip();
     ctx.fillStyle = "hsla(0, 0%, 100%, 0.35)";
-    ctx.font = "0.75rem Inter, sans-serif";
+    ctx.font = canvasFont("0.75rem");
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(`No sessions on ${formatProgressDayLabel(selectedDay)}`, cssW / 2, padTop + chartHeight / 2);
@@ -11013,10 +11191,12 @@ function applySharedParams() {
     const dir = p.get("dir") === "val-to-cs2" ? "val-to-cs2" : "cs2-to-val";
     setVal("crosshair-converter-input", p.get("in"));
     document.getElementById("sidebar-misc-crosshair-button")?.click();
-    setTimeout(() => {
-      setCrosshairConverterDirection?.(dir);
-      updateCrosshairConverterUi?.();
-    }, 50);
+    ensureCrosshairConverterLoaded()
+      .then(() => {
+        setCrosshairConverterDirection?.(dir);
+        updateCrosshairConverterUi?.();
+      })
+      .catch(() => {});
   }
 }
 
@@ -11060,7 +11240,7 @@ function initHotkeys() {
     if (e.repeat) return;
 
     if (e.key === "3") {
-      cycleHotkeyTab(MISC_HOTKEY_TAB_ORDER);
+      if (MISC_TAB_ENABLED) switchTab(null, "crosshair-converter-tab");
       e.preventDefault();
     } else if (e.key === "7") {
       if (LINEUP_TAB_ENABLED) {
@@ -11092,6 +11272,9 @@ function initHotkeys() {
 }
 
 function syncKeybindLabels() {
+  const key3Row = document.getElementById("keybind-3-row");
+  if (key3Row) key3Row.hidden = !MISC_TAB_ENABLED;
+
   const key7Label = document.getElementById("keybind-7-label");
   if (!key7Label) return;
   key7Label.textContent = LINEUP_TAB_ENABLED ? "Open Lineups" : "Cycle More pages (Keybinds / Updates / Privacy / Terms / Credit)";
@@ -11135,7 +11318,7 @@ function initLogoMask() {
     document.documentElement.classList.add("logo-mask-ready");
   };
   img.onerror = () => document.documentElement.classList.add("logo-mask-ready");
-  img.src = "./logo.png";
+  img.src = "./assets/logo.png";
 }
 
 function normalizeBgPattern(stored) {
@@ -11159,7 +11342,30 @@ const BG_PATTERN_ICONS = {
   none: "ri-prohibited-line",
 };
 
-const FONT_FAMILY_IDS = new Set(["inter", "roboto", "poppins", "space-grotesk", "dm-sans"]);
+const DEFAULT_FONT_FAMILY_ID = "inter";
+
+const FONT_FAMILY_IDS = new Set([
+  "inter",
+  "roboto",
+  "poppins",
+  "space-grotesk",
+  "dm-sans",
+  "montserrat",
+  "open-sans",
+  "lato",
+  "nunito",
+  "raleway",
+  "ubuntu",
+  "source-sans-3",
+  "work-sans",
+  "outfit",
+  "manrope",
+  "oswald",
+  "rubik",
+  "lexend",
+  "plus-jakarta-sans",
+  "figtree",
+]);
 
 const FONT_FAMILY_STACKS = {
   inter: '"Inter", sans-serif',
@@ -11167,6 +11373,21 @@ const FONT_FAMILY_STACKS = {
   poppins: '"Poppins", sans-serif',
   "space-grotesk": '"Space Grotesk", sans-serif',
   "dm-sans": '"DM Sans", sans-serif',
+  montserrat: '"Montserrat", sans-serif',
+  "open-sans": '"Open Sans", sans-serif',
+  lato: '"Lato", sans-serif',
+  nunito: '"Nunito", sans-serif',
+  raleway: '"Raleway", sans-serif',
+  ubuntu: '"Ubuntu", sans-serif',
+  "source-sans-3": '"Source Sans 3", sans-serif',
+  "work-sans": '"Work Sans", sans-serif',
+  outfit: '"Outfit", sans-serif',
+  manrope: '"Manrope", sans-serif',
+  oswald: '"Oswald", sans-serif',
+  rubik: '"Rubik", sans-serif',
+  lexend: '"Lexend", sans-serif',
+  "plus-jakarta-sans": '"Plus Jakarta Sans", sans-serif',
+  figtree: '"Figtree", sans-serif',
 };
 
 const FONT_FAMILY_LABELS = {
@@ -11175,21 +11396,105 @@ const FONT_FAMILY_LABELS = {
   poppins: "Poppins",
   "space-grotesk": "Space Grotesk",
   "dm-sans": "DM Sans",
+  montserrat: "Montserrat",
+  "open-sans": "Open Sans",
+  lato: "Lato",
+  nunito: "Nunito",
+  raleway: "Raleway",
+  ubuntu: "Ubuntu",
+  "source-sans-3": "Source Sans 3",
+  "work-sans": "Work Sans",
+  outfit: "Outfit",
+  manrope: "Manrope",
+  oswald: "Oswald",
+  rubik: "Rubik",
+  lexend: "Lexend",
+  "plus-jakarta-sans": "Plus Jakarta Sans",
+  figtree: "Figtree",
 };
+
+const GOOGLE_FONT_URLS = {
+  inter: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+  roboto: "https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap",
+  poppins: "https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100..900;1,100..900&display=swap",
+  "space-grotesk": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap",
+  "dm-sans": "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap",
+  montserrat: "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap",
+  "open-sans": "https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap",
+  lato: "https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap",
+  nunito: "https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap",
+  raleway: "https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap",
+  ubuntu: "https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap",
+  "source-sans-3": "https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap",
+  "work-sans": "https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap",
+  outfit: "https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap",
+  manrope: "https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap",
+  oswald: "https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap",
+  rubik: "https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap",
+  lexend: "https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap",
+  "plus-jakarta-sans": "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap",
+  figtree: "https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap",
+};
+
+const loadedGoogleFonts = new Set(["inter"]);
+
+function ensureGoogleFontLoaded(fontId) {
+  const id = normalizeFontFamily(fontId);
+  if (loadedGoogleFonts.has(id)) return;
+  const href = GOOGLE_FONT_URLS[id];
+  if (!href) return;
+  loadedGoogleFonts.add(id);
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  document.head.appendChild(link);
+}
+
+function preloadFontPickerFamilies() {
+  FONT_FAMILY_IDS.forEach((id) => ensureGoogleFontLoaded(id));
+}
+
+function getAppFontFamilyStack() {
+  const stack = getComputedStyle(document.documentElement).getPropertyValue("--app-font-family").trim();
+  return stack || FONT_FAMILY_STACKS.inter;
+}
+
+function getTextSizeScale() {
+  const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--text-size-scale"));
+  return Number.isFinite(scale) && scale > 0 ? scale : 1;
+}
+
+function canvasFont(descriptor) {
+  const scale = getTextSizeScale();
+  const scaled = String(descriptor).replace(/(\d+(?:\.\d+)?)(px|rem)/g, (_, size, unit) => `${parseFloat(size) * scale}${unit}`);
+  return `${scaled} ${getAppFontFamilyStack()}`;
+}
 
 function normalizeFontFamily(stored) {
   const value = String(stored || "inter")
     .trim()
     .toLowerCase();
-  return FONT_FAMILY_IDS.has(value) ? value : "inter";
+  return FONT_FAMILY_IDS.has(value) ? value : DEFAULT_FONT_FAMILY_ID;
+}
+
+function getFontFamilyDisplayLabel(id) {
+  const normalized = normalizeFontFamily(id);
+  const name = FONT_FAMILY_LABELS[normalized] || normalized;
+  if (normalized !== DEFAULT_FONT_FAMILY_ID) return name;
+  return `${name} <span class="font-family-default-tag">(default)</span>`;
 }
 
 function applyFontFamily(value) {
   const normalized = normalizeFontFamily(value);
+  ensureGoogleFontLoaded(normalized);
   const stack = FONT_FAMILY_STACKS[normalized] || FONT_FAMILY_STACKS.inter;
   document.documentElement.style.setProperty("--app-font-family", stack);
   document.documentElement.dataset.fontFamily = normalized;
   requestProfileChartsRedraw();
+  aimTrainer?.render?.();
+  if (typeof renderTargetSpreadPreviewCanvas === "function") {
+    renderTargetSpreadPreviewCanvas(spreadPreviewAnim.scale);
+  }
 }
 
 function syncFontFamilyDropdownUi(value) {
@@ -11197,7 +11502,7 @@ function syncFontFamilyDropdownUi(value) {
   const label = document.getElementById("font-family-label");
   const list = document.getElementById("font-family-list");
   if (label) {
-    label.textContent = FONT_FAMILY_LABELS[normalized] || normalized;
+    label.innerHTML = getFontFamilyDisplayLabel(normalized);
     label.dataset.fontFamily = normalized;
   }
   list?.querySelectorAll(".pref-dropdown-option").forEach((opt) => {
@@ -11209,10 +11514,11 @@ const bgParticles = {
   canvas: null,
   ctx: null,
   particles: [],
-  frame: 0,
   width: 0,
   height: 0,
   _active: false,
+  _rafId: null,
+  _lastTime: 0,
 
   motionAllowed() {
     return !document.body.classList.contains("reduce-motion") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -11226,8 +11532,8 @@ const bgParticles = {
       if (this._active) this.resize(true);
     });
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) cancelAnimationFrame(this.frame);
-      else if (this._active) this.loop();
+      if (document.hidden) this.stopAnimation();
+      else if (this._active) this.startAnimation();
     });
     this.sync();
   },
@@ -11243,16 +11549,44 @@ const bgParticles = {
     this._active = true;
     this.canvas.classList.add("is-active");
     this.resize(true);
-    this.loop();
+    this.startAnimation();
   },
 
   stop() {
     this._active = false;
-    cancelAnimationFrame(this.frame);
+    this.stopAnimation();
     this.canvas?.classList.remove("is-active");
     if (this.ctx && this.canvas) {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
+  },
+
+  startAnimation() {
+    if (!this._active || this._rafId != null) return;
+    this._lastTime = 0;
+    this._rafId = requestAnimationFrame((time) => this.tick(time));
+  },
+
+  stopAnimation() {
+    if (this._rafId != null) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = null;
+    }
+    this._lastTime = 0;
+  },
+
+  tick(time) {
+    if (!this._active) {
+      this._rafId = null;
+      return;
+    }
+
+    if (!this._lastTime) this._lastTime = time;
+    const dt = Math.min((time - this._lastTime) / 1000, 0.05);
+    this._lastTime = time;
+
+    this.draw(dt);
+    this._rafId = requestAnimationFrame((nextTime) => this.tick(nextTime));
   },
 
   resize(reseed) {
@@ -11273,24 +11607,18 @@ const bgParticles = {
       x: Math.random() * this.width,
       y: Math.random() * this.height,
       r: Math.random() * 1.6 + 0.4,
-      vx: (Math.random() - 0.5) * 0.25,
-      vy: (Math.random() - 0.5) * 0.25,
+      vx: (Math.random() - 0.5) * 15,
+      vy: (Math.random() - 0.5) * 15,
       a: Math.random() * 0.35 + 0.08,
     }));
   },
 
-  loop() {
-    if (!this._active) return;
-    this.frame = requestAnimationFrame(() => this.loop());
-    this.draw();
-  },
-
-  draw() {
+  draw(dt) {
     const { ctx, width, height, particles } = this;
     ctx.clearRect(0, 0, width, height);
     for (const p of particles) {
-      p.x += p.vx;
-      p.y += p.vy;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
       if (p.x < -5) p.x = width + 5;
       if (p.x > width + 5) p.x = -5;
       if (p.y < -5) p.y = height + 5;
@@ -11419,7 +11747,8 @@ function showGameDropdownList(idPrefix) {
   const trigger = document.getElementById(`${idPrefix}-trigger`);
   if (!list || !trigger) return;
 
-  hideLineupMapList();
+  dismissLineupMapSearchDropdown({ force: true });
+  dismissLineupGameSearchDropdown({ force: true });
   hideAllGameDropdownLists(idPrefix);
   initProfileModeDropdown.close?.();
   initProfileTimerDropdown.close?.();
@@ -11601,6 +11930,7 @@ function initFontFamilyDropdown(savedValue) {
   };
 
   const open = () => {
+    preloadFontPickerFamilies();
     initTrainerModeDropdown.close?.();
     initBgPatternDropdown.close?.();
     dropdown.classList.add("is-open");
@@ -11890,8 +12220,14 @@ function initPreferences() {
     commitAccentColor(normalized, { instant });
   };
   const applyFontSize = (scale) => {
-    root.style.fontSize = `${16 * parseFloat(scale)}px`;
+    const normalized = parseFloat(scale) || 1;
+    root.style.fontSize = "16px";
+    root.style.setProperty("--text-size-scale", String(normalized));
     requestProfileChartsRedraw();
+    aimTrainer?.render?.();
+    if (typeof renderTargetSpreadPreviewCanvas === "function") {
+      renderTargetSpreadPreviewCanvas(spreadPreviewAnim.scale);
+    }
   };
   const applyContrast = (on) => body.classList.toggle("high-contrast", on);
   const applyMotion = (on) => {
@@ -11910,7 +12246,7 @@ function initPreferences() {
   const savedFontFamily = normalizeFontFamily(localStorage.getItem("prefFontFamily"));
 
   if (savedAccent) applyAccent(savedAccent, { instant: true });
-  if (savedFont) applyFontSize(savedFont);
+  applyFontSize(savedFont || "1");
   applyFontFamily(savedFontFamily);
   applyContrast(savedContrast);
   applyMotion(savedMotion);
@@ -12064,29 +12400,109 @@ function initPreferences() {
   enableAccentTransitions();
 }
 
+let changelogCalendarView = { year: new Date().getFullYear(), month: new Date().getMonth() };
+
+function getChangelogReleaseDates(panel) {
+  const releaseDates = new Map();
+  panel.querySelectorAll(".changelog-date-group").forEach((group) => {
+    const date = group.dataset.changelogDate;
+    if (!date) return;
+    const timeEl = group.querySelector(".changelog-date");
+    releaseDates.set(date, timeEl?.textContent.trim() || formatProgressDayLabel(date));
+  });
+  return releaseDates;
+}
+
+function renderChangelogCalendarGrid(releaseDates, selected) {
+  const grid = document.getElementById("changelog-cal-grid");
+  const title = document.getElementById("changelog-cal-title");
+  if (!grid || !title) return;
+
+  const { year, month } = changelogCalendarView;
+  const todayKey = getProgressDayKey(Date.now());
+  const todayStart = getProgressDayWindow(todayKey).start;
+
+  title.textContent = new Date(year, month, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const nextMonthStart = new Date(year, month + 1, 1).getTime();
+
+  grid.innerHTML = "";
+  for (let i = 0; i < startOffset; i++) {
+    grid.insertAdjacentHTML("beforeend", `<span class="aim-progress-cal-empty" aria-hidden="true"></span>`);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dayKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const hasRelease = releaseDates.has(dayKey);
+    const dayStart = new Date(year, month, day).getTime();
+    const isFuture = dayStart > todayStart;
+    const classes = ["aim-progress-cal-day", hasRelease ? "has-data" : "", selected !== "all" && dayKey === selected ? "selected" : "", dayKey === todayKey ? "today" : ""].filter(Boolean).join(" ");
+    const disabled = !hasRelease || isFuture;
+
+    grid.insertAdjacentHTML(
+      "beforeend",
+      `<button type="button" class="${classes}" data-day="${dayKey}"${disabled ? " disabled" : ""} aria-label="${releaseDates.get(dayKey) || formatProgressDayLabel(dayKey)}">${day}</button>`,
+    );
+  }
+
+  const nextBtn = document.getElementById("changelog-cal-next");
+  if (nextBtn) nextBtn.disabled = nextMonthStart > todayStart;
+}
+
+function getChangelogInitialReleaseKey(releaseDates) {
+  for (const [date, label] of releaseDates) {
+    if (label.toLowerCase() === "initial release") return date;
+  }
+  return [...releaseDates.keys()].sort()[0] || null;
+}
+
 function initChangelogDateFilter() {
   const picker = document.getElementById("changelog-date-picker");
   const trigger = document.getElementById("changelog-date-trigger");
   const label = document.getElementById("changelog-date-label");
-  const menu = document.getElementById("changelog-date-menu");
+  const calendar = document.getElementById("changelog-calendar");
+  const initialBtn = document.getElementById("changelog-calendar-initial");
+  const allBtn = document.getElementById("changelog-calendar-all");
+  const grid = document.getElementById("changelog-cal-grid");
+  const prevBtn = document.getElementById("changelog-cal-prev");
+  const nextBtn = document.getElementById("changelog-cal-next");
   const panel = document.getElementById("changelog-panel");
-  if (!picker || !trigger || !label || !menu || !panel || initChangelogDateFilter._init) return;
+  if (!picker || !trigger || !label || !calendar || !initialBtn || !allBtn || !grid || !panel || initChangelogDateFilter._init) return;
   initChangelogDateFilter._init = true;
 
   const groups = [...panel.querySelectorAll(".changelog-date-group")];
-  const options = [...menu.querySelectorAll(".changelog-date-option")];
+  const releaseDates = getChangelogReleaseDates(panel);
+  const initialReleaseKey = getChangelogInitialReleaseKey(releaseDates);
   let selected = "all";
 
-  const closeMenu = () => {
-    picker.classList.remove("is-open");
-    trigger.setAttribute("aria-expanded", "false");
-    menu.classList.add("hidden");
+  const syncCalendarUi = () => {
+    allBtn.classList.toggle("active", selected === "all");
+    allBtn.setAttribute("aria-pressed", selected === "all" ? "true" : "false");
+    initialBtn.classList.toggle("active", initialReleaseKey !== null && selected === initialReleaseKey);
+    initialBtn.setAttribute("aria-pressed", initialReleaseKey !== null && selected === initialReleaseKey ? "true" : "false");
+    if (selected !== "all") {
+      const parsed = parseProgressDayKey(selected);
+      if (parsed.year && parsed.month) {
+        changelogCalendarView = { year: parsed.year, month: parsed.month - 1 };
+      }
+    }
+    renderChangelogCalendarGrid(releaseDates, selected);
   };
 
-  const openMenu = () => {
+  const closeCalendar = () => {
+    picker.classList.remove("is-open");
+    trigger.setAttribute("aria-expanded", "false");
+    calendar.classList.add("hidden");
+  };
+
+  const openCalendar = () => {
     picker.classList.add("is-open");
     trigger.setAttribute("aria-expanded", "true");
-    menu.classList.remove("hidden");
+    calendar.classList.remove("hidden");
+    syncCalendarUi();
   };
 
   const applyFilter = () => {
@@ -12096,39 +12512,65 @@ function initChangelogDateFilter() {
     });
   };
 
-  const setSelection = (value, text) => {
+  const setSelection = (value) => {
     selected = value;
-    label.textContent = text;
-    options.forEach((option) => {
-      const active = option.dataset.changelogFilter === value;
-      option.classList.toggle("active", active);
-      option.setAttribute("aria-selected", active ? "true" : "false");
-    });
+    label.textContent = value === "all" ? "All dates" : releaseDates.get(value) || formatProgressDayLabel(value);
+    syncCalendarUi();
     applyFilter();
-    closeMenu();
+    closeCalendar();
   };
 
   trigger.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (picker.classList.contains("is-open")) closeMenu();
-    else openMenu();
+    if (picker.classList.contains("is-open")) closeCalendar();
+    else openCalendar();
   });
 
-  options.forEach((option) => {
-    option.addEventListener("click", (e) => {
-      e.stopPropagation();
-      setSelection(option.dataset.changelogFilter, option.textContent.trim());
-    });
+  allBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setSelection("all");
+  });
+
+  initialBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (initialReleaseKey) setSelection(initialReleaseKey);
+  });
+
+  prevBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    changelogCalendarView.month -= 1;
+    if (changelogCalendarView.month < 0) {
+      changelogCalendarView.month = 11;
+      changelogCalendarView.year -= 1;
+    }
+    renderChangelogCalendarGrid(releaseDates, selected);
+  });
+
+  nextBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    changelogCalendarView.month += 1;
+    if (changelogCalendarView.month > 11) {
+      changelogCalendarView.month = 0;
+      changelogCalendarView.year += 1;
+    }
+    renderChangelogCalendarGrid(releaseDates, selected);
+  });
+
+  grid.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-day]");
+    if (!btn || btn.disabled) return;
+    setSelection(btn.getAttribute("data-day"));
   });
 
   document.addEventListener("click", (e) => {
-    if (!picker.contains(e.target)) closeMenu();
+    if (!picker.contains(e.target)) closeCalendar();
   });
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && picker.classList.contains("is-open")) {
       e.preventDefault();
-      closeMenu();
+      closeCalendar();
+      trigger.blur();
     }
   });
 
@@ -12139,18 +12581,24 @@ document.addEventListener("DOMContentLoaded", () => {
   initAppLoadingScreen();
   initAppSidebar();
   initMobileNavMoreMenu();
-  initMobileNavMiscMenu();
+  if (MISC_TAB_ENABLED) initMobileNavMiscMenu();
   if (LINEUP_TAB_ENABLED) initLineupTab();
-  initCrosshairConverterTab?.();
-  initViewmodelGeneratorTab?.();
+  if (MISC_TAB_ENABLED) {
+    ensureCrosshairConverterLoaded()
+      .then(() => initCrosshairConverterTab?.())
+      .catch(() => {});
+  }
   initChangelogDateFilter();
   cacheElements();
+  initSearchDropdownFocusLossHandlers();
   initLogoMask();
   renderGameOptions(document.getElementById("from-list"), "data-game");
   renderGameOptions(document.getElementById("to-list"), "data-game");
   renderGameOptions(document.getElementById("edpi-game-list"), "data-game");
   renderGameOptions(document.getElementById("trainer-game-list"), "data-value");
   renderGameOptions(document.getElementById("profile-game-list"), "data-profile-game");
+  initGameIconErrorFallback();
+  syncAllGameTriggerIcons();
   syncProfileGameDropdownUi(localStorage.getItem(PROFILE_FILTER_GAME_KEY) || DEFAULT_PROFILE_FILTER_GAME);
   initPreferences();
   initSettingsModalSearch({
@@ -12183,15 +12631,13 @@ document.addEventListener("DOMContentLoaded", () => {
   initTabBlock();
   syncKeybindLabels();
   initReactionTestMenu(initReactionTest());
-  initEdpiPresetsResizeAnimation();
-
   const fD = document.getElementById("from-dpi"),
     tD = document.getElementById("to-dpi");
   if (fD) fD.value = "800";
   if (tD) tD.value = "800";
   ["base-sens", "from-dpi", "to-dpi", "edpi-dpi", "edpi-sens", "canvas-sens", "canvas-dpi"].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) handleInputValidation(el, id.startsWith("edpi-") ? updateEDPI : id.startsWith("canvas-") ? () => {} : updateConversion);
+    if (el) handleInputValidation(el, id.startsWith("edpi-") ? scheduleUpdateEDPI : id.startsWith("canvas-") ? () => {} : scheduleUpdateConversion);
   });
 
   const sequences = [
@@ -12246,14 +12692,20 @@ document.addEventListener("DOMContentLoaded", () => {
         input = document.getElementById(`${idPrefix}-search`),
         trigger = document.getElementById(`${idPrefix}-trigger`);
       if (list && input && !input.contains(e.target) && !list.contains(e.target) && !(trigger && trigger.contains(e.target))) {
-        hideGameDropdownList(idPrefix);
+        dismissGameSearchDropdown(idPrefix, { force: true });
       }
     });
     const lineupMapList = document.getElementById("lineup-map-list");
     const lineupMapInput = document.getElementById("lineup-map-search");
     const lineupMapTrigger = document.getElementById("lineup-map-trigger");
     if (lineupMapList && lineupMapInput && !lineupMapInput.contains(e.target) && !lineupMapList.contains(e.target) && !(lineupMapTrigger && lineupMapTrigger.contains(e.target))) {
-      hideLineupMapList();
+      dismissLineupMapSearchDropdown();
+    }
+    const lineupGameList = document.getElementById("lineup-game-list");
+    const lineupGameInput = document.getElementById("lineup-game-search");
+    const lineupGameTrigger = document.getElementById("lineup-game-trigger");
+    if (lineupGameList && lineupGameInput && !lineupGameInput.contains(e.target) && !lineupGameList.contains(e.target) && !(lineupGameTrigger && lineupGameTrigger.contains(e.target))) {
+      dismissLineupGameSearchDropdown();
     }
   });
   ["from", "to", "edpi-game", "trainer-game", "profile-game"].forEach((idPrefix) => {
@@ -12278,7 +12730,7 @@ document.addEventListener("DOMContentLoaded", () => {
       hideAllGameDropdownLists(idPrefix);
 
       if (isProfileGame) {
-        const previous = resolveGameFromInput(input) || input.dataset.lastValid || localStorage.getItem(PROFILE_FILTER_GAME_KEY) || DEFAULT_PROFILE_FILTER_GAME;
+        const previous = getCommittedGameFromInput(input) || input.dataset.lastValid || localStorage.getItem(PROFILE_FILTER_GAME_KEY) || DEFAULT_PROFILE_FILTER_GAME;
         input.dataset.lastValid = previous;
         input.value = "";
 
@@ -12295,6 +12747,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      const committed = getCommittedGameFromInput(input);
+      if (committed) input.dataset.lastValid = committed;
       input.value = "";
       syncClear();
       list.querySelectorAll(optionSelector).forEach((o) => {
@@ -12313,20 +12767,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
     input.addEventListener("blur", () => {
-      if (idPrefix === "profile-game") {
-        setTimeout(() => {
-          ensureProfileGameValue();
-          aimTrainer.displayResultsOnProfile();
-        }, 120);
-        return;
-      }
-      if (idPrefix === "trainer-game") {
-        setTimeout(() => {
-          const game = aimTrainer.game || localStorage.getItem("aimGame") || "";
-          if (game) input.value = game;
-          syncClear();
-        }, 120);
-      }
+      setTimeout(() => {
+        if (isFocusInsideDropdownList(list)) return;
+        dismissGameSearchDropdown(idPrefix);
+      }, 120);
     });
     input.addEventListener("keydown", (e) => {
       const visible = getVisible();
@@ -12357,7 +12801,8 @@ document.addEventListener("DOMContentLoaded", () => {
       activeIndex = 0;
       syncUI(getVisible());
       if (idPrefix === "edpi-game") updateEDPI();
-      else if (idPrefix !== "trainer-game" && idPrefix !== "profile-game") updateConversion();
+      else if (idPrefix !== "trainer-game" && idPrefix !== "profile-game") scheduleUpdateConversion();
+      if (idPrefix !== "profile-game") syncGameTriggerIcon(idPrefix);
     });
     list.querySelectorAll(optionSelector).forEach((opt) => {
       opt.addEventListener("mouseenter", () => {
@@ -12369,6 +12814,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         const modeVal = opt.getAttribute(valueAttr) || getOptionLabel(opt);
         input.value = getOptionLabel(opt);
+        input.dataset.lastValid = input.value;
         hideGameDropdownList(idPrefix);
         if (isProfileGame) syncProfileGameDropdownUi(modeVal);
         syncClear();
@@ -12383,6 +12829,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           updateConversion();
         }
+        syncGameTriggerIcon(idPrefix);
         input.blur();
       });
     });
@@ -12390,6 +12837,7 @@ document.addEventListener("DOMContentLoaded", () => {
       clearBtn.addEventListener("mousedown", (e) => {
         e.preventDefault();
         input.value = "";
+        input.dataset.lastValid = "";
         hideGameDropdownList(idPrefix);
         syncClear();
         if (idPrefix === "edpi-game") updateEDPI();
@@ -12400,6 +12848,7 @@ document.addEventListener("DOMContentLoaded", () => {
           aimTrainer.displayResultsOnProfile();
           aimTrainer.render();
         } else updateConversion();
+        syncGameTriggerIcon(idPrefix);
       });
     }
     syncClear();
@@ -12418,9 +12867,16 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     if (Object.values(el).every((x) => x)) {
       if (el.res.innerText !== "0.00") el.bS.value = el.res.innerText;
-      [el.fG.value, el.tG.value] = [el.tG.value, el.fG.value];
+      const fromGame = getConverterGameState(el.fG);
+      const toGame = getConverterGameState(el.tG);
+      setConverterGameState(el.fG, toGame);
+      setConverterGameState(el.tG, fromGame);
+      syncGameClearButton("from-search", "from-clear");
+      syncGameClearButton("to-search", "to-clear");
       [el.fD.value, el.tD.value] = [el.tD.value, el.fD.value];
       updateConversion();
+      syncGameTriggerIcon("from");
+      syncGameTriggerIcon("to");
     }
   });
   document.getElementById("reset-btn")?.addEventListener("click", () => {
@@ -12434,6 +12890,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (fD) fD.value = "800";
       if (tD) tD.value = "800";
       updateConversion();
+      syncGameTriggerIcon("from");
+      syncGameTriggerIcon("to");
     });
   });
   document.getElementById("profile-sens-conv-reset")?.addEventListener("click", () => {
@@ -12510,13 +12968,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const eS = document.getElementById("edpi-sens");
       if (eD) eD.value = "";
       if (eS) eS.value = "";
+      clearEdpiGameDropdown();
       updateEDPI();
     });
   });
   document.querySelectorAll(".copy-button").forEach((btn) => {
     btn.addEventListener("click", function () {
       if (isCopying) return;
-      if (this.id === "crosshair-converter-copy" || this.id === "viewmodel-copy") return;
+      if (this.id === "crosshair-converter-copy") return;
 
       const isProfileSensCopy = this.id === "profile-sens-conv-copy";
       const isProfileEdpiCopy = this.id === "profile-edpi-calc-copy";
@@ -12638,6 +13097,7 @@ document.addEventListener("DOMContentLoaded", () => {
   isInitialRoute = true;
   initTabRouting();
   applySharedParams();
+  syncAllGameTriggerIcons();
   syncUrlToTab(getCurrentTabId(), { replace: true, keepSearch: Boolean(new URLSearchParams(window.location.search).get("t")) });
   isInitialRoute = false;
   scrollToTop(350);
@@ -12647,4 +13107,3 @@ document.addEventListener("DOMContentLoaded", () => {
 window.switchTab = switchTab;
 window.cycleTabFromLogo = cycleTabFromLogo;
 window.scrollToTop = scrollToTop;
-window.applyEdpiPreset = applyEdpiPreset;

@@ -1,14 +1,14 @@
-const CACHE = "morning-roast-v2"; // Keep in sync with APP_CACHE_VERSION in script.js
-const ASSETS = ["./", "./index.html", "./style.css", "./script.js", "./crosshair-converter.js", "./viewmodel-generator.js", "./logo.png", "./manifest.webmanifest", "./assets/crosshair-preview-bg.png", "./assets/crosshair-preview-bg-2.png", "./assets/crosshair-preview-bg-3.png"];
+const CACHE = "morning-roast-v6"; // Keep in sync with APP_CACHE_VERSION in script.js
+const ASSETS = ["./", "./index.html", "./style.css", "./games.js", "./script.js", "./assets/logo.png", "./manifest.webmanifest"];
 // PATH ROUTING: add "./404.html" to ASSETS when re-enabling GitHub Pages deep links.
+// crosshair-converter.js + preview images load on demand when Misc tab is enabled.
 
 function isCacheableRequest(request) {
   const protocol = new URL(request.url).protocol;
   return protocol === "http:" || protocol === "https:";
-} 
+}
 
 function isMediaRequest(request, url) {
-  // Range requests and media files must bypass the SW — caching/rewriting them breaks <video>.
   if (request.headers.has("range")) return true;
   if (request.destination === "video" || request.destination === "audio") return true;
   return /\.(mp4|webm|ogg|mp3|wav|m4a|mov)(\?|$)/i.test(url.pathname);
@@ -46,10 +46,8 @@ self.addEventListener("fetch", (e) => {
 
   const url = new URL(req.url);
 
-  // Browser handles media natively (range requests, progressive download).
   if (isMediaRequest(req, url)) return;
 
-  // Network-first for same-origin so updates land fast, falling back to cache when offline.
   if (url.origin === self.location.origin) {
     e.respondWith(
       fetch(req)
