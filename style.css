@@ -914,14 +914,14 @@ html.logo-mask-ready .logo-mark {
   text-decoration: none;
 }
 
-.privacy-policy-fieldset-holder {
+.fieldset-style {
   box-shadow: 0 0 0 0.125rem hsl(var(--black-sheep));
   border-radius: 1rem;
   padding: 1rem 2rem;
   border: none;
 }
 
-.privacy-policy-fieldset-holder .privacy-policy-fieldset {
+.fieldset-style .fieldset-style-legend {
   box-shadow: 0 0 0 0.125rem hsl(var(--black-sheep));
   border-radius: 0.5rem;
   background-color: hsl(var(--rich-black));
@@ -929,16 +929,16 @@ html.logo-mask-ready .logo-mark {
   font-size: calc(0.75rem * var(--text-size-scale, 1));
   font-weight: bold;
   text-transform: capitalize;
-  color: var(--privacy-policy-color);
+  color: var(--fieldset-legend-color);
 }
 
-.privacy-policy-fieldset-holder .policy-intro {
+.fieldset-style .policy-intro {
   font-size: calc(1rem * var(--text-size-scale, 1));
   color: hsl(0, 0%, 67%);
   margin-bottom: 1.875rem;
 }
 
-.privacy-policy-fieldset-holder .policy-item {
+.fieldset-style .policy-item {
   background-color: hsl(var(--black-sheep));
   border-left: 0.25rem solid transparent;
   padding: 1.25rem;
@@ -946,56 +946,56 @@ html.logo-mask-ready .logo-mark {
   border-radius: 0 0.5rem 0.5rem 0;
 }
 
-.privacy-policy-fieldset-holder .policy-item h3 {
+.fieldset-style .policy-item h3 {
   margin: 0 0 0.625rem 0;
   font-size: calc(1.125rem * var(--text-size-scale, 1));
   font-weight: 600;
   letter-spacing: 0.0313rem;
 }
 
-.privacy-policy-fieldset-holder .policy-item p {
+.fieldset-style .policy-item p {
   margin: 0;
   font-size: calc(0.875rem * var(--text-size-scale, 1));
   color: hsl(0, 0%, 73%);
 }
 
-.privacy-policy-fieldset-holder .item-lavender {
+.fieldset-style .item-lavender {
   border-color: hsl(258, 54%, 82%);
 }
 
-.privacy-policy-fieldset-holder .item-lavender h3 {
+.fieldset-style .item-lavender h3 {
   color: hsl(258, 54%, 82%);
 }
 
-.privacy-policy-fieldset-holder .item-blue {
+.fieldset-style .item-blue {
   border-color: hsl(191, 54%, 82%);
 }
 
-.privacy-policy-fieldset-holder .item-blue h3 {
+.fieldset-style .item-blue h3 {
   color: hsl(191, 54%, 82%);
 }
 
-.privacy-policy-fieldset-holder .item-mint {
+.fieldset-style .item-mint {
   border-color: hsl(121, 54%, 82%);
 }
 
-.privacy-policy-fieldset-holder .item-mint h3 {
+.fieldset-style .item-mint h3 {
   color: hsl(121, 54%, 82%);
 }
 
-.privacy-policy-fieldset-holder .item-yellow {
+.fieldset-style .item-yellow {
   border-color: hsl(59, 54%, 82%);
 }
 
-.privacy-policy-fieldset-holder .item-yellow h3 {
+.fieldset-style .item-yellow h3 {
   color: hsl(59, 54%, 82%);
 }
 
-.privacy-policy-fieldset-holder .item-peach {
+.fieldset-style .item-peach {
   border-color: hsl(0, 54%, 82%);
 }
 
-.privacy-policy-fieldset-holder .item-peach h3 {
+.fieldset-style .item-peach h3 {
   color: hsl(0, 54%, 82%);
 }
 
@@ -3258,15 +3258,15 @@ body.reduce-motion .sens-finder-hint {
 }
 
 .changelog-legend--new {
-  --privacy-policy-color: var(--accent-color);
+  --fieldset-legend-color: var(--accent-color);
 }
 
 .changelog-legend--improve {
-  --privacy-policy-color: hsl(210, 70%, 68%);
+  --fieldset-legend-color: hsl(210, 70%, 68%);
 }
 
 .changelog-legend--fix {
-  --privacy-policy-color: hsl(38, 90%, 62%);
+  --fieldset-legend-color: hsl(38, 90%, 62%);
 }
 
 .changelog-fieldset .changelog-list {
@@ -4076,7 +4076,7 @@ body.reduce-motion .notify-toast {
     gap: 1rem;
   }
   .box-holder,
-  .privacy-policy-fieldset-holder,
+  .fieldset-style,
   .preset-topic-holder {
     width: 100% !important;
     flex: none !important;
