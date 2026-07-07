@@ -1204,12 +1204,6 @@ html.logo-mask-ready .logo-mark {
   box-shadow: 0 0 0.75rem hsl(from var(--accent-color) h s l / 0.3);
 }
 
-.selected-view:hover > .search-icon,
-.selected-view:focus-within > .search-icon {
-  filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
-  transform: scale(1.1);
-}
-
 .section .box-container-holder .box-container .box-holder .game-search {
   background: transparent;
   border: none;
@@ -1276,7 +1270,13 @@ html.logo-mask-ready .logo-mark {
 .input-container-inner:hover > .icon-sens,
 .input-container-inner:hover > .icon-dpi,
 .input-container-inner:focus-within > .icon-sens,
-.input-container-inner:focus-within > .icon-dpi {
+.input-container-inner:focus-within > .icon-dpi,
+.selected-view:hover > .search-icon,
+.selected-view:focus-within > .search-icon,
+.settings-general-option:hover .trainer-settings-icon,
+.settings-general-option:focus-visible .trainer-settings-icon,
+.settings-general-option:hover > .settings-general-arrow,
+.settings-general-option:focus-visible > .settings-general-arrow {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
   transform: scale(1.1);
 }
@@ -2811,7 +2811,8 @@ body.reduce-motion .sens-finder-hint {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
 }
 
-.search-icon {
+.search-icon,
+.trainer-settings-icon {
   width: var(--search-icon-size);
   height: var(--search-icon-size);
   flex-shrink: 0;
@@ -2822,11 +2823,21 @@ body.reduce-motion .sens-finder-hint {
   transform: scale(1);
 }
 
+.trainer-settings-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--search-icon-size);
+  font-weight: 400;
+  line-height: 1;
+}
+
 /* Accent-colored input/result icons resolve their currentColor to the
    active accent so they recolor with the theme. */
 .search-icon,
 .icon-sens,
-.icon-dpi {
+.icon-dpi,
+.trainer-settings-icon {
   color: var(--accent-color);
 }
 
@@ -3628,20 +3639,6 @@ body.reduce-motion .notify-toast {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-
-.trainer-settings-icon {
-  font-size: calc(1.1rem * var(--text-size-scale, 1));
-  font-weight: 400;
-  line-height: 1;
-  color: var(--accent-color);
-  filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
-  transition: filter var(--button-motion-duration) var(--button-motion-ease);
-}
-
-.settings-general-option:hover .trainer-settings-icon,
-.settings-general-option:focus-visible .trainer-settings-icon {
-  filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
 }
 
 .finder-reset-icon {
@@ -4774,8 +4771,16 @@ html {
 }
 
 .settings-general-arrow {
-  font-size: calc(1.25rem * var(--text-size-scale, 1));
+  font-size: var(--search-icon-size);
+  line-height: 1;
+  flex-shrink: 0;
   opacity: 0.5;
+  filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
+  transition:
+    opacity var(--button-motion-duration) var(--button-motion-ease),
+    filter var(--button-motion-duration) var(--button-motion-ease),
+    transform var(--button-motion-duration) var(--button-motion-ease);
+  transform: scale(1);
 }
 
 .settings-section-reaction {
@@ -5105,6 +5110,38 @@ body.reduce-motion .app-status-dropdown {
   box-shadow:
     0 0 0.35rem color-mix(in hsl, var(--swatch) 55%, transparent),
     0 0 0.65rem color-mix(in hsl, var(--swatch) 30%, transparent);
+}
+
+.accent-custom-swatch {
+  position: relative;
+  overflow: hidden;
+  background:
+    conic-gradient(
+      hsl(0 80% 55%),
+      hsl(45 80% 55%),
+      hsl(90 80% 55%),
+      hsl(180 80% 55%),
+      hsl(240 80% 55%),
+      hsl(300 80% 55%),
+      hsl(0 80% 55%)
+    );
+  cursor: pointer;
+}
+
+.accent-custom-swatch.active {
+  background-color: var(--swatch);
+  background-image: none;
+}
+
+.accent-custom-swatch input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
 }
 .pref-toggle {
   flex-shrink: 0;
@@ -7829,9 +7866,11 @@ button.scrollToTop {
   .search-icon,
   .icon-sens,
   .icon-dpi,
-  .settings-search-icon
+  .settings-search-icon,
+  .trainer-settings-icon,
+  .settings-general-arrow
 ) {
-  transition-property: background-color, border-color, box-shadow, opacity, filter, transform;
+  transition-property: background-color, border-color, box-shadow, opacity, filter, transform, color;
 }
 
 /* Preset buttons (crosshair): include transform; motion system omits it. */

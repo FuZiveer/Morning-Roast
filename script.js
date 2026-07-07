@@ -12255,25 +12255,55 @@ function initPreferences() {
   const accentPrev = document.getElementById("accent-prev");
   const accentNext = document.getElementById("accent-next");
   const accentLabel = document.getElementById("accent-picker-label");
+  const accentColorInput = document.getElementById("accent-color-input");
+  const accentCustomSwatch = document.getElementById("accent-custom-color");
 
-  const getAccentSwatches = () => (accentGrid ? [...accentGrid.querySelectorAll(".accent-swatch")] : []);
+  const getAccentSwatches = () => (accentGrid ? [...accentGrid.querySelectorAll(".accent-swatch[data-accent]")] : []);
 
-  const syncAccentSwatchState = (activeBtn) => {
+  const findMatchingAccentSwatch = (accent) => {
+    const normalized = normalizeAccent(accent);
+    return getAccentSwatches().find((btn) => normalizeAccent(btn.getAttribute("data-accent")) === normalized) || null;
+  };
+
+  const syncAccentSwatchState = (activeBtn, { custom = false } = {}) => {
     getAccentSwatches().forEach((btn) => {
-      const isActive = btn === activeBtn;
+      const isActive = !custom && btn === activeBtn;
       btn.classList.toggle("active", isActive);
       btn.setAttribute("aria-checked", isActive ? "true" : "false");
       btn.tabIndex = isActive ? 0 : -1;
     });
-    if (accentLabel && activeBtn) accentLabel.textContent = activeBtn.getAttribute("aria-label") || "";
+    accentCustomSwatch?.classList.toggle("active", custom);
+    if (accentLabel) {
+      if (custom) accentLabel.textContent = "Custom";
+      else if (activeBtn) accentLabel.textContent = activeBtn.getAttribute("aria-label") || "";
+    }
+  };
+
+  const syncAccentUI = (accent) => {
+    const normalized = normalizeAccent(accent);
+    const hex = accentColorString(normalized);
+    const matching = findMatchingAccentSwatch(normalized);
+    if (accentColorInput) accentColorInput.value = hex;
+    if (accentCustomSwatch) accentCustomSwatch.style.setProperty("--swatch", hex);
+    if (matching) syncAccentSwatchState(matching);
+    else syncAccentSwatchState(null, { custom: true });
   };
 
   const selectAccentSwatch = (btn) => {
     if (!btn || !accentGrid) return;
     const val = btn.getAttribute("data-accent");
     syncAccentSwatchState(btn);
+    if (accentColorInput) accentColorInput.value = accentColorString(val);
+    if (accentCustomSwatch) accentCustomSwatch.style.setProperty("--swatch", accentColorInput.value);
     applyAccent(val);
     localStorage.setItem("prefAccent", normalizeAccent(val));
+  };
+
+  const selectCustomAccent = (hex) => {
+    syncAccentSwatchState(null, { custom: true });
+    if (accentCustomSwatch) accentCustomSwatch.style.setProperty("--swatch", hex);
+    applyAccent(hex);
+    localStorage.setItem("prefAccent", normalizeAccent(hex));
   };
 
   const activeAccentIndex = () => {
@@ -12291,15 +12321,14 @@ function initPreferences() {
 
   if (accentGrid) {
     getAccentSwatches().forEach((btn) => {
-      const val = btn.getAttribute("data-accent");
-      const isActive = savedAccent ? normalizeAccent(val) === normalizeAccent(savedAccent) : val === DEFAULT_ACCENT;
-      if (isActive) syncAccentSwatchState(btn);
       btn.addEventListener("click", () => selectAccentSwatch(btn));
     });
-    if (!getAccentSwatches().some((btn) => btn.classList.contains("active"))) {
-      syncAccentSwatchState(getAccentSwatches()[0]);
-    }
+    syncAccentUI(savedAccent || DEFAULT_ACCENT);
   }
+
+  accentColorInput?.addEventListener("input", () => {
+    selectCustomAccent(accentColorInput.value);
+  });
 
   accentPrev?.addEventListener("click", () => selectAccentAt(activeAccentIndex() - 1));
   accentNext?.addEventListener("click", () => selectAccentAt(activeAccentIndex() + 1));
