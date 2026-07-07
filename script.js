@@ -575,7 +575,6 @@ const GAME_ICON_DEFS = Object.freeze({
   Aimlabs: { fallback: "hsl(190, 80%, 50%)" },
   "Apex Legends": { slug: "ea", color: "DA292A", fallback: "hsl(0, 80%, 55%)" },
   "ARC Raiders": { slug: "ea", color: "6BB7FF", fallback: "hsl(200, 70%, 55%)" },
-  "Black Ops 6": { slug: "activision", color: "000000", fallback: "hsl(95, 45%, 50%)" },
   "Black Ops 7": { slug: "activision", color: "000000", fallback: "hsl(95, 45%, 50%)" },
   CS2: { slug: "counterstrike", color: "DE9B35", fallback: "hsl(37, 90%, 51%)" },
   "Delta Force": { fallback: "hsl(150, 60%, 45%)" },
@@ -10118,11 +10117,6 @@ const tacticalAdvice = {
     low: ["CS2: Large mousepad required. You'll need the extra surface area for big arm swipes.", "CS2: Focus on arm aiming. Use your elbow as the pivot point for large turns.", "CS2: Great for long-range precision. You'll find clicking heads at a distance much easier.", "CS2: Crosshair placement is key. Since flicking is slower, keep your aim where enemies will appear.", "CS2: Warm up your shoulder and elbow. Low sens is more physically demanding over long sessions.", "CS2: Perfect for 'Tac-Shooters'. Most tactical pros prefer this range for consistent clicking."],
     average: ["CS2: The 'Golden Ratio'. You have enough speed for 180s and enough control for micro-adjustments.", "CS2: Hybrid aiming style. Use your arm for large turns and your wrist for fine-tuning.", "CS2: Very versatile. This sensitivity works well across different roles and agent types.", "CS2: Easier to track moving targets. The balance helps keep your crosshair glued to enemies.", "CS2: Lower fatigue. You don't have to move your whole arm as much as low-sens players.", "CS2: Standard Pro range. Most top-tier players in Valorant and CS2 land in this bracket."],
     high: ["CS2: Wrist-heavy aiming. Use small, precise flick motions rather than large arm sweeps.", "CS2: Lighting fast 180s. You can react to flankers much faster than low-sens players.", "CS2: High precision mouse needed. Ensure your sensor can handle micro-movements without jitter.", "CS2: Keep a light grip. Tensing your hand too much will make your aim shaky at high speeds.", "CS2: Great for verticality. If you play agents with movement abilities, high sens helps you keep up.", "CS2: Focus on smoothness. Practice 'smooth tracking' drills to avoid jumpy crosshair movement."],
-  },
-  "Black Ops 6": {
-    low: ["CoD: Best for holding lanes and long-range AR beams.", "CoD: Slide-canceling and 180s will be more physically demanding.", "CoD: Superior stability for high-magnification sniper scopes."],
-    average: ["CoD: The versatile choice for SMG rushing and AR anchoring.", "CoD: Balanced for reactive flicking and target switching.", "CoD: Good for tracking through fast movement and omnimovement dives."],
-    high: ["CoD: Essential for ultra-aggressive play and rapid room clearing.", "CoD: Reactive 180s to counter enemies coming from any direction.", "CoD: Perfect for tracking high-speed targets in close-quarters combat."],
   },
   "Black Ops 7": {
     low: ["CoD: Best for holding lanes and long-range AR beams.", "CoD: Slide-canceling and 180s will be more physically demanding.", "CoD: Superior stability for high-magnification sniper scopes."],

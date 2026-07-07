@@ -7,7 +7,6 @@
     Aimlabs: { yaw: 0.05, fov: 103, multiplier: 1.4 },
     "Apex Legends": { yaw: 0.022, fov: 90, multiplier: 3.18 },
     "ARC Raiders": { yaw: 0.00136, fov: 90, multiplier: 51.43 },
-    "Black Ops 6": { yaw: 0.0066, fov: 103, multiplier: 10.61 },
     "Black Ops 7": { yaw: 0.0066, fov: 103, multiplier: 10.61 },
     CS2: { yaw: 0.022, fov: 90, multiplier: 3.18 },
     "Delta Force": { yaw: 0.01, fov: 103, multiplier: 7 },
@@ -23,7 +22,7 @@
   });
 
   const GAME_ALIASES = Object.freeze({
-    "call of duty: black ops 6": "Black Ops 6",
+    "call of duty: black ops 6": "Black Ops 7",
     "call of duty: black ops 7": "Black Ops 7",
     "black ops 6/7": "Black Ops 7",
     "call of duty: black ops 6/7": "Black Ops 7",
@@ -51,11 +50,7 @@
     return resolved ? GAME_REGISTRY[resolved].yaw : null;
   }
 
-  const GAME_MULTIPLIERS = Object.freeze(
-    Object.fromEntries(
-      Object.entries(GAME_REGISTRY).map(([name, entry]) => [name, entry.multiplier]),
-    ),
-  );
+  const GAME_MULTIPLIERS = Object.freeze(Object.fromEntries(Object.entries(GAME_REGISTRY).map(([name, entry]) => [name, entry.multiplier])));
 
   function getGameMultiplier(game) {
     const resolved = resolveGameName(game);
@@ -91,9 +86,7 @@
     return Object.freeze(configs);
   }
 
-  const SUPPORTED_GAMES = Object.freeze(
-    Object.keys(GAME_REGISTRY).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
-  );
+  const SUPPORTED_GAMES = Object.freeze(Object.keys(GAME_REGISTRY).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })));
 
   global.MorningRoastGames = Object.freeze({
     GAME_REGISTRY,
