@@ -1,5 +1,13 @@
-const CACHE = "morning-roast-v7"; // Keep in sync with APP_CACHE_VERSION in script.js
-const ASSETS = ["./", "./index.html", "./style.css", "./games.js", "./color-names.js", "./script.js", "./assets/logo.png", "./manifest.webmanifest"];
+const CACHE = "morning-roast-v8"; // Keep in sync with APP_CACHE_VERSION in script.js
+const ASSETS = [
+  "./index.html",
+  "./style.css",
+  "./games.js",
+  "./color-names.js",
+  "./script.js",
+  "./assets/logo.png",
+  "./manifest.webmanifest",
+];
 // PATH ROUTING: add "./404.html" to ASSETS when re-enabling GitHub Pages deep links.
 // crosshair-converter.js + preview images load on demand when Misc tab is enabled.
 
@@ -22,11 +30,38 @@ function putInCache(request, response) {
     .catch(() => {});
 }
 
+async function cachedFallback(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  if (request.mode === "navigate" || request.destination === "document") {
+    return caches.match("./index.html");
+  }
+  return null;
+}
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    putInCache(request, response.clone());
+    return response;
+  } catch {
+    return cachedFallback(request);
+  }
+}
+
+async function respondForRequest(request) {
+  const response = await networkFirst(request);
+  if (response) return response;
+  return Response.error();
+}
+
 self.addEventListener("install", (e) => {
   e.waitUntil(
     caches
       .open(CACHE)
-      .then((c) => c.addAll(ASSETS))
+      .then(async (cache) => {
+        await Promise.allSettled(ASSETS.map((asset) => cache.add(asset)));
+      })
       .then(() => self.skipWaiting()),
   );
 });
@@ -45,39 +80,19 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET" || !isCacheableRequest(req)) return;
 
   const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
 
   if (isMediaRequest(req, url)) return;
 
-  if (url.origin === self.location.origin) {
+  if (url.pathname.endsWith("/favicon.ico")) {
     e.respondWith(
-      fetch(req)
-        .then((res) => {
-          putInCache(req, res.clone());
-          return res;
-        })
-        .catch(() =>
-          caches.match(req).then((cached) => {
-            if (cached) return cached;
-            if (req.mode === "navigate" || req.destination === "document") {
-              return caches.match("./index.html");
-            }
-            return undefined;
-          }),
-        ),
+      caches.match("./assets/logo.png").then((cached) => {
+        if (cached) return cached;
+        return fetch(req).catch(() => Response.error());
+      }),
     );
     return;
   }
 
-  e.respondWith(
-    caches.match(req).then(
-      (cached) =>
-        cached ||
-        fetch(req)
-          .then((res) => {
-            putInCache(req, res.clone());
-            return res;
-          })
-          .catch(() => cached),
-    ),
-  );
+  e.respondWith(respondForRequest(req));
 });
