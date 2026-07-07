@@ -1,5 +1,5 @@
-const CACHE = "morning-roast-v6"; // Keep in sync with APP_CACHE_VERSION in script.js
-const ASSETS = ["./", "./index.html", "./style.css", "./games.js", "./script.js", "./assets/logo.png", "./manifest.webmanifest"];
+const CACHE = "morning-roast-v7"; // Keep in sync with APP_CACHE_VERSION in script.js
+const ASSETS = ["./", "./index.html", "./style.css", "./games.js", "./color-names.js", "./script.js", "./assets/logo.png", "./manifest.webmanifest"];
 // PATH ROUTING: add "./404.html" to ASSETS when re-enabling GitHub Pages deep links.
 // crosshair-converter.js + preview images load on demand when Misc tab is enabled.
 

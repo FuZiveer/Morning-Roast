@@ -6,6 +6,7 @@
 
 :root {
   --accent-color: #ef0141;
+  --accent-on-color: hsl(0, 0%, 100%);
   --text-size-scale: 1;
   --layout-rem: 16px;
   --app-font-family: "Inter", sans-serif;
@@ -376,6 +377,7 @@ input[type="number"] {
   background-color: hsla(0, 0%, 100%, 0.05);
   border-color: transparent;
   color: hsl(0, 0%, 92%);
+  font-weight: 600;
 }
 
 .app-sidebar-more-item.active,
@@ -582,6 +584,7 @@ input[type="number"] {
   .app-sidebar-item:hover {
     background-color: hsla(0, 0%, 100%, 0.05);
     color: hsl(0, 0%, 92%);
+    font-weight: 600;
   }
 
   .app-sidebar-item:hover i {
@@ -1073,13 +1076,18 @@ html.logo-mask-ready .logo-mark {
   font-size: calc(0.75rem * var(--text-size-scale, 1));
   font-weight: 600;
   cursor: pointer;
-  transition: all 300ms ease;
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    box-shadow 300ms ease,
+    color 300ms ease;
   border-radius: 0.3125rem;
 }
 
 .in-text-button:hover {
   border-color: var(--accent-color);
   box-shadow: 0 0 0.75rem hsl(from var(--accent-color) h s l / 0.3);
+  font-weight: 600;
 }
 
 .section {
@@ -1093,7 +1101,7 @@ html.logo-mask-ready .logo-mark {
   min-width: 0;
   margin: 0 auto;
   box-sizing: border-box;
-  transition: all 300ms ease;
+  transition: opacity 300ms ease, transform 300ms ease;
 }
 
 .section .title-description-container {
@@ -1204,6 +1212,11 @@ html.logo-mask-ready .logo-mark {
   box-shadow: 0 0 0.75rem hsl(from var(--accent-color) h s l / 0.3);
 }
 
+.section .box-container-holder .box-container .box-holder .selected-view:hover .game-search,
+.section .box-container-holder .box-container .box-holder .selected-view:focus-within .game-search {
+  font-weight: 600;
+}
+
 .section .box-container-holder .box-container .box-holder .game-search {
   background: transparent;
   border: none;
@@ -1248,11 +1261,12 @@ html.logo-mask-ready .logo-mark {
 .section .icon-dpi {
   aspect-ratio: 1;
   flex-shrink: 0;
+  transform-origin: left center;
   filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
   transition:
     filter var(--button-motion-duration) var(--button-motion-ease),
     transform var(--button-motion-duration) var(--button-motion-ease);
-  transform: scale(1);
+  transform: translateZ(0) scale(1);
 }
 
 .input-container-inner .icon-sens,
@@ -1278,7 +1292,7 @@ html.logo-mask-ready .logo-mark {
 .settings-general-option:hover > .settings-general-arrow,
 .settings-general-option:focus-visible > .settings-general-arrow {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
-  transform: scale(1.1);
+  transform: translateZ(0) scale(1.1);
 }
 
 .icon-game {
@@ -1307,7 +1321,9 @@ html.logo-mask-ready .logo-mark {
   justify-content: space-between;
   padding: 0.75rem;
   cursor: pointer;
-  transition: all 300ms ease;
+  transition:
+    background-color 300ms ease,
+    color 300ms ease;
 }
 
 .section .box-container-holder .box-container .box-holder .game-option .game-name {
@@ -1319,6 +1335,11 @@ html.logo-mask-ready .logo-mark {
 .section .box-container-holder .box-container .box-holder .game-option.hover {
   background: var(--accent-color) !important;
   color: white;
+}
+
+.section .box-container-holder .box-container .box-holder .game-option:hover .game-name,
+.section .box-container-holder .box-container .box-holder .game-option.hover .game-name {
+  font-weight: 500;
 }
 
 .section .box-container-holder .box-container .box-holder .hidden {
@@ -1341,7 +1362,11 @@ html.logo-mask-ready .logo-mark {
   justify-content: center;
   gap: 0.25rem;
   border: var(--border-width) solid hsl(0, 0%, 13%);
-  transition: all 300ms ease;
+  transition:
+    border-color 300ms ease,
+    box-shadow 300ms ease,
+    color 300ms ease,
+    background-color 300ms ease;
   color: white;
   border-radius: 1rem;
   padding: 0.5rem 0.75rem;
@@ -1615,17 +1640,18 @@ html.logo-mask-ready .logo-mark {
   font-weight: 400;
   color: var(--accent-color);
   pointer-events: none;
+  transform-origin: left center;
   filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
   transition:
     filter var(--button-motion-duration) var(--button-motion-ease),
     transform var(--button-motion-duration) var(--button-motion-ease);
-  transform: scale(1);
+  transform: translateZ(0) scale(1);
 }
 
 .settings-search-wrap:hover .settings-search-icon,
 .settings-search-wrap:focus-within .settings-search-icon {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
-  transform: scale(1.1);
+  transform: translateZ(0) scale(1.1);
 }
 
 .settings-search-input {
@@ -1736,16 +1762,24 @@ html.logo-mask-ready .logo-mark {
   font-weight: 400;
   color: var(--accent-color);
   filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
-  transition: filter var(--button-motion-duration) var(--button-motion-ease);
+  transform-origin: left center;
+  transform: translateZ(0) scale(1);
+  transition:
+    filter var(--button-motion-duration) var(--button-motion-ease),
+    transform var(--button-motion-duration) var(--button-motion-ease);
 }
 
 #trainer-settings-overlay .trainer-settings-dropdown.is-open .trainer-settings-dropdown-title i,
 #trainer-settings-overlay .trainer-settings-dropdown .app-status-trigger:hover .trainer-settings-dropdown-title i,
+#trainer-settings-overlay .trainer-settings-dropdown .app-status-trigger:focus-visible .trainer-settings-dropdown-title i,
 #theme-settings-overlay .trainer-settings-dropdown.is-open .trainer-settings-dropdown-title i,
 #theme-settings-overlay .trainer-settings-dropdown .app-status-trigger:hover .trainer-settings-dropdown-title i,
+#theme-settings-overlay .trainer-settings-dropdown .app-status-trigger:focus-visible .trainer-settings-dropdown-title i,
 #general-settings-overlay .trainer-settings-dropdown.is-open .trainer-settings-dropdown-title i,
-#general-settings-overlay .trainer-settings-dropdown .app-status-trigger:hover .trainer-settings-dropdown-title i {
+#general-settings-overlay .trainer-settings-dropdown .app-status-trigger:hover .trainer-settings-dropdown-title i,
+#general-settings-overlay .trainer-settings-dropdown .app-status-trigger:focus-visible .trainer-settings-dropdown-title i {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
+  transform: translateZ(0) scale(1.1);
 }
 
 #trainer-settings-overlay .trainer-settings-dropdown.is-open .app-status-panel-inner,
@@ -1922,6 +1956,7 @@ html.logo-mask-ready .logo-mark {
 .trainer-mode-trigger .toggle-btn:hover:not(.active),
 .trainer-spread-selector .spread-btn:hover:not(.active) {
   color: hsl(0, 0%, 70%);
+  font-weight: 600;
 }
 
 .trainer-timer-selector .timer-btn:hover:not(.active)::before,
@@ -1940,8 +1975,13 @@ html.logo-mask-ready .logo-mark {
 .trainer-toggle-selector .toggle-btn.active,
 .trainer-mode-trigger .timer-btn.active,
 .trainer-mode-trigger .toggle-btn.active,
-.trainer-spread-selector .spread-btn.active {
-  color: white;
+.trainer-spread-selector .spread-btn.active,
+.profile-mode-selector .profile-mode-btn.active,
+.profile-mode-selector .profile-timer-btn.active,
+.profile-timer-selector .profile-mode-btn.active,
+.profile-timer-selector .profile-timer-btn.active,
+.crosshair-converter-zoom-selector .toggle-btn.active {
+  color: var(--accent-on-color, hsl(var(--white)));
 }
 
 .trainer-timer-selector .glider,
@@ -2058,12 +2098,18 @@ html.logo-mask-ready .logo-mark {
   font-weight: 400;
   color: var(--accent-color);
   filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
-  transition: filter var(--button-motion-duration) var(--button-motion-ease);
+  transform-origin: left center;
+  transform: translateZ(0) scale(1);
+  transition:
+    filter var(--button-motion-duration) var(--button-motion-ease),
+    transform var(--button-motion-duration) var(--button-motion-ease);
 }
 
 #stats-tab .profile-stats-dropdown.is-open .profile-stats-dropdown-title i,
-#stats-tab .profile-stats-dropdown .app-status-trigger:hover .profile-stats-dropdown-title i {
+#stats-tab .profile-stats-dropdown .app-status-trigger:hover .profile-stats-dropdown-title i,
+#stats-tab .profile-stats-dropdown .app-status-trigger:focus-visible .profile-stats-dropdown-title i {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
+  transform: translateZ(0) scale(1.1);
 }
 
 #stats-tab .profile-stats-dropdown.is-open .app-status-panel-inner {
@@ -2172,14 +2218,18 @@ html.logo-mask-ready .logo-mark {
   position: absolute;
   left: 1rem;
   top: 50%;
-  transform: translateY(-50%);
+  transform-origin: left center;
+  transform: translateY(-50%) translateZ(0) scale(1);
 }
 
 #stats-tab #profile-filter-panel #profile-mode-trigger:hover #profile-mode-icon,
 #stats-tab #profile-filter-panel #profile-mode-dropdown.is-open #profile-mode-trigger #profile-mode-icon,
 #stats-tab #profile-filter-panel #profile-timer-trigger:hover #profile-timer-icon,
-#stats-tab #profile-filter-panel #profile-timer-dropdown.is-open #profile-timer-trigger #profile-timer-icon {
+#stats-tab #profile-filter-panel #profile-timer-dropdown.is-open #profile-timer-trigger #profile-timer-icon,
+#stats-tab #profile-filter-panel #profile-mode-trigger:focus-visible #profile-mode-icon,
+#stats-tab #profile-filter-panel #profile-timer-trigger:focus-visible #profile-timer-icon {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
+  transform: translateY(-50%) translateZ(0) scale(1.1);
 }
 
 #stats-tab #profile-filter-panel .pref-dropdown-chevron {
@@ -2290,6 +2340,7 @@ html.logo-mask-ready .logo-mark {
 .profile-timer-selector .profile-mode-btn:hover:not(.active),
 .profile-timer-selector .profile-timer-btn:hover:not(.active) {
   color: hsl(0, 0%, 70%);
+  font-weight: 600;
 }
 
 .profile-mode-selector .profile-mode-btn:hover:not(.active)::before,
@@ -2297,14 +2348,6 @@ html.logo-mask-ready .logo-mark {
 .profile-timer-selector .profile-mode-btn:hover:not(.active)::before,
 .profile-timer-selector .profile-timer-btn:hover:not(.active)::before {
   opacity: 1;
-}
-
-.profile-mode-selector .profile-mode-btn.active,
-.profile-mode-selector .profile-timer-btn.active,
-.profile-timer-selector .profile-mode-btn.active,
-.profile-timer-selector .profile-timer-btn.active {
-  background-color: transparent;
-  color: white;
 }
 
 .profile-mode-selector .glider,
@@ -2338,7 +2381,9 @@ html.logo-mask-ready .logo-mark {
   border-radius: 1rem;
   padding: 0 0.75rem;
   box-sizing: border-box;
-  transition: all 300ms ease;
+  transition:
+    border-color 300ms ease,
+    box-shadow 300ms ease;
 }
 
 .input-container-inner:has(input:disabled) {
@@ -2506,7 +2551,9 @@ body.reduce-motion .swap-button:hover:not(:active) {
   box-sizing: border-box;
   overflow-x: clip;
   border: var(--border-width) solid hsl(0, 0%, 13%);
-  transition: all 300ms ease;
+  transition:
+    border-color 300ms ease,
+    box-shadow 300ms ease;
 }
 
 .section .box-container-holder .box-container .box-holder.result-container {
@@ -2536,7 +2583,6 @@ body.reduce-motion .swap-button:hover:not(:active) {
   line-height: 1.2;
   text-align: left;
   opacity: 1;
-  transition: opacity var(--button-motion-duration) var(--button-motion-ease);
 }
 
 .profile-game-info.is-empty {
@@ -2816,11 +2862,12 @@ body.reduce-motion .sens-finder-hint {
   width: var(--search-icon-size);
   height: var(--search-icon-size);
   flex-shrink: 0;
+  transform-origin: left center;
   filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
   transition:
     filter var(--button-motion-duration) var(--button-motion-ease),
     transform var(--button-motion-duration) var(--button-motion-ease);
-  transform: scale(1);
+  transform: translateZ(0) scale(1);
 }
 
 .trainer-settings-icon {
@@ -2920,7 +2967,9 @@ body.reduce-motion .sens-finder-hint {
   background: hsla(0, 0%, 100%, 0.2);
   border-radius: 50%;
   margin-right: 0.625rem;
-  transition: all 300ms ease;
+  transition:
+    background-color 300ms ease,
+    box-shadow 300ms ease;
 }
 
 .preset-btn:hover::before {
@@ -3633,6 +3682,7 @@ body.reduce-motion .notify-toast {
 
 .trainer-option:hover {
   border-color: var(--accent-color);
+  font-weight: 600;
 }
 
 .trainer-option-label {
@@ -3648,7 +3698,10 @@ body.reduce-motion .notify-toast {
   color: hsl(0, 0%, 40%);
   padding: 0.25rem 0.5rem;
   cursor: pointer;
-  transition: all 300ms ease;
+  transition:
+    color 300ms ease,
+    border-color 300ms ease,
+    background-color 300ms ease;
 }
 
 .finder-reset-icon:hover:not(:disabled) {
@@ -3893,6 +3946,7 @@ body.reduce-motion .notify-toast {
       border-color var(--button-motion-duration) var(--button-motion-ease);
   }
   .nav-menu-container .button-container .button .icon-container,
+  .nav-menu-container .nav-more-toggle .icon-container,
   .nav-menu-container .nav-more-menu .button .icon-container {
     position: absolute;
     left: 0.65rem;
@@ -3921,6 +3975,7 @@ body.reduce-motion .notify-toast {
     background-color: hsla(0, 0%, 100%, 0.05);
     border-color: transparent;
     color: hsl(0, 0%, 92%);
+    font-weight: 600;
   }
   .nav-menu-container .button-container .button:hover i,
   .nav-menu-container .nav-more-toggle:hover i,
@@ -3939,6 +3994,7 @@ body.reduce-motion .notify-toast {
     color: var(--accent-color);
   }
   .nav-menu-container .button-container .button > span,
+  .nav-menu-container .nav-more-toggle > span,
   .nav-menu-container .nav-more-menu .button > span {
     line-height: 1.2;
   }
@@ -4339,6 +4395,7 @@ html {
   border-color: hsl(from var(--accent-color) h s l / 0.45);
   background-color: hsl(from var(--accent-color) h s l / 0.06);
   color: hsl(0, 0%, 92%);
+  font-weight: 600;
 }
 .crosshair-preset-btn:active {
   transform: scale(0.96);
@@ -4771,16 +4828,22 @@ html {
 }
 
 .settings-general-arrow {
+  width: var(--search-icon-size);
+  height: var(--search-icon-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: var(--search-icon-size);
   line-height: 1;
   flex-shrink: 0;
   opacity: 0.5;
+  transform-origin: right center;
   filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
   transition:
     opacity var(--button-motion-duration) var(--button-motion-ease),
     filter var(--button-motion-duration) var(--button-motion-ease),
     transform var(--button-motion-duration) var(--button-motion-ease);
-  transform: scale(1);
+  transform: translateZ(0) scale(1);
 }
 
 .settings-section-reaction {
@@ -5115,34 +5178,240 @@ body.reduce-motion .app-status-dropdown {
 .accent-custom-swatch {
   position: relative;
   overflow: hidden;
-  background:
-    conic-gradient(
-      hsl(0 80% 55%),
-      hsl(45 80% 55%),
-      hsl(90 80% 55%),
-      hsl(180 80% 55%),
-      hsl(240 80% 55%),
-      hsl(300 80% 55%),
-      hsl(0 80% 55%)
-    );
+  background-color: hsl(0, 0%, 6%);
+  border: var(--border-width) dashed hsl(0, 0%, 22%);
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.accent-custom-swatch-preview {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--swatch);
+  opacity: 1;
+  transition: opacity 300ms ease;
+}
+
+.accent-custom-swatch-icon {
+  position: relative;
+  z-index: 1;
+  font-size: calc(0.72rem * var(--text-size-scale, 1));
+  line-height: 1;
+  color: var(--swatch-on-color, hsl(0, 0%, 100%));
+  filter: drop-shadow(0 0 0.125rem color-mix(in hsl, var(--swatch) 45%, transparent));
+  transition:
+    color var(--button-motion-duration) var(--button-motion-ease),
+    filter var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.accent-custom-swatch:hover:not(.active) {
+  border-color: hsl(from var(--accent-color) h s l / 0.45);
+  background-color: hsl(0, 0%, 8%);
+}
+
+.accent-custom-swatch:hover:not(.active) .accent-custom-swatch-icon {
+  color: var(--swatch-on-color, hsl(0, 0%, 100%));
+  filter: drop-shadow(0 0 0.2rem color-mix(in hsl, var(--swatch) 60%, transparent));
 }
 
 .accent-custom-swatch.active {
+  border-style: solid;
   background-color: var(--swatch);
   background-image: none;
 }
 
-.accent-custom-swatch input[type="color"] {
+.accent-custom-swatch.active .accent-custom-swatch-preview {
+  opacity: 1;
+}
+
+.accent-custom-swatch.active .accent-custom-swatch-icon {
+  color: var(--swatch-on-color, hsl(0, 0%, 100%));
+  filter: drop-shadow(0 0 0.15rem color-mix(in hsl, var(--swatch) 55%, transparent));
+}
+
+.accent-color-input-native {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 1px;
+  height: 1px;
   padding: 0;
-  border: none;
-  opacity: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.accent-custom-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  width: 14.5rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  border: var(--border-width) solid hsl(0, 0%, 13%);
+  background-color: hsl(0, 0%, 4%);
+  box-shadow: 0 0.75rem 1.75rem hsla(0, 0%, 0%, 0.45);
+}
+
+.accent-custom-panel.hidden {
+  display: none !important;
+}
+
+#accent-custom-panel.pref-dropdown-list-portal {
+  position: fixed;
+  top: auto;
+  right: auto;
+  left: auto;
+  z-index: 10050;
+  max-height: none;
+  overflow: visible;
+}
+
+.accent-custom-spectrum {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.35;
+  border-radius: 0.75rem;
+  border: var(--border-width) solid hsl(0, 0%, 13%);
+  background-color: var(--accent-custom-pure, hsl(344 100% 50%));
+  background-image:
+    linear-gradient(to top, hsl(0, 0%, 0%), transparent),
+    linear-gradient(to right, hsl(0, 0%, 100%), transparent);
+  cursor: crosshair;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.accent-custom-spectrum:focus-visible {
+  outline: var(--border-width) solid var(--accent-color);
+  outline-offset: 0.125rem;
+}
+
+.accent-custom-spectrum-cursor {
+  position: absolute;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  border: 0.125rem solid hsl(var(--white));
+  box-shadow:
+    0 0 0 0.0625rem hsla(0, 0%, 0%, 0.45),
+    0 0 0.35rem hsla(0, 0%, 0%, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.accent-custom-hue-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.accent-custom-hue-text {
+  font-size: calc(0.62rem * var(--text-size-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(0, 0%, 52%);
+}
+
+.accent-custom-hue {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 999px;
+  border: var(--border-width) solid hsl(0, 0%, 13%);
+  background: linear-gradient(
+    to right,
+    hsl(0 85% 55%),
+    hsl(60 85% 55%),
+    hsl(120 85% 55%),
+    hsl(180 85% 55%),
+    hsl(240 85% 55%),
+    hsl(300 85% 55%),
+    hsl(360 85% 55%)
+  );
+  outline: none;
   cursor: pointer;
 }
+
+.accent-custom-hue::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  border: 0.125rem solid hsl(var(--white));
+  background: var(--accent-color);
+  box-shadow: 0 0 0.35rem hsl(from var(--accent-color) h s l / 0.45);
+  cursor: pointer;
+}
+
+.accent-custom-hue::-moz-range-thumb {
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 0.125rem solid hsl(var(--white));
+  border-radius: 50%;
+  background: var(--accent-color);
+  box-shadow: 0 0 0.35rem hsl(from var(--accent-color) h s l / 0.45);
+  cursor: pointer;
+}
+
+.accent-custom-hex-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.75rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.65rem;
+  border: var(--border-width) solid hsl(0, 0%, 13%);
+  background-color: hsl(0, 0%, 7%);
+}
+
+.accent-custom-hex-row:focus-within {
+  border-color: hsl(from var(--accent-color) h s l / 0.45);
+}
+
+.accent-custom-hex-swatch {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border: var(--border-width) solid hsl(0, 0%, 18%);
+  background-color: var(--accent-color);
+}
+
+.accent-custom-hex {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: calc(0.72rem * var(--text-size-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(0, 0%, 78%);
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.accent-custom-hex:focus {
+  color: hsl(0, 0%, 92%);
+}
+
+.accent-custom-hex.invalid {
+  color: hsl(0, 70%, 65%);
+}
+
+.accent-custom-hex::selection {
+  background-color: hsl(from var(--accent-color) h s l / 0.35);
+}
+
 .pref-toggle {
   flex-shrink: 0;
 }
@@ -5180,6 +5449,7 @@ body.reduce-motion .app-status-dropdown {
 .pref-dropdown.is-open .pref-dropdown-trigger {
   border-color: var(--accent-color);
   box-shadow: 0 0 0.75rem hsl(from var(--accent-color) h s l / 0.15);
+  font-weight: 600;
 }
 
 .pref-dropdown-trigger:hover .pref-dropdown-chevron {
@@ -5209,35 +5479,44 @@ body.reduce-motion .app-status-dropdown {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
+  transform-origin: left center;
+  transform: translateZ(0) scale(1);
   transition:
     color var(--button-motion-duration) var(--button-motion-ease),
     filter var(--button-motion-duration) var(--button-motion-ease),
-    opacity var(--button-motion-duration) var(--button-motion-ease);
+    opacity var(--button-motion-duration) var(--button-motion-ease),
+    transform var(--button-motion-duration) var(--button-motion-ease);
 }
 
 #trainer-mode-icon,
 #bg-pattern-icon,
+#font-family-icon,
+#trainer-aspect-icon,
+#trainer-timer-icon,
 #profile-mode-icon,
 #profile-timer-icon {
   font-size: calc(1.25rem * var(--text-size-scale, 1));
-  filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
-  transition: filter var(--button-motion-duration) var(--button-motion-ease);
 }
 
+.pref-dropdown-trigger:hover .pref-dropdown-icon,
+.pref-dropdown-trigger:focus-visible .pref-dropdown-icon,
+.pref-dropdown.is-open .pref-dropdown-trigger .pref-dropdown-icon,
 #trainer-mode-trigger:hover #trainer-mode-icon,
 #trainer-mode-dropdown.is-open #trainer-mode-trigger #trainer-mode-icon,
+#trainer-aspect-trigger:hover #trainer-aspect-icon,
+#trainer-aspect-dropdown.is-open #trainer-aspect-trigger #trainer-aspect-icon,
+#trainer-timer-trigger:hover #trainer-timer-icon,
+#trainer-timer-dropdown.is-open #trainer-timer-trigger #trainer-timer-icon,
 #bg-pattern-trigger:hover #bg-pattern-icon,
 #bg-pattern-dropdown.is-open #bg-pattern-trigger #bg-pattern-icon,
+#font-family-trigger:hover #font-family-icon,
+#font-family-dropdown.is-open #font-family-trigger #font-family-icon,
 #profile-mode-trigger:hover #profile-mode-icon,
 #profile-mode-dropdown.is-open #profile-mode-trigger #profile-mode-icon,
 #profile-timer-trigger:hover #profile-timer-icon,
 #profile-timer-dropdown.is-open #profile-timer-trigger #profile-timer-icon {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
-}
-
-.pref-dropdown-trigger:hover .pref-dropdown-icon,
-.pref-dropdown.is-open .pref-dropdown-trigger .pref-dropdown-icon {
-  filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
+  transform: translateZ(0) scale(1.1);
 }
 
 .pref-dropdown-chevron {
@@ -5277,6 +5556,13 @@ body.reduce-motion .app-status-dropdown {
   overflow: visible;
 }
 
+#accent-custom-panel {
+  gap: 0.625rem;
+  padding: 0.75rem;
+  max-height: none;
+  overflow: visible;
+}
+
 #trainer-mode-list,
 #bg-pattern-list {
   max-height: none;
@@ -5299,6 +5585,7 @@ body.reduce-motion .app-status-dropdown {
 #theme-settings-overlay .control-group,
 #theme-settings-overlay #bg-pattern-dropdown,
 #theme-settings-overlay #font-family-dropdown,
+#theme-settings-overlay #accent-picker,
 #trainer-settings-overlay .trainer-settings-sections,
 #trainer-settings-overlay .trainer-settings-section,
 #trainer-settings-overlay .trainer-settings-dropdown,
@@ -5488,6 +5775,7 @@ body.reduce-motion .app-status-dropdown {
 .pref-dropdown-option.hover {
   background-color: hsl(0, 0%, 8%);
   color: hsl(var(--text-primary));
+  font-weight: 600;
 }
 
 .pref-dropdown-option:hover .pref-dropdown-option-icon,
@@ -6071,6 +6359,7 @@ body.high-contrast .preset-btn {
 
 .lineup-difficulty-tag:hover {
   background-color: hsl(var(--eerie-black));
+  font-weight: 600;
 }
 
 .lineup-difficulty-tag.active {
@@ -6095,6 +6384,7 @@ body.high-contrast .preset-btn {
 }
 
 #lineup-map-trigger {
+  width: 100%;
   gap: 0.625rem;
   min-height: 3.25rem;
   box-sizing: border-box;
@@ -6436,7 +6726,31 @@ body.high-contrast .preset-btn {
   object-fit: cover;
 }
 
-.lineup-side-selector--cs2 .lineup-side-icon:not([hidden]) {
+.lineup-side-selector--cs2 .lineup-side-icon:not([hidden]),
+.lineup-side-selector--valorant .lineup-side-icon:not([hidden]) {
+  display: block;
+}
+
+.lineup-side-icon-duo {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.lineup-side-selector--cs2 .lineup-side-icon-duo:not([hidden]),
+.lineup-side-selector--valorant .lineup-side-icon-duo:not([hidden]) {
+  display: inline-flex;
+}
+
+.lineup-side-icon--duo {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 0.2rem;
+}
+
+.lineup-side-selector--cs2 .lineup-side-icon-duo:not([hidden]) .lineup-side-icon--duo,
+.lineup-side-selector--valorant .lineup-side-icon-duo:not([hidden]) .lineup-side-icon--duo {
   display: block;
 }
 
@@ -7218,6 +7532,7 @@ body.high-contrast .preset-btn {
   color: hsl(0, 0%, 88%);
   background-color: hsl(var(--eerie-black));
   border-color: hsl(0, 0%, 16%);
+  font-weight: 600;
 }
 
 .lineup-video-options-item.active {
@@ -7403,7 +7718,7 @@ body.high-contrast .preset-btn {
 @media (min-width: 769px) {
   .lineup-toolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(10rem, 14rem) minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) 475px;
     column-gap: 0.75rem;
     row-gap: 0.5rem;
     align-items: start;
@@ -7422,13 +7737,15 @@ body.high-contrast .preset-btn {
   .lineup-map-filter {
     grid-column: 2;
     grid-row: 1;
-    min-width: 10rem;
-    max-width: 14rem;
+    min-width: 0;
+    max-width: none;
+    width: 100%;
   }
 
   .lineup-search-column {
     grid-column: 3;
     grid-row: 1;
+    min-width: 0;
   }
 
   .lineup-search-wrap {
@@ -7857,6 +8174,41 @@ button.scrollToTop {
   transition-timing-function: var(--button-motion-ease);
 }
 
+/* Prevent synthetic bolding on hover. */
+@media (hover: hover) {
+  :where(
+    button,
+    .pref-dropdown-trigger,
+    .pref-dropdown-option,
+    .toggle-btn,
+    .timer-btn,
+    .spread-btn,
+    .trainer-option,
+    .game-option,
+    .in-text-button,
+    .app-sidebar-item,
+    .app-sidebar-more-item,
+    .app-sidebar-misc-item,
+    .lineup-difficulty-tag,
+    .lineup-video-options-item,
+    .crosshair-preset-btn,
+    .game-search
+  ):hover,
+  :where(
+    button,
+    .pref-dropdown-trigger,
+    .pref-dropdown-option,
+    .toggle-btn,
+    .timer-btn,
+    .spread-btn,
+    .trainer-option,
+    .in-text-button,
+    .game-search
+  ):focus-visible {
+    font-synthesis: none;
+  }
+}
+
 /* Accent-toned labels/icons follow root --accent-color interpolation only. */
 :is(
   .settings-section-title,
@@ -7868,7 +8220,10 @@ button.scrollToTop {
   .icon-dpi,
   .settings-search-icon,
   .trainer-settings-icon,
-  .settings-general-arrow
+  .settings-general-arrow,
+  .pref-dropdown-icon,
+  .trainer-settings-dropdown-title i,
+  .profile-stats-dropdown-title i
 ) {
   transition-property: background-color, border-color, box-shadow, opacity, filter, transform, color;
 }

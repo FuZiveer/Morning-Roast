@@ -32,6 +32,23 @@
     "rainbow six siege": "Rainbow 6 Siege",
   });
 
+  const GAME_DISPLAY_NAMES = Object.freeze({
+    CS2: "Counter-Strike 2",
+    Overwatch: "Overwatch 2",
+    "Rainbow 6 Siege": "Rainbow Six Siege",
+    "Black Ops 7": "Call of Duty: Black Ops 7",
+  });
+
+  const DISPLAY_NAME_ALIASES = Object.freeze(
+    Object.fromEntries(Object.entries(GAME_DISPLAY_NAMES).map(([key, display]) => [display.toLowerCase(), key])),
+  );
+
+  function getGameDisplayName(game) {
+    const resolved = resolveGameName(game);
+    if (!resolved) return game == null ? "" : String(game).trim();
+    return GAME_DISPLAY_NAMES[resolved] || resolved;
+  }
+
   function resolveGameName(game) {
     if (game == null) return null;
     const trimmed = String(game).trim();
@@ -39,6 +56,7 @@
     if (GAME_REGISTRY[trimmed]) return trimmed;
     const lower = trimmed.toLowerCase();
     if (GAME_ALIASES[lower]) return GAME_ALIASES[lower];
+    if (DISPLAY_NAME_ALIASES[lower]) return DISPLAY_NAME_ALIASES[lower];
     for (const name of Object.keys(GAME_REGISTRY)) {
       if (name.toLowerCase() === lower) return name;
     }
@@ -91,9 +109,11 @@
   global.MorningRoastGames = Object.freeze({
     GAME_REGISTRY,
     GAME_ALIASES,
+    GAME_DISPLAY_NAMES,
     GAME_MULTIPLIERS,
     SUPPORTED_GAMES,
     resolveGameName,
+    getGameDisplayName,
     getGameYaw,
     getGameMultiplier,
     getGameConversionFactor,

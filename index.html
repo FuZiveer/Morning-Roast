@@ -22,6 +22,11 @@
           var parts = accent.trim().split(/\s+/);
           if (parts.length >= 3) {
             root.style.setProperty("--accent-color", "hsl(" + parts[0] + " " + parts[1] + " " + parts[2] + ")");
+            var lightness = parseFloat(parts[2]);
+            root.style.setProperty(
+              "--accent-on-color",
+              lightness > 62 ? "hsl(0, 0%, 5%)" : "hsl(0, 0%, 100%)"
+            );
           }
           var pattern = localStorage.getItem("prefBgPattern") || "waves";
           if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "particles") {
@@ -87,6 +92,7 @@
     </script>
 
     <script defer src="games.js"></script>
+    <script defer src="color-names.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
@@ -732,7 +738,7 @@
                     <div class="input-wrapper">
                       <span class="crosshair-direction-trigger-label" id="crosshair-converter-direction-label" aria-live="polite">
                         <span class="crosshair-direction-option-text">
-                          <span class="crosshair-direction-from">CS2</span>
+                          <span class="crosshair-direction-from">Counter-Strike 2</span>
                           <i class="ri-arrow-right-line crosshair-direction-option-arrow" aria-hidden="true"></i>
                           <span class="crosshair-direction-to">Valorant</span>
                         </span>
@@ -747,7 +753,7 @@
                     <button type="button" class="pref-dropdown-option active" data-crosshair-direction="cs2-to-val" role="option">
                       <i class="ri-gamepad-line pref-dropdown-option-icon" aria-hidden="true"></i>
                       <span class="crosshair-direction-option-text">
-                        <span>CS2</span>
+                        <span>Counter-Strike 2</span>
                         <i class="ri-arrow-right-line crosshair-direction-option-arrow" aria-hidden="true"></i>
                         <span>Valorant</span>
                       </span>
@@ -757,7 +763,7 @@
                       <span class="crosshair-direction-option-text">
                         <span>Valorant</span>
                         <i class="ri-arrow-right-line crosshair-direction-option-arrow" aria-hidden="true"></i>
-                        <span>CS2</span>
+                        <span>Counter-Strike 2</span>
                       </span>
                     </button>
                   </div>
@@ -1023,7 +1029,6 @@
             <div class="box-holder result-container">
               <div id="edpi-game-info" class="profile-game-info">
                 <span id="profile-edpi-game"></span>
-                <span style="opacity: 0.3">|</span>
                 <span>Sens: <span id="profile-edpi-sens" style="color: #bbb">-</span></span>
                 <span>DPI: <span id="profile-edpi-dpi" style="color: #bbb">-</span></span>
                 <span style="opacity: 0.3">|</span>
@@ -1263,7 +1268,7 @@
                   </button>
                   <button type="button" class="pref-dropdown-option" data-lineup-game="cs2" role="option">
                     <img class="game-option-icon" src="https://cdn.simpleicons.org/counterstrike/DE9B35" alt="" width="18" height="18" decoding="async" data-game-icon-name="CS2" />
-                    <span>CS2</span>
+                    <span>Counter-Strike 2</span>
                   </button>
                 </div>
               </div>
@@ -1277,7 +1282,13 @@
                 <div class="lineup-side-filter">
                   <div class="trainer-toggle-selector lineup-side-selector" id="lineup-side-selector" role="tablist" aria-label="Lineup side">
                     <div class="glider"></div>
-                    <button type="button" class="toggle-btn active" data-lineup-side="all" role="tab" aria-selected="true">All</button>
+                    <button type="button" class="toggle-btn active" data-lineup-side="all" role="tab" aria-selected="true">
+                      <span class="lineup-side-icon-duo" aria-hidden="true" hidden>
+                        <img class="lineup-side-icon lineup-side-icon--duo" data-lineup-side-icon="attacker" alt="" width="16" height="16" decoding="async" />
+                        <img class="lineup-side-icon lineup-side-icon--duo" data-lineup-side-icon="defender" alt="" width="16" height="16" decoding="async" />
+                      </span>
+                      <span>All</span>
+                    </button>
                     <button type="button" class="toggle-btn" data-lineup-side="attacker" role="tab" aria-selected="false">
                       <img class="lineup-side-icon" data-lineup-side-icon="attacker" alt="" width="18" height="18" decoding="async" hidden />
                       <span>Attacker</span>
@@ -1791,6 +1802,43 @@
                   <span class="changelog-badge">Latest</span>
                 </header>
                 <div class="changelog-versions">
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.4</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Custom accent color picker: spectrum, hue slider, editable hex field, and portal dropdown</li>
+                          <li>Custom accent label shows the closest real color name for any picked hex</li>
+                          <li>Valorant lineup side icons (A/D) on Attacker and Defender; dual icon on All for CS2 and Valorant</li>
+                          <li>Particle background draws faint white connection lines between nearby dots</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Game dropdowns show full display names (e.g. Counter-Strike 2, Call of Duty: Black Ops 7)</li>
+                          <li>Accent theme: original preset swatches plus custom picker; palette icon stays visible with adaptive contrast on the swatch</li>
+                          <li>Toggle glider labels auto-pick light or dark text for readable contrast on any accent</li>
+                          <li>Settings menu icons scale on hover for dropdown triggers and section titles</li>
+                          <li>Lineup toolbar: map filter fills the middle; search bar is 475px wide on desktop</li>
+                          <li>Lineup map filter resets on reload and stays per-game for the session only</li>
+                          <li>Mobile More nav toggle text is left-aligned</li>
+                          <li>eDPI game info hides instantly; removed the leading separator before the game name</li>
+                          <li>Sitewide hover no longer changes font weight</li>
+                          <li>Privacy, terms, updates, and credit fieldsets share generic <code>fieldset-style</code> classes</li>
+                          <li>Service worker cache bumped to morning-roast-v7</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>Custom color spectrum: only the top-left is white; the top-right shows the full hue</li>
+                          <li>Black Ops 6 removed as a separate game entry; search aliases still resolve to Black Ops 7</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
                   <section class="changelog-version-block">
                     <h3 class="changelog-version">0.2.3</h3>
                     <div class="changelog-type-groups">
@@ -2492,9 +2540,53 @@
                               <button type="button" class="accent-swatch" data-accent="217 91% 60%" style="--swatch: hsl(217 91% 60%)" aria-label="Blue" role="radio" aria-checked="false"></button>
                               <button type="button" class="accent-swatch" data-accent="265 84% 64%" style="--swatch: hsl(265 84% 64%)" aria-label="Purple" role="radio" aria-checked="false"></button>
                               <button type="button" class="accent-swatch" data-accent="330 81% 60%" style="--swatch: hsl(330 81% 60%)" aria-label="Pink" role="radio" aria-checked="false"></button>
-                              <label class="accent-swatch accent-custom-swatch" id="accent-custom-color" style="--swatch: #ef0141" aria-label="Custom color">
-                                <input type="color" id="accent-color-input" value="#ef0141" aria-label="Custom accent color" />
+                              <button
+                                type="button"
+                                class="accent-swatch accent-custom-swatch"
+                                id="accent-custom-color"
+                                style="--swatch: #ef0141; --swatch-on-color: hsl(0, 0%, 100%)"
+                                aria-label="Custom color"
+                                role="radio"
+                                aria-checked="false"
+                                aria-expanded="false"
+                                aria-controls="accent-custom-panel"
+                              >
+                                <span class="accent-custom-swatch-preview" aria-hidden="true"></span>
+                                <i class="ri-palette-line accent-custom-swatch-icon" aria-hidden="true"></i>
+                              </button>
+                            </div>
+                            <input type="color" id="accent-color-input" class="accent-color-input-native" value="#ef0141" tabindex="-1" aria-hidden="true" />
+                            <div class="accent-custom-panel pref-dropdown-list hidden" id="accent-custom-panel" hidden>
+                              <div
+                                class="accent-custom-spectrum"
+                                id="accent-custom-spectrum"
+                                role="slider"
+                                aria-label="Saturation and brightness"
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                                aria-valuenow="47"
+                                tabindex="0"
+                              >
+                                <div class="accent-custom-spectrum-cursor" id="accent-custom-spectrum-cursor"></div>
+                              </div>
+                              <label class="accent-custom-hue-label" for="accent-custom-hue">
+                                <span class="accent-custom-hue-text">Hue</span>
+                                <input type="range" class="accent-custom-hue" id="accent-custom-hue" min="0" max="360" value="344" />
                               </label>
+                              <div class="accent-custom-hex-row">
+                                <span class="accent-custom-hex-swatch" id="accent-custom-hex-swatch" aria-hidden="true"></span>
+                                <input
+                                  type="text"
+                                  class="accent-custom-hex"
+                                  id="accent-custom-hex"
+                                  value="#EF0141"
+                                  spellcheck="false"
+                                  autocapitalize="characters"
+                                  autocomplete="off"
+                                  maxlength="7"
+                                  aria-label="Hex color"
+                                />
+                              </div>
                             </div>
                             <div class="accent-picker-nav">
                               <button type="button" class="accent-picker-arrow" id="accent-prev" aria-label="Previous accent color">

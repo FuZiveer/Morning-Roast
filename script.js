@@ -539,6 +539,15 @@ const trainerConfigs = MorningRoastGames.buildTrainerConfigs();
 
 const SUPPORTED_GAMES = MorningRoastGames.SUPPORTED_GAMES;
 
+function getGameDisplayName(game) {
+  return MorningRoastGames.getGameDisplayName(game);
+}
+
+function resolveStoredGameName(stored) {
+  if (!stored) return null;
+  return MorningRoastGames.resolveGameName(stored);
+}
+
 function getGameConversionFactor(game) {
   return MorningRoastGames.getGameConversionFactor(game);
 }
@@ -560,8 +569,8 @@ function getConverterGameState(input) {
 function setConverterGameState(input, game) {
   if (!input) return;
   const resolved = game ? MorningRoastGames.resolveGameName(game) || game : "";
-  input.value = resolved;
   input.dataset.lastValid = resolved;
+  input.value = resolved ? getGameDisplayName(resolved) : "";
 }
 
 function resolveEdpiGameInput() {
@@ -1212,7 +1221,10 @@ function initTrainerTimerDropdown(savedTimer) {
 
 function renderGameOptions(list, valueAttr = "data-game") {
   if (!list) return;
-  list.innerHTML = SUPPORTED_GAMES.map((name) => `<button type="button" class="pref-dropdown-option" ${valueAttr}="${name}" role="option">${renderGameOptionIcon(name)}<span>${name}</span></button>`).join("");
+  list.innerHTML = SUPPORTED_GAMES.map(
+    (name) =>
+      `<button type="button" class="pref-dropdown-option" ${valueAttr}="${name}" role="option">${renderGameOptionIcon(name)}<span>${getGameDisplayName(name)}</span></button>`,
+  ).join("");
 }
 
 function getGameOptionLabel(opt) {
@@ -1384,6 +1396,26 @@ function hslComponentsToHex(h, s, l) {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+function hsvToHsl(h, s, v) {
+  const hue = ((h % 360) + 360) % 360;
+  const sat = s / 100;
+  const val = v / 100;
+  const l = val * (1 - sat / 2);
+  let sl = 0;
+  if (l > 0 && l < 1) sl = (val - l) / Math.min(l, 1 - l);
+  return { h: hue, s: sl * 100, l: l * 100 };
+}
+
+function hslToHsv(h, s, l) {
+  const hue = ((h % 360) + 360) % 360;
+  const sat = s / 100;
+  const lit = l / 100;
+  const v = lit + sat * Math.min(lit, 1 - lit);
+  let sv = 0;
+  if (v > 0) sv = 2 * (1 - lit / v);
+  return { h: hue, s: sv * 100, v: v * 100 };
+}
+
 function normalizeAccent(hsl) {
   if (!hsl) return DEFAULT_ACCENT;
   const trimmed = hsl.trim();
@@ -1432,10 +1464,51 @@ function hexToHslComponents(hex) {
   return `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 }
 
+function parseAccentHexInput(raw) {
+  if (!raw) return null;
+  let value = String(raw).trim().toUpperCase();
+  if (!value.startsWith("#")) value = `#${value}`;
+  if (value.length === 4) {
+    value = `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`;
+  }
+  return /^#[0-9A-F]{6}$/.test(value) ? value : null;
+}
+
 function accentColorString(hsl) {
   const normalized = normalizeAccent(hsl);
   const [h, s, l] = normalized.split(/\s+/);
   return hslComponentsToHex(parseFloat(h), parseFloat(s), parseFloat(l));
+}
+
+function accentOnColor(hex) {
+  const raw = hex.replace("#", "");
+  const full =
+    raw.length === 3
+      ? raw
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : raw;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  const toLinear = (channel) => {
+    const value = channel / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+  return luminance > 0.62 ? "hsl(0, 0%, 5%)" : "hsl(0, 0%, 100%)";
+}
+
+function syncAccentContrastColor(hex) {
+  document.documentElement.style.setProperty("--accent-on-color", accentOnColor(hex));
+}
+
+function syncAccentCustomSwatchStyle(element, color) {
+  if (!element) return;
+  const hexValue = accentColorString(color);
+  element.style.setProperty("--swatch", hexValue);
+  element.style.setProperty("--swatch-on-color", accentOnColor(hexValue));
 }
 
 const DEFAULT_ACCENT_HEX = accentColorString(DEFAULT_ACCENT);
@@ -1477,6 +1550,7 @@ function finalizeAccentTransition(targetHex) {
   const root = document.documentElement;
   clearAccentTransitionCleanup();
   root.classList.add("accent-instant");
+  syncAccentContrastColor(targetHex);
   root.style.setProperty("--accent-color", targetHex);
   requestAnimationFrame(() => root.classList.remove("accent-instant"));
 }
@@ -2001,6 +2075,7 @@ function finishAppLoadingScreen() {
 function commitAccentColor(normalized, { instant = false } = {}) {
   const root = document.documentElement;
   const targetHex = accentColorString(normalized);
+  syncAccentContrastColor(targetHex);
 
   clearAccentTransitionCleanup();
 
@@ -2026,7 +2101,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v6";
+const APP_CACHE_VERSION = "morning-roast-v7";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -2875,12 +2950,16 @@ const aimTrainer = {
   recentFlick: null,
 
   setGame(game) {
-    this.game = game;
-    const config = trainerConfigs[game] || trainerConfigs.Valorant;
+    const resolved = game ? MorningRoastGames.resolveGameName(game) || game : "";
+    this.game = resolved;
+    const config = trainerConfigs[resolved] || trainerConfigs.Valorant;
     this.fov = config.fov;
-    localStorage.setItem("aimGame", game);
+    localStorage.setItem("aimGame", resolved);
     const gameSearchInput = document.getElementById("trainer-game-search");
-    if (gameSearchInput) gameSearchInput.value = game || "";
+    if (gameSearchInput) {
+      gameSearchInput.dataset.lastValid = resolved;
+      gameSearchInput.value = resolved ? getGameDisplayName(resolved) : "";
+    }
     syncGameClearButton("trainer-game-search", "trainer-game-clear");
     this.displayResultsOnProfile();
     this.render();
@@ -3429,7 +3508,8 @@ const aimTrainer = {
 
   getTrainerMissingFields() {
     const missing = [];
-    const game = (document.getElementById("trainer-game-search")?.value?.trim() || this.game || "").trim();
+    const gameInput = document.getElementById("trainer-game-search");
+    const game = MorningRoastGames.resolveGameName(gameInput?.value?.trim()) || gameInput?.dataset.lastValid || this.game || "";
     if (!game) missing.push("game");
 
     const dpiRaw = elements["canvas-dpi"]?.value?.trim() || "";
@@ -3479,9 +3559,12 @@ const aimTrainer = {
       if (dpiInput) dpiInput.value = localStorage.getItem("aimDpi");
     }
     if (localStorage.getItem("aimGame")) {
-      const savedGame = localStorage.getItem("aimGame");
+      const savedGame = MorningRoastGames.resolveGameName(localStorage.getItem("aimGame")) || localStorage.getItem("aimGame");
       this.game = savedGame;
-      if (gameSearchInput) gameSearchInput.value = savedGame;
+      if (gameSearchInput) {
+        gameSearchInput.dataset.lastValid = savedGame;
+        gameSearchInput.value = getGameDisplayName(savedGame);
+      }
       const config = trainerConfigs[savedGame] || trainerConfigs.Valorant;
       this.fov = config.fov;
     }
@@ -6118,7 +6201,7 @@ function updateEDPI() {
     const pDot = document.getElementById("profile-edpi-status-dot");
 
     if (pEdpi) pEdpi.innerText = edpi;
-    if (pGame) pGame.innerText = gameVal;
+    if (pGame) pGame.innerText = getGameDisplayName(gameVal);
     if (pSens) pSens.innerText = sensVal;
     if (pDpi) pDpi.innerText = dpiVal;
     const cmVal = calculateCm360Value(sensNum, dpiNum, gameVal);
@@ -6469,8 +6552,8 @@ const LINEUP_GAME_STORAGE_KEY = "lineupGame";
 let activeLineupGame = null;
 const LINEUP_SIDE_STORAGE_KEY = "lineupSide";
 const LINEUP_DIFFICULTY_STORAGE_KEY = "lineupDifficulty";
-const LINEUP_MAP_STORAGE_PREFIX = "lineupMap:";
 const LINEUP_SEARCH_STORAGE_PREFIX = "lineupSearch:";
+const lineupMapFilterByGame = new Map();
 const LINEUP_GAMES = new Set(["valorant", "cs2"]);
 const LINEUP_GAME_OPTIONS = {
   valorant: {
@@ -6481,7 +6564,7 @@ const LINEUP_GAME_OPTIONS = {
     },
   },
   cs2: {
-    label: "CS2",
+    label: "Counter-Strike 2",
     gameName: "CS2",
     get iconSrc() {
       return getGameIconSrc("CS2");
@@ -6507,6 +6590,10 @@ const LINEUP_CS2_UTILITY_ICONS = {
 const LINEUP_CS2_SIDE_ICONS = {
   attacker: "assets/lineup-utilities/cs2/t.svg",
   defender: "assets/lineup-utilities/cs2/ct.svg",
+};
+const LINEUP_VALORANT_SIDE_ICONS = {
+  attacker: "assets/lineup-utilities/valorant/a.svg",
+  defender: "assets/lineup-utilities/valorant/d.svg",
 };
 const LINEUP_CS2_SIDE_LABELS = {
   attacker: "T",
@@ -7635,14 +7722,20 @@ function enhanceLineupVideoCardFoots(root = document) {
 }
 
 function syncLineupSideFilterIcons(game = getActiveLineupGame()) {
-  const showCs2 = game === "cs2";
+  const sideIcons = game === "cs2" ? LINEUP_CS2_SIDE_ICONS : game === "valorant" ? LINEUP_VALORANT_SIDE_ICONS : null;
   document.querySelectorAll(".lineup-side-icon[data-lineup-side-icon]").forEach((icon) => {
     const side = icon.dataset.lineupSideIcon;
-    const path = LINEUP_CS2_SIDE_ICONS[side];
+    const path = sideIcons?.[side];
     if (path) icon.src = resolveAppAssetUrl(path);
-    icon.hidden = !showCs2;
+    const inDuo = Boolean(icon.closest(".lineup-side-icon-duo"));
+    if (!inDuo) icon.hidden = !path;
   });
-  document.getElementById("lineup-side-selector")?.classList.toggle("lineup-side-selector--cs2", showCs2);
+  document.querySelectorAll(".lineup-side-icon-duo").forEach((duo) => {
+    duo.hidden = !sideIcons;
+  });
+  const selector = document.getElementById("lineup-side-selector");
+  selector?.classList.toggle("lineup-side-selector--cs2", game === "cs2");
+  selector?.classList.toggle("lineup-side-selector--valorant", game === "valorant");
 }
 
 function getLineupGameForCard(card) {
@@ -7729,7 +7822,7 @@ function lineupGameHasVideos(game = getActiveLineupGame()) {
 
 function resolveLineupMapFilter(game = getActiveLineupGame()) {
   if (!game) return "all";
-  const stored = localStorage.getItem(`${LINEUP_MAP_STORAGE_PREFIX}${game}`) || "all";
+  const stored = lineupMapFilterByGame.get(game) || "all";
   if (stored === "all") return "all";
   if (!lineupMapFromSlug(stored, game)) return "all";
   return stored;
@@ -7822,8 +7915,7 @@ function syncLineupMapDropdownUi(game = getActiveLineupGame()) {
     return;
   }
 
-  const map = resolveLineupMapFilter(game);
-  localStorage.setItem(`${LINEUP_MAP_STORAGE_PREFIX}${game}`, map);
+  const map = getLineupMapFilter(game);
   const label = getLineupMapDisplayLabel(map, game);
 
   renderLineupMapTriggerIcon(game, map);
@@ -7866,19 +7958,21 @@ function restoreGameSearchDropdown(idPrefix) {
   }
 
   if (idPrefix === "trainer-game") {
-    const game = aimTrainer.game || localStorage.getItem("aimGame") || "";
-    input.value = game;
+    const game = MorningRoastGames.resolveGameName(aimTrainer.game || localStorage.getItem("aimGame") || "") || "";
+    input.dataset.lastValid = game;
+    input.value = game ? getGameDisplayName(game) : "";
     syncGameClearButton(`${idPrefix}-search`, `${idPrefix}-clear`);
     syncGameTriggerIcon(idPrefix);
     return;
   }
 
-  const resolved = getCommittedGameFromInput(input);
+  const resolved = getCommittedGameFromInput(input) || resolveStoredGameName(input.dataset.lastValid);
   if (resolved) {
-    input.value = resolved;
     input.dataset.lastValid = resolved;
+    input.value = getGameDisplayName(resolved);
   } else {
-    input.value = input.dataset.lastValid || "";
+    const fallback = input.dataset.lastValid ? getGameDisplayName(input.dataset.lastValid) : "";
+    input.value = fallback;
   }
   syncGameClearButton(`${idPrefix}-search`, `${idPrefix}-clear`);
 
@@ -8708,7 +8802,7 @@ function setLineupMap(map) {
   const game = getActiveLineupGame();
   if (!game) return;
   const nextMap = map === "all" || lineupMapFromSlug(map, game) ? map : "all";
-  localStorage.setItem(`${LINEUP_MAP_STORAGE_PREFIX}${game}`, nextMap);
+  lineupMapFilterByGame.set(game, nextMap);
   syncLineupFiltersUI();
 }
 
@@ -10018,7 +10112,7 @@ function updateConversion() {
   if (fromGame) {
     localStorage.setItem("fromGame", fromGame);
     const pFrom = document.getElementById("profile-from-game");
-    if (pFrom) pFrom.innerText = fromGame;
+    if (pFrom) pFrom.innerText = getGameDisplayName(fromGame);
   } else {
     localStorage.removeItem("fromGame");
     const pFrom = document.getElementById("profile-from-game");
@@ -10027,7 +10121,7 @@ function updateConversion() {
   if (toGame) {
     localStorage.setItem("toGame", toGame);
     const pTo = document.getElementById("profile-to-game");
-    if (pTo) pTo.innerText = toGame;
+    if (pTo) pTo.innerText = getGameDisplayName(toGame);
   } else {
     localStorage.removeItem("toGame");
     const pTo = document.getElementById("profile-to-game");
@@ -10354,7 +10448,12 @@ const DEFAULT_PROFILE_FILTER_GAME = "Aimlabs";
 function getProfileGameFilter() {
   const input = document.getElementById("profile-game-search");
   if (!input) return DEFAULT_PROFILE_FILTER_GAME;
-  return resolveGameFromInput(input) || input.dataset.lastValid || localStorage.getItem(PROFILE_FILTER_GAME_KEY) || DEFAULT_PROFILE_FILTER_GAME;
+  return (
+    getCommittedGameFromInput(input) ||
+    resolveStoredGameName(input.dataset.lastValid) ||
+    resolveStoredGameName(localStorage.getItem(PROFILE_FILTER_GAME_KEY)) ||
+    DEFAULT_PROFILE_FILTER_GAME
+  );
 }
 
 function initProfileGameFilter() {
@@ -10362,9 +10461,9 @@ function initProfileGameFilter() {
   if (!input) return;
 
   const saved = localStorage.getItem(PROFILE_FILTER_GAME_KEY);
-  const valid = (saved && SUPPORTED_GAMES.find((g) => g.toLowerCase() === saved.toLowerCase())) || DEFAULT_PROFILE_FILTER_GAME;
+  const valid = resolveStoredGameName(saved) || DEFAULT_PROFILE_FILTER_GAME;
 
-  input.value = valid;
+  input.value = getGameDisplayName(valid);
   input.dataset.lastValid = valid;
   localStorage.setItem(PROFILE_FILTER_GAME_KEY, valid);
   syncProfileGameDropdownUi(valid);
@@ -10376,7 +10475,7 @@ function ensureProfileGameValue() {
 
   const resolved = getCommittedGameFromInput(input);
   if (resolved) {
-    input.value = resolved;
+    input.value = getGameDisplayName(resolved);
     input.dataset.lastValid = resolved;
     localStorage.setItem(PROFILE_FILTER_GAME_KEY, resolved);
     syncProfileGameDropdownUi(resolved);
@@ -10384,9 +10483,9 @@ function ensureProfileGameValue() {
   }
 
   const restored = input.dataset.lastValid || localStorage.getItem(PROFILE_FILTER_GAME_KEY) || DEFAULT_PROFILE_FILTER_GAME;
-  const validRestore = SUPPORTED_GAMES.find((g) => g.toLowerCase() === restored.toLowerCase()) || DEFAULT_PROFILE_FILTER_GAME;
+  const validRestore = resolveStoredGameName(restored) || DEFAULT_PROFILE_FILTER_GAME;
 
-  input.value = validRestore;
+  input.value = getGameDisplayName(validRestore);
   input.dataset.lastValid = validRestore;
   localStorage.setItem(PROFILE_FILTER_GAME_KEY, validRestore);
   syncProfileGameDropdownUi(validRestore);
@@ -10395,33 +10494,48 @@ function ensureProfileGameValue() {
 
 function getCommittedGameFromInput(input) {
   if (!input) return null;
-  const fromRegistry = MorningRoastGames.resolveGameName(input.value);
-  if (fromRegistry) return fromRegistry;
-
   const val = input.value.trim();
-  if (!val) return null;
+  if (val) {
+    const fromRegistry = MorningRoastGames.resolveGameName(val);
+    if (fromRegistry) return fromRegistry;
 
-  const list = document.getElementById(input.id.replace("-search", "-list"));
-  if (!list) return null;
+    const list = document.getElementById(input.id.replace("-search", "-list"));
+    if (list) {
+      const options = Array.from(list.querySelectorAll(".pref-dropdown-option"));
+      const exact = options.find((opt) => {
+        const key = getGameOptionLabel(opt);
+        return key.toLowerCase() === val.toLowerCase() || getGameDisplayName(key).toLowerCase() === val.toLowerCase();
+      });
+      if (exact) return getGameOptionLabel(exact);
+    }
+  }
 
-  const options = Array.from(list.querySelectorAll(".pref-dropdown-option"));
-  const exact = options.find((opt) => getGameOptionLabel(opt).toLowerCase() === val.toLowerCase());
-  return exact ? getGameOptionLabel(exact) : null;
+  return resolveStoredGameName(input.dataset.lastValid || "");
 }
 
 function resolveGameFromInput(input, listId) {
   if (!input) return null;
   const val = input.value.trim();
   if (!val) return null;
+  const fromRegistry = MorningRoastGames.resolveGameName(val);
+  if (fromRegistry) return fromRegistry;
   const list = document.getElementById(listId || input.id.replace("-search", "-list"));
   if (!list) return null;
 
   const options = Array.from(list.querySelectorAll(".pref-dropdown-option"));
   const getOptionName = (opt) => getGameOptionLabel(opt);
-  const exact = options.find((opt) => getOptionName(opt).toLowerCase() === val.toLowerCase());
+  const exact = options.find((opt) => {
+    const key = getOptionName(opt);
+    return key.toLowerCase() === val.toLowerCase() || getGameDisplayName(key).toLowerCase() === val.toLowerCase();
+  });
   if (exact) return getOptionName(exact);
 
-  const partial = options.find((opt) => getOptionName(opt).toLowerCase().startsWith(val.toLowerCase()));
+  const partial = options.find((opt) => {
+    const key = getOptionName(opt);
+    const display = getGameDisplayName(key).toLowerCase();
+    const lower = val.toLowerCase();
+    return key.toLowerCase().startsWith(lower) || display.startsWith(lower);
+  });
   return partial ? getOptionName(partial) : null;
 }
 
@@ -11007,7 +11121,7 @@ function renderProgressChart(game, mode, timer) {
   syncProfileAimResetVisibility(hist, selectedDay);
 
   if (label) {
-    label.textContent = `${game} · ${modeLabel} · ${timer}s · ${formatProgressDayLabel(selectedDay)}`;
+    label.textContent = `${getGameDisplayName(game)} · ${modeLabel} · ${timer}s · ${formatProgressDayLabel(selectedDay)}`;
   }
 
   ctx.imageSmoothingEnabled = true;
@@ -11610,6 +11724,7 @@ const bgParticles = {
   draw(dt) {
     const { ctx, width, height, particles } = this;
     ctx.clearRect(0, 0, width, height);
+
     for (const p of particles) {
       p.x += p.vx * dt;
       p.y += p.vy * dt;
@@ -11617,6 +11732,32 @@ const bgParticles = {
       if (p.x > width + 5) p.x = -5;
       if (p.y < -5) p.y = height + 5;
       if (p.y > height + 5) p.y = -5;
+    }
+
+    const linkDistance = Math.min(150, Math.max(95, Math.min(width, height) * 0.14));
+    const linkDistanceSq = linkDistance * linkDistance;
+
+    for (let i = 0; i < particles.length; i++) {
+      const a = particles[i];
+      for (let j = i + 1; j < particles.length; j++) {
+        const b = particles[j];
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq > linkDistanceSq) continue;
+
+        const dist = Math.sqrt(distSq);
+        const lineAlpha = (1 - dist / linkDistance) * 0.14;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = `hsla(0, 0%, 100%, ${lineAlpha})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    for (const p of particles) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fillStyle = `hsla(0, 0%, 100%, ${p.a})`;
@@ -11652,8 +11793,47 @@ function positionPrefDropdownPortal(list, trigger) {
   list.style.width = `${Math.max(rect.width, 0)}px`;
 }
 
+function positionAccentCustomPanelPortal(panel, trigger) {
+  if (!panel || !trigger || !trigger.isConnected) return;
+
+  const rect = trigger.getBoundingClientRect();
+  const gap = 6;
+  const viewportPadding = 8;
+  const panelWidth = 232;
+  const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+  const viewportOffsetTop = window.visualViewport?.offsetTop ?? 0;
+  const viewportOffsetLeft = window.visualViewport?.offsetLeft ?? 0;
+
+  panel.style.width = `${panelWidth}px`;
+
+  let left = rect.left;
+  if (left + panelWidth > viewportOffsetLeft + viewportWidth - viewportPadding) {
+    left = viewportOffsetLeft + viewportWidth - panelWidth - viewportPadding;
+  }
+  left = Math.max(viewportOffsetLeft + viewportPadding, left);
+
+  const panelHeight = panel.offsetHeight || panel.getBoundingClientRect().height || 280;
+  const spaceBelow = viewportOffsetTop + viewportHeight - rect.bottom - gap;
+  const spaceAbove = rect.top - viewportOffsetTop - gap;
+  let top = rect.bottom + gap;
+
+  if (panelHeight > spaceBelow && spaceAbove > spaceBelow) {
+    top = rect.top - panelHeight - gap;
+  }
+
+  top = Math.max(viewportOffsetTop + viewportPadding, top);
+
+  panel.style.top = `${top}px`;
+  panel.style.left = `${left}px`;
+}
+
 function syncPrefDropdownPortalPosition(list, trigger) {
   if (!list?.classList.contains("pref-dropdown-list-portal") || list.classList.contains("hidden")) return;
+  if (typeof list._portalPositionFn === "function") {
+    list._portalPositionFn(list, trigger);
+    return;
+  }
   positionPrefDropdownPortal(list, trigger);
 }
 
@@ -12257,12 +12437,220 @@ function initPreferences() {
   const accentLabel = document.getElementById("accent-picker-label");
   const accentColorInput = document.getElementById("accent-color-input");
   const accentCustomSwatch = document.getElementById("accent-custom-color");
+  const accentCustomPanel = document.getElementById("accent-custom-panel");
+  const accentCustomSpectrum = document.getElementById("accent-custom-spectrum");
+  const accentCustomSpectrumCursor = document.getElementById("accent-custom-spectrum-cursor");
+  const accentCustomHue = document.getElementById("accent-custom-hue");
+  const accentCustomHex = document.getElementById("accent-custom-hex");
+  const accentCustomHexSwatch = document.getElementById("accent-custom-hex-swatch");
 
   const getAccentSwatches = () => (accentGrid ? [...accentGrid.querySelectorAll(".accent-swatch[data-accent]")] : []);
+
+  const parseAccentHsl = (accent) => {
+    const normalized = normalizeAccent(accent);
+    const [h, s, l] = normalized.split(/\s+/);
+    return {
+      h: parseFloat(h) || 0,
+      s: parseFloat(s) || 0,
+      l: parseFloat(l) || 0,
+    };
+  };
+
+  const clampAccentChannel = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  const customAccentState = { h: 344, s: 99, l: 47, open: false };
+
+  const setAccentCustomPanelOpen = (open) => {
+    customAccentState.open = open;
+    if (!accentCustomPanel) {
+      accentCustomSwatch?.setAttribute("aria-expanded", "false");
+      return;
+    }
+
+    if (open) {
+      initBgPatternDropdown.close?.();
+      initFontFamilyDropdown.close?.();
+      initTrainerModeDropdown.close?.();
+      accentCustomPanel.classList.remove("hidden");
+      accentCustomPanel.hidden = false;
+      accentCustomPanel._portalPositionFn = positionAccentCustomPanelPortal;
+      mountPrefDropdownPortal(accentCustomPanel, accentCustomSwatch);
+    } else {
+      accentCustomPanel.classList.add("hidden");
+      accentCustomPanel.hidden = true;
+      unmountPrefDropdownPortal(accentCustomPanel);
+      delete accentCustomPanel._portalPositionFn;
+    }
+
+    accentCustomSwatch?.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+
+  const selectCustomAccent = (hex) => {
+    syncAccentSwatchState(null, { custom: true });
+    if (accentColorInput) accentColorInput.value = hex;
+    if (accentCustomSwatch) syncAccentCustomSwatchStyle(accentCustomSwatch, hex);
+    applyAccent(hex);
+    localStorage.setItem("prefAccent", normalizeAccent(hex));
+  };
+
+  const renderAccentCustomPicker = ({ apply = false } = {}) => {
+    const { h, s, l } = customAccentState;
+    const hex = hslComponentsToHex(h, s, l);
+    const pure = `hsl(${h} 100% 50%)`;
+
+    accentCustomSpectrum?.style.setProperty("--accent-custom-pure", pure);
+    if (accentCustomHue) accentCustomHue.value = String(Math.round(h));
+    if (accentCustomSpectrumCursor) {
+      const hsv = hslToHsv(h, s, l);
+      accentCustomSpectrumCursor.style.left = `${hsv.s}%`;
+      accentCustomSpectrumCursor.style.top = `${100 - hsv.v}%`;
+    }
+    if (accentCustomHex && document.activeElement !== accentCustomHex) {
+      accentCustomHex.value = hex.toUpperCase();
+      accentCustomHex.classList.remove("invalid");
+    }
+    if (accentCustomHexSwatch) accentCustomHexSwatch.style.backgroundColor = hex;
+    accentCustomSpectrum?.setAttribute("aria-valuenow", String(Math.round(hslToHsv(h, s, l).s)));
+    if (accentColorInput) accentColorInput.value = hex;
+    if (accentCustomSwatch) syncAccentCustomSwatchStyle(accentCustomSwatch, hex);
+    if (apply) selectCustomAccent(hex);
+  };
+
+  const loadAccentCustomPickerFromAccent = (accent) => {
+    Object.assign(customAccentState, parseAccentHsl(accent));
+    renderAccentCustomPicker();
+  };
+
+  const setAccentCustomFromSpectrumPoint = (clientX, clientY, { apply = true } = {}) => {
+    if (!accentCustomSpectrum) return;
+    const rect = accentCustomSpectrum.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const sat = clampAccentChannel(((clientX - rect.left) / rect.width) * 100, 0, 100);
+    const val = clampAccentChannel((1 - (clientY - rect.top) / rect.height) * 100, 0, 100);
+    Object.assign(customAccentState, hsvToHsl(customAccentState.h, sat, val));
+    renderAccentCustomPicker({ apply });
+  };
+
+  const initAccentCustomPicker = () => {
+    if (!accentCustomSpectrum || initAccentCustomPicker._init) return;
+    initAccentCustomPicker._init = true;
+
+    let draggingSpectrum = false;
+
+    const stopSpectrumDrag = () => {
+      draggingSpectrum = false;
+    };
+
+    accentCustomSpectrum.addEventListener("pointerdown", (e) => {
+      draggingSpectrum = true;
+      accentCustomSpectrum.setPointerCapture?.(e.pointerId);
+      setAccentCustomFromSpectrumPoint(e.clientX, e.clientY);
+    });
+    accentCustomSpectrum.addEventListener("pointermove", (e) => {
+      if (!draggingSpectrum) return;
+      setAccentCustomFromSpectrumPoint(e.clientX, e.clientY);
+    });
+    accentCustomSpectrum.addEventListener("pointerup", stopSpectrumDrag);
+    accentCustomSpectrum.addEventListener("pointercancel", stopSpectrumDrag);
+    accentCustomSpectrum.addEventListener("lostpointercapture", stopSpectrumDrag);
+
+    accentCustomSpectrum.addEventListener("keydown", (e) => {
+      const step = e.shiftKey ? 5 : 1;
+      const hsv = hslToHsv(customAccentState.h, customAccentState.s, customAccentState.l);
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        hsv.s = clampAccentChannel(hsv.s - step, 0, 100);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        hsv.s = clampAccentChannel(hsv.s + step, 0, 100);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        hsv.v = clampAccentChannel(hsv.v + step, 0, 100);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        hsv.v = clampAccentChannel(hsv.v - step, 0, 100);
+      } else {
+        return;
+      }
+      Object.assign(customAccentState, hsvToHsl(customAccentState.h, hsv.s, hsv.v));
+      renderAccentCustomPicker({ apply: true });
+    });
+
+    accentCustomHue?.addEventListener("input", () => {
+      customAccentState.h = clampAccentChannel(Number(accentCustomHue.value) || 0, 0, 360);
+      renderAccentCustomPicker({ apply: true });
+    });
+
+    const syncAccentCustomHexValidity = () => {
+      if (!accentCustomHex) return;
+      const trimmed = accentCustomHex.value.trim();
+      accentCustomHex.classList.toggle("invalid", trimmed !== "" && !parseAccentHexInput(trimmed));
+    };
+
+    const commitAccentCustomHexInput = () => {
+      if (!accentCustomHex) return;
+      const parsed = parseAccentHexInput(accentCustomHex.value);
+      if (!parsed) {
+        accentCustomHex.value = hslComponentsToHex(customAccentState.h, customAccentState.s, customAccentState.l).toUpperCase();
+        accentCustomHex.classList.remove("invalid");
+        return;
+      }
+      accentCustomHex.value = parsed;
+      accentCustomHex.classList.remove("invalid");
+      Object.assign(customAccentState, parseAccentHsl(parsed));
+      renderAccentCustomPicker({ apply: true });
+    };
+
+    accentCustomHex?.addEventListener("input", () => {
+      syncAccentCustomHexValidity();
+      const parsed = parseAccentHexInput(accentCustomHex.value);
+      if (!parsed) return;
+      Object.assign(customAccentState, parseAccentHsl(parsed));
+      renderAccentCustomPicker({ apply: true });
+    });
+
+    accentCustomHex?.addEventListener("blur", commitAccentCustomHexInput);
+    accentCustomHex?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        accentCustomHex.blur();
+      }
+    });
+
+    accentCustomSwatch?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const nextOpen = !customAccentState.open;
+      if (nextOpen) {
+        loadAccentCustomPickerFromAccent(accentColorInput?.value || readAccentColor());
+        syncAccentSwatchState(null, { custom: true });
+        selectCustomAccent(hslComponentsToHex(customAccentState.h, customAccentState.s, customAccentState.l));
+      }
+      setAccentCustomPanelOpen(nextOpen);
+    });
+
+    document.addEventListener("pointerdown", (e) => {
+      if (!customAccentState.open) return;
+      const target = e.target;
+      if (target instanceof Node && accentCustomSwatch?.contains(target)) return;
+      if (target instanceof Node && accentCustomPanel?.contains(target)) return;
+      setAccentCustomPanelOpen(false);
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && customAccentState.open) setAccentCustomPanelOpen(false);
+    });
+  };
 
   const findMatchingAccentSwatch = (accent) => {
     const normalized = normalizeAccent(accent);
     return getAccentSwatches().find((btn) => normalizeAccent(btn.getAttribute("data-accent")) === normalized) || null;
+  };
+
+  const setCustomAccentLabel = (color) => {
+    const hex = String(color || "").trim().startsWith("#") ? color : accentColorString(color);
+    const name = typeof getAccentColorName === "function" ? getAccentColorName(hex) : "Custom";
+    if (accentLabel) accentLabel.textContent = name;
+    accentCustomSwatch?.setAttribute("aria-label", name);
   };
 
   const syncAccentSwatchState = (activeBtn, { custom = false } = {}) => {
@@ -12273,8 +12661,10 @@ function initPreferences() {
       btn.tabIndex = isActive ? 0 : -1;
     });
     accentCustomSwatch?.classList.toggle("active", custom);
+    accentCustomSwatch?.setAttribute("aria-checked", custom ? "true" : "false");
+    if (!custom) setAccentCustomPanelOpen(false);
     if (accentLabel) {
-      if (custom) accentLabel.textContent = "Custom";
+      if (custom) setCustomAccentLabel(accentColorInput?.value || readAccentColor());
       else if (activeBtn) accentLabel.textContent = activeBtn.getAttribute("aria-label") || "";
     }
   };
@@ -12284,7 +12674,8 @@ function initPreferences() {
     const hex = accentColorString(normalized);
     const matching = findMatchingAccentSwatch(normalized);
     if (accentColorInput) accentColorInput.value = hex;
-    if (accentCustomSwatch) accentCustomSwatch.style.setProperty("--swatch", hex);
+    if (accentCustomSwatch) syncAccentCustomSwatchStyle(accentCustomSwatch, hex);
+    loadAccentCustomPickerFromAccent(normalized);
     if (matching) syncAccentSwatchState(matching);
     else syncAccentSwatchState(null, { custom: true });
   };
@@ -12294,16 +12685,9 @@ function initPreferences() {
     const val = btn.getAttribute("data-accent");
     syncAccentSwatchState(btn);
     if (accentColorInput) accentColorInput.value = accentColorString(val);
-    if (accentCustomSwatch) accentCustomSwatch.style.setProperty("--swatch", accentColorInput.value);
+    if (accentCustomSwatch) syncAccentCustomSwatchStyle(accentCustomSwatch, accentColorInput.value);
     applyAccent(val);
     localStorage.setItem("prefAccent", normalizeAccent(val));
-  };
-
-  const selectCustomAccent = (hex) => {
-    syncAccentSwatchState(null, { custom: true });
-    if (accentCustomSwatch) accentCustomSwatch.style.setProperty("--swatch", hex);
-    applyAccent(hex);
-    localStorage.setItem("prefAccent", normalizeAccent(hex));
   };
 
   const activeAccentIndex = () => {
@@ -12323,11 +12707,14 @@ function initPreferences() {
     getAccentSwatches().forEach((btn) => {
       btn.addEventListener("click", () => selectAccentSwatch(btn));
     });
+    initAccentCustomPicker();
     syncAccentUI(savedAccent || DEFAULT_ACCENT);
   }
 
   accentColorInput?.addEventListener("input", () => {
+    loadAccentCustomPickerFromAccent(accentColorInput.value);
     selectCustomAccent(accentColorInput.value);
+    setAccentCustomPanelOpen(true);
   });
 
   accentPrev?.addEventListener("click", () => selectAccentAt(activeAccentIndex() - 1));
@@ -12817,7 +13204,9 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("input", () => {
       const filter = input.value.toLowerCase();
       list.querySelectorAll(optionSelector).forEach((o) => {
-        o.style.display = getOptionLabel(o).toLowerCase().includes(filter) ? "" : "none";
+        const key = getOptionLabel(o).toLowerCase();
+        const display = getGameDisplayName(getOptionLabel(o)).toLowerCase();
+        o.style.display = key.includes(filter) || display.includes(filter) ? "" : "none";
       });
       showGameDropdownList(idPrefix);
       syncClear();
@@ -12835,17 +13224,16 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       opt.addEventListener("mousedown", (e) => {
         e.preventDefault();
-        const modeVal = opt.getAttribute(valueAttr) || getOptionLabel(opt);
-        input.value = getOptionLabel(opt);
-        input.dataset.lastValid = input.value;
+        const modeVal = MorningRoastGames.resolveGameName(opt.getAttribute(valueAttr) || getOptionLabel(opt)) || getOptionLabel(opt);
+        input.value = getGameDisplayName(modeVal);
+        input.dataset.lastValid = modeVal;
         hideGameDropdownList(idPrefix);
         if (isProfileGame) syncProfileGameDropdownUi(modeVal);
         syncClear();
         if (idPrefix === "trainer-game" && modeVal) {
           aimTrainer.setGame(modeVal);
         } else if (isProfileGame && modeVal) {
-          input.dataset.lastValid = input.value;
-          localStorage.setItem(PROFILE_FILTER_GAME_KEY, input.value);
+          localStorage.setItem(PROFILE_FILTER_GAME_KEY, modeVal);
           aimTrainer.displayResultsOnProfile();
         } else if (idPrefix === "edpi-game") {
           updateEDPI();
@@ -13096,8 +13484,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const pEdpiCm = document.getElementById("profile-edpi-cm");
   const pEdpiDot = document.getElementById("profile-edpi-status-dot");
 
-  if (savedFromGame && pFrom) pFrom.innerText = savedFromGame;
-  if (savedToGame && pTo) pTo.innerText = savedToGame;
+  if (savedFromGame && pFrom) pFrom.innerText = getGameDisplayName(savedFromGame);
+  if (savedToGame && pTo) pTo.innerText = getGameDisplayName(savedToGame);
   if (savedSens && profileDisplay) profileDisplay.innerText = savedSens;
   if (savedBaseSens && pBaseSens) pBaseSens.innerText = savedBaseSens;
   if (savedFromDpi && pFromDpi) pFromDpi.innerText = savedFromDpi;
