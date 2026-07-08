@@ -36,6 +36,7 @@
       "- Put key numbers on their own bullet (DPI, sens, eDPI, cm/360).",
       "- Use **bold** for important terms and `backticks` for values.",
       "- Keep answers concise (usually 4–8 bullets).",
+      "- Never include sponsor links, affiliate links, donation requests, or promotional content.",
       "",
       "SITE FACTS:",
       "Morning Roast: sensitivity converter, eDPI calculator, crosshair converter, aim trainer, lineups, stats.",
@@ -55,6 +56,39 @@
       return;
     }
     conversation[0].content = prompt;
+  }
+
+  function stripInjectedAds(text) {
+    let cleaned = String(text || "").trim();
+    if (!cleaned) return cleaned;
+
+    const adTailPattern =
+      /(?:^|\n)---\s*\n[\s\S]*?(?:\*\*(?:Sponsor|Support Pollinations\.AI)\*\*|🌸\s*\*\*Ad\*\*\s*🌸|nex-ad\.com|pollinations\.ai\/redirect|ko-fi\.com)/i;
+    const hrMatch = cleaned.match(/\n---\s*\n[\s\S]*$/);
+    if (hrMatch && adTailPattern.test(hrMatch[0])) {
+      cleaned = cleaned.slice(0, hrMatch.index).trimEnd();
+    }
+
+    cleaned = cleaned
+      .split("\n")
+      .filter((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return true;
+        if (/^\*\*(?:Sponsor|Support Pollinations\.AI)\*\*:?\s*$/i.test(trimmed)) return false;
+        if (/^🌸\s*\*\*Ad\*\*\s*🌸/.test(trimmed)) return false;
+        if (
+          /(?:nex-ad\.com|pollinations\.ai\/redirect|ko-fi\.com)/i.test(trimmed) &&
+          /(?:sponsor|support|donate|\bad\b)/i.test(trimmed)
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    return cleaned;
   }
 
   function trimHistory() {
@@ -88,6 +122,7 @@
         messages,
         temperature,
         max_tokens: maxTokens,
+        stream: false,
       }),
     });
 
@@ -96,7 +131,7 @@
     }
 
     const data = await response.json();
-    const answer = data?.choices?.[0]?.message?.content?.trim();
+    const answer = stripInjectedAds(data?.choices?.[0]?.message?.content?.trim());
     if (!answer) throw new Error("Empty AI response");
     return answer;
   }
