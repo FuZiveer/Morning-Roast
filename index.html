@@ -94,6 +94,7 @@
 
     <script defer src="games.js"></script>
     <script defer src="color-names.js"></script>
+    <script defer src="site-assistant.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
@@ -198,7 +199,7 @@
             "
           >
             <i class="ri-history-line" aria-hidden="true"></i>
-            <span>Updates</span>
+            <span>Changelog</span>
           </button>
           <button
             type="button"
@@ -371,7 +372,7 @@
                   <div class="icon-container">
                     <i class="ri-history-line" aria-hidden="true"></i>
                   </div>
-                  <span>Updates</span>
+                  <span>Changelog</span>
                 </button>
 
                 <button
@@ -585,7 +586,7 @@
                     <span>SHARE</span>
                   </button>
 
-                  <button id="copy-btn" class="copy-button fade-element visible-fade">
+                  <button type="button" id="copy-btn" class="copy-button fade-element visible-fade">
                     <i class="ri-file-copy-line" aria-hidden="true"></i>
                     <span>COPY</span>
                   </button>
@@ -660,7 +661,7 @@
                   <path d="M15 8L19 12L15 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   <circle cx="19" cy="12" r="1.5" fill="currentColor" />
                 </svg>
-                <input type="text" id="edpi-dpi" class="bottom-input" placeholder="DPI" autocomplete="off" />
+                <input type="text" id="edpi-dpi" class="bottom-input" placeholder="DPI" value="800" autocomplete="off" />
                 <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12 2V0" />
                   <rect x="5" y="4" width="14" height="18" rx="7" />
@@ -675,17 +676,30 @@
               <div class="edpi-info-row">
                 <span id="edpi-rank"></span>
                 <div class="result-label">Total EDPI</div>
-                <div id="pro-comparison">Similar To: <span id="pro-name"></span></div>
               </div>
               <div class="result-display">
                 <span id="edpi-value" class="value">0</span>
-                <span id="edpi-cm360" class="edpi-cm360">cm/360</span>
+                <span id="edpi-cm360" class="edpi-cm360 fade-element hidden-fade" hidden></span>
               </div>
 
-              <div class="spectrum-container">
-                <div class="spectrum-bar"></div>
-                <div id="spectrum-pointer"></div>
+              <div class="spectrum-container" id="edpi-spectrum">
+                <div class="spectrum-bar" aria-hidden="true"></div>
+                <div class="spectrum-recommended" id="edpi-spectrum-recommended" hidden aria-hidden="true">
+                  <span class="spectrum-recommended-mark" data-mark="max" title="Recommended max cm/360"></span>
+                  <span class="spectrum-recommended-mark" data-mark="min" title="Recommended min cm/360"></span>
+                  <div class="spectrum-recommended-bracket" aria-hidden="true">
+                    <span class="spectrum-recommended-label">recommended</span>
+                  </div>
+                </div>
+                <div id="spectrum-pointer" role="slider" aria-label="eDPI spectrum" aria-valuemin="0" aria-valuenow="0" tabindex="0"></div>
               </div>
+              <p class="spectrum-hint">
+                <span>Use</span>
+                <i class="ri-mouse-line" aria-hidden="true"></i>
+                <span>mouse and</span>
+                <i class="ri-keyboard-box-line" aria-hidden="true"></i>
+                <span>arrow keys</span>
+              </p>
 
               <div class="tab-action-bar">
                 <button id="edpi-reset" class="reset-button fade-element visible-fade">
@@ -704,7 +718,7 @@
                     <span>SHARE</span>
                   </button>
 
-                  <button id="edpi-copy" class="copy-button fade-element visible-fade">
+                  <button type="button" id="edpi-copy" class="copy-button fade-element visible-fade">
                     <i class="ri-file-copy-line" aria-hidden="true"></i>
                     <span>COPY</span>
                   </button>
@@ -1004,7 +1018,7 @@
                 </button>
 
                 <div class="tab-action-bar-end">
-                  <button id="profile-sens-conv-copy" class="copy-button fade-element visible-fade">
+                  <button type="button" id="profile-sens-conv-copy" class="copy-button fade-element visible-fade">
                     <i class="ri-file-copy-line" aria-hidden="true"></i>
                     <span>COPY</span>
                   </button>
@@ -1054,7 +1068,7 @@
                 </button>
 
                 <div class="tab-action-bar-end">
-                  <button id="profile-edpi-calc-copy" class="copy-button fade-element visible-fade">
+                  <button type="button" id="profile-edpi-calc-copy" class="copy-button fade-element visible-fade">
                     <i class="ri-file-copy-line" aria-hidden="true"></i>
                     <span>COPY</span>
                   </button>
@@ -1743,7 +1757,7 @@
                 <div class="keybind-row"><kbd>4</kbd><span>Open Settings</span></div>
                 <div class="keybind-row"><kbd>5</kbd><span>Open Stats</span></div>
                 <div class="keybind-row"><kbd>6</kbd><span>Open Aim Trainer</span></div>
-                <div class="keybind-row"><kbd>7</kbd><span id="keybind-7-label">Cycle More pages (Keybinds / Updates / Privacy / Terms / Credit)</span></div>
+                <div class="keybind-row"><kbd>7</kbd><span id="keybind-7-label">Cycle More pages (Keybinds / Changelog / Privacy / Terms / Credit)</span></div>
               </div>
 
               <h4 class="settings-section-title keybinds-section-title"><i class="ri-flashlight-line" aria-hidden="true"></i> Actions</h4>
@@ -1763,7 +1777,7 @@
             <div class="icon-container">
               <i class="ri-history-line"></i>
             </div>
-            <span>Updates</span>
+            <span>Changelog</span>
           </div>
           <div class="description">See what's new. Track what changed. Stay current.</div>
         </div>
@@ -1797,10 +1811,46 @@
                 </div>
               </div>
 
-              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-07">
+              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-08">
+                <header class="changelog-header">
+                  <time class="changelog-date" datetime="2026-07-08">July 8, 2026</time>
+                  <span class="changelog-badge">Latest</span>
+                </header>
+                <div class="changelog-versions">
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.5</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Morning Roast AI site assistant: bottom-right chat with typewriter replies and tab shortcuts when your question matches</li>
+                          <li>eDPI spectrum pointer: drag in ±1 eDPI steps with genre-based tier bounds and recommended cm/360 range markers</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>More and Misc flyout menus use clip-path reveal so labels stay stable during open and close</li>
+                          <li>Updates tab renamed to Changelog</li>
+                          <li>Service worker cache bumped to morning-roast-v30</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>eDPI cm/360 readout hidden until DPI, sensitivity, and game produce a valid value</li>
+                          <li>Stats and calculator reset clears live eDPI fields and stored calculator state</li>
+                          <li>More menu hover no longer shifts label text via font-weight changes</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
+                </div>
+              </article>
+
+              <article class="changelog-date-group" data-changelog-date="2026-07-07">
                 <header class="changelog-header">
                   <time class="changelog-date" datetime="2026-07-07">July 7, 2026</time>
-                  <span class="changelog-badge">Latest</span>
                 </header>
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
@@ -2985,5 +3035,59 @@
         <i class="ri-arrow-up-s-line"></i>
       </span>
     </button>
+
+    <div id="site-assistant" class="site-assistant">
+      <div
+        id="site-assistant-panel"
+        class="site-assistant-panel"
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="site-assistant-title"
+        aria-hidden="true"
+      >
+        <div class="site-assistant-header">
+          <div class="site-assistant-header-copy">
+            <span class="site-assistant-status" aria-hidden="true"></span>
+            <div>
+              <h3 id="site-assistant-title">Morning Roast AI</h3>
+              <p class="site-assistant-subtitle">Ask a question</p>
+            </div>
+          </div>
+          <div class="site-assistant-header-actions">
+            <button type="button" id="site-assistant-clear" class="site-assistant-clear" aria-label="Clear chat">
+              <i class="ri-delete-bin-line" aria-hidden="true"></i>
+            </button>
+            <button type="button" id="site-assistant-close" class="site-assistant-close" aria-label="Close helper">
+              <i class="ri-close-line" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div id="site-assistant-messages" class="site-assistant-messages" aria-live="polite"></div>
+        <form id="site-assistant-form" class="site-assistant-form" autocomplete="off">
+          <label class="visually-hidden" for="site-assistant-input">Ask a question</label>
+          <input
+            id="site-assistant-input"
+            class="site-assistant-input"
+            type="text"
+            maxlength="280"
+            placeholder="Ask anything"
+          />
+          <button type="submit" class="site-assistant-send" aria-label="Send question">
+            <i class="ri-send-plane-2-line" aria-hidden="true"></i>
+          </button>
+        </form>
+      </div>
+      <button
+        type="button"
+        id="site-assistant-toggle"
+        class="site-assistant-toggle"
+        aria-controls="site-assistant-panel"
+        aria-expanded="false"
+        aria-label="Open site helper"
+      >
+        <i class="ri-chat-3-line site-assistant-toggle-open" aria-hidden="true"></i>
+        <i class="ri-close-line site-assistant-toggle-close" aria-hidden="true"></i>
+      </button>
+    </div>
   </body>
 </html>

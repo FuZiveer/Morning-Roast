@@ -2,23 +2,51 @@
 (function (global) {
   const DEFAULT_FOV = 90;
 
-  /** @type {Record<string, { yaw: number, fov?: number, multiplier: number }>} */
+  /** cm/360 tier bands + recommended ranges by genre. */
+  const SENS_PROFILES = Object.freeze({
+    tactical: Object.freeze({
+      highBelow: 40,
+      lowAbove: 55,
+      recommendedMin: 40,
+      recommendedMax: 60,
+      why: "Slow settings stop your crosshair from shaking during small micro-adjustments.",
+      proExample: "Most Valorant and CS2 pros use roughly 45–50 cm/360.",
+    }),
+    arena: Object.freeze({
+      highBelow: 25,
+      lowAbove: 35,
+      recommendedMin: 25,
+      recommendedMax: 35,
+      why: "Fast settings help you track flying targets and spin 180 degrees quickly.",
+      proExample: "Overwatch 2 pros playing Tracer or Genji lean closer to 24–28 cm/360.",
+    }),
+    battle_royale: Object.freeze({
+      highBelow: 30,
+      lowAbove: 45,
+      recommendedMin: 30,
+      recommendedMax: 45,
+      why: "Moderate settings let you balance close-range shotgun fights with mid-range rifle tracking.",
+      proExample: "Apex Legends and Call of Duty players heavily favor roughly 34–38 cm/360.",
+    }),
+  });
+
+  /** @type {Record<string, { yaw: number, fov?: number, multiplier: number, genre: keyof typeof SENS_PROFILES }>} */
   const GAME_REGISTRY = Object.freeze({
-    Aimlabs: { yaw: 0.05, fov: 103, multiplier: 1.4 },
-    "Apex Legends": { yaw: 0.022, fov: 90, multiplier: 3.18 },
-    "ARC Raiders": { yaw: 0.00136, fov: 90, multiplier: 51.43 },
-    "Black Ops 7": { yaw: 0.0066, fov: 103, multiplier: 10.61 },
-    CS2: { yaw: 0.022, fov: 90, multiplier: 3.18 },
-    "Delta Force": { yaw: 0.01, fov: 103, multiplier: 7 },
-    "Escape from Tarkov": { yaw: 0.125, fov: 90, multiplier: 0.56 },
-    Fortnite: { yaw: 0.005555, fov: 103, multiplier: 12.6 },
-    "Marvel Rivals": { yaw: 0.022, fov: 103, multiplier: 4.0 },
-    Overwatch: { yaw: 0.0066, fov: 103, multiplier: 10.61 },
-    "osu!": { yaw: 0.0795, fov: 90, multiplier: 0.88 },
-    "Rainbow 6 Siege": { yaw: 0.00572958, fov: 90, multiplier: 12.22 },
-    Roblox: { yaw: 0.3888, fov: 90, multiplier: 0.18 },
-    Rust: { yaw: 0.1129, fov: 90, multiplier: 0.62 },
-    Valorant: { yaw: 0.07, fov: 103, multiplier: 1 },
+    Aimlabs: { yaw: 0.05, fov: 103, multiplier: 1.4, genre: "arena" },
+    "Apex Legends": { yaw: 0.022, fov: 90, multiplier: 3.18, genre: "arena" },
+    "ARC Raiders": { yaw: 0.00136, fov: 90, multiplier: 51.43, genre: "battle_royale" },
+    "Black Ops 7": { yaw: 0.0066, fov: 103, multiplier: 10.61, genre: "battle_royale" },
+    CS2: { yaw: 0.022, fov: 90, multiplier: 3.18, genre: "tactical" },
+    "Delta Force": { yaw: 0.01, fov: 103, multiplier: 7, genre: "tactical" },
+    "Escape from Tarkov": { yaw: 0.125, fov: 90, multiplier: 0.56, genre: "tactical" },
+    Fortnite: { yaw: 0.005555, fov: 103, multiplier: 12.6, genre: "battle_royale" },
+    "Marvel Rivals": { yaw: 0.022, fov: 103, multiplier: 4.0, genre: "arena" },
+    Overwatch: { yaw: 0.0066, fov: 103, multiplier: 10.61, genre: "arena" },
+    "osu!": { yaw: 0.0795, fov: 90, multiplier: 0.88, genre: "arena" },
+    "Rainbow 6 Siege": { yaw: 0.00572958, fov: 90, multiplier: 12.22, genre: "tactical" },
+    Roblox: { yaw: 0.3888, fov: 90, multiplier: 0.18, genre: "battle_royale" },
+    Rust: { yaw: 0.1129, fov: 90, multiplier: 0.62, genre: "battle_royale" },
+    Valorant: { yaw: 0.07, fov: 103, multiplier: 1, genre: "tactical" },
   });
 
   const GAME_ALIASES = Object.freeze({
@@ -68,6 +96,12 @@
     return resolved ? GAME_REGISTRY[resolved].yaw : null;
   }
 
+  function getGameSensProfile(game) {
+    const resolved = resolveGameName(game);
+    if (!resolved) return null;
+    return SENS_PROFILES[GAME_REGISTRY[resolved].genre] || SENS_PROFILES.battle_royale;
+  }
+
   const GAME_MULTIPLIERS = Object.freeze(Object.fromEntries(Object.entries(GAME_REGISTRY).map(([name, entry]) => [name, entry.multiplier])));
 
   function getGameMultiplier(game) {
@@ -111,10 +145,12 @@
     GAME_ALIASES,
     GAME_DISPLAY_NAMES,
     GAME_MULTIPLIERS,
+    SENS_PROFILES,
     SUPPORTED_GAMES,
     resolveGameName,
     getGameDisplayName,
     getGameYaw,
+    getGameSensProfile,
     getGameMultiplier,
     getGameConversionFactor,
     convertSensitivity,

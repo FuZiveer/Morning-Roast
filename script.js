@@ -306,6 +306,7 @@ const Toast = (() => {
     const stack = document.querySelector(".notify-stack");
     if (!stack) {
       syncScrollButtonNotifyOffset(0);
+      syncSiteAssistantNotifyVisibility(false);
       return;
     }
 
@@ -337,6 +338,7 @@ const Toast = (() => {
     if (!toasts.length) {
       stack.style.height = "0px";
       syncScrollButtonNotifyOffset(0);
+      syncSiteAssistantNotifyVisibility(false);
       return;
     }
 
@@ -349,6 +351,7 @@ const Toast = (() => {
     }
 
     syncScrollButtonNotifyOffset(stack.offsetHeight || parseFloat(stack.style.height) || 0);
+    syncSiteAssistantNotifyVisibility(true);
   }
 
   function setNotifyExpanded(expanded) {
@@ -526,13 +529,47 @@ function notifyCopied(body) {
   Toast.notify({ message: plain || "Copied to clipboard", type: "success" });
 }
 
+function syncSiteAssistantNotifyVisibility(hasActiveToasts) {
+  const assistant = document.getElementById("site-assistant");
+  if (!assistant) return;
+  assistant.classList.toggle("has-notify", Boolean(hasActiveToasts));
+}
+
+function copyTextFallback(value) {
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch (_) {
+    ok = false;
+  }
+  textarea.remove();
+  return ok;
+}
+
 function copyText(text, toastBody) {
-  return navigator.clipboard
-    .writeText(text)
-    .then(() => notifyCopied(toastBody ?? `<b>${text}</b> has been copied.`))
-    .catch(() => {
-      Toast.notify({ message: "Could not copy to clipboard", type: "error" });
-    });
+  const value = String(text ?? "").trim();
+  if (!value) return Promise.resolve();
+
+  const onSuccess = () => notifyCopied(toastBody ?? `<b>${value}</b> has been copied.`);
+  const onFailure = () => Toast.notify({ message: "Could not copy to clipboard", type: "error" });
+
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard
+      .writeText(value)
+      .then(onSuccess)
+      .catch(() => (copyTextFallback(value) ? onSuccess() : onFailure()));
+  }
+
+  return Promise.resolve().then(() => (copyTextFallback(value) ? onSuccess() : onFailure()));
 }
 
 const trainerConfigs = MorningRoastGames.buildTrainerConfigs();
@@ -598,8 +635,7 @@ const GAME_ICON_DEFS = Object.freeze({
   Valorant: { slug: "valorant", color: "FF4655", fallback: "hsl(355, 100%, 64%)" },
 });
 
-const DEFAULT_GAME_TRIGGER_ICON =
-  '<svg class="icon-game" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2" aria-hidden="true"><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/><path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z"/></svg>';
+const DEFAULT_GAME_TRIGGER_ICON = '<svg class="icon-game" viewBox="0 0 24 24" fill="none" stroke="hsl(0, 0%, 27%)" stroke-width="2" aria-hidden="true"><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/><path d="M15 5H9a7 7 0 0 0-7 7v4a3 3 0 0 0 3 3 5 5 0 0 1 3-1h8a5 5 0 0 1 3 1 3 3 0 0 0 3-3v-4a7 7 0 0 0-7-7Z"/></svg>';
 
 const GAME_TRIGGER_PREFIXES = ["from", "to", "edpi-game", "trainer-game", "profile-game", "lineup-game"];
 
@@ -714,24 +750,6 @@ function initGameIconErrorFallback() {
     true,
   );
 }
-
-const proDatabase = {
-  Valorant: {
-    low: ["Nats", "Yay", "Less", "Demon1", "Alfajer", "Chronicle", "Leo", "Zellsis"],
-    average: ["Aspas", "TenZ", "Zekken", "Derke", "Cryocells", "Leaf", "Sayf", "trent"],
-    high: ["something", "f0rsakeN", "Primmie", "Jinggg", "Asuna", "Governor", "Hyunmin", "Patiphan"],
-  },
-  CS2: {
-    low: ["Jame", "B1t", "Rain", "Hunter-", "Nafany", "Interz", "Kyojin", "frozen"],
-    average: ["NiKo", "Ropz", "ZywOo", "m0NESY", "Twistzz", "Broky", "dev1ce", "Jimpphat"],
-    high: ["donk", "s1mple", "Woxic", "ELiGE", "Xantares", "Smooya", "Stewie2K", "forsyy"],
-  },
-  General: {
-    low: ["Pro Low"],
-    average: ["Pro Average"],
-    high: ["Pro High"],
-  },
-};
 
 const TRAINER_MODES = Object.freeze([
   { id: "static", label: "Static", icon: "ri-focus-3-line", scoreType: "hits", maxTargets: 4, spawnBand: { yaw: 0.2, pitch: 0.1 } },
@@ -1221,10 +1239,7 @@ function initTrainerTimerDropdown(savedTimer) {
 
 function renderGameOptions(list, valueAttr = "data-game") {
   if (!list) return;
-  list.innerHTML = SUPPORTED_GAMES.map(
-    (name) =>
-      `<button type="button" class="pref-dropdown-option" ${valueAttr}="${name}" role="option">${renderGameOptionIcon(name)}<span>${getGameDisplayName(name)}</span></button>`,
-  ).join("");
+  list.innerHTML = SUPPORTED_GAMES.map((name) => `<button type="button" class="pref-dropdown-option" ${valueAttr}="${name}" role="option">${renderGameOptionIcon(name)}<span>${getGameDisplayName(name)}</span></button>`).join("");
 }
 
 function getGameOptionLabel(opt) {
@@ -1261,11 +1276,13 @@ function syncProfileGameDropdownUi(game) {
   });
 }
 
-let isCopying = false;
+const clipboardState = {
+  isCopying: false,
+};
 
 const elements = {};
 const cacheElements = () => {
-  const ids = ["base-sens", "from-dpi", "to-dpi", "new-sens-value", "from-search", "to-search", "edpi-dpi", "edpi-sens", "edpi-game-search", "edpi-value", "edpi-cm360", "spectrum-pointer", "edpi-rank", "pro-comparison", "pro-name", "canvas-sens", "canvas-dpi", "profile-best-spatial-canvas", "profile-best-precision-canvas", "finder-reset-btn"];
+  const ids = ["base-sens", "from-dpi", "to-dpi", "new-sens-value", "from-search", "to-search", "edpi-dpi", "edpi-sens", "edpi-game-search", "edpi-value", "edpi-cm360", "spectrum-pointer", "edpi-rank", "canvas-sens", "canvas-dpi", "profile-best-spatial-canvas", "profile-best-precision-canvas", "finder-reset-btn"];
   ids.forEach((id) => {
     elements[id] = document.getElementById(id);
   });
@@ -1305,8 +1322,18 @@ function calculateIn360Value(sens, dpi, game) {
 function formatEdpiInlineDistance360(sens, dpi, game, unit = getDistance360Unit()) {
   const value = unit === "in" ? calculateIn360Value(sens, dpi, game) : calculateCm360Value(sens, dpi, game);
   const label = `${unit}/360`;
-  if (value == null || !Number.isFinite(value) || value <= 0) return label;
+  if (value == null || !Number.isFinite(value) || value <= 0) return "";
   return `${value.toFixed(3)} ${label}`;
+}
+
+function setEdpiCm360Display(sens, dpi, game) {
+  const cmDisplay = elements["edpi-cm360"];
+  if (!cmDisplay) return;
+  const text = formatEdpiInlineDistance360(sens, dpi, game);
+  const visible = Boolean(text);
+  cmDisplay.textContent = text;
+  cmDisplay.hidden = !visible;
+  toggleVisibility(cmDisplay, visible);
 }
 
 function formatDistance360(sens, dpi, game, unit = getDistance360Unit()) {
@@ -1532,17 +1559,19 @@ function accentAlpha(a) {
   return `hsla(${parts[0]} ${parts[1]} ${parts[2]} / ${a})`;
 }
 
-let appliedAccentKey = DEFAULT_ACCENT;
-let accentTransitionCleanup = null;
-let accentTransitionFallback = 0;
+const accentRuntime = {
+  appliedKey: DEFAULT_ACCENT,
+  transitionCleanup: null,
+  transitionFallback: 0,
+};
 
 function clearAccentTransitionCleanup() {
-  if (accentTransitionCleanup) {
-    document.documentElement.removeEventListener("transitionend", accentTransitionCleanup);
-    accentTransitionCleanup = null;
+  if (accentRuntime.transitionCleanup) {
+    document.documentElement.removeEventListener("transitionend", accentRuntime.transitionCleanup);
+    accentRuntime.transitionCleanup = null;
   }
-  clearTimeout(accentTransitionFallback);
-  accentTransitionFallback = 0;
+  clearTimeout(accentRuntime.transitionFallback);
+  accentRuntime.transitionFallback = 0;
   document.documentElement.classList.remove("accent-changing");
 }
 
@@ -1827,7 +1856,7 @@ function setAppMoreMenuOpen(open) {
   }
 
   const onTransitionEnd = (event) => {
-    if (event.target !== menu || event.propertyName !== "transform") return;
+    if (event.target !== menu || event.propertyName !== "clip-path") return;
     menu.removeEventListener("transitionend", onTransitionEnd);
     clearTimeout(setAppMoreMenuOpen.closeFallback);
     finishAppMoreMenuClose();
@@ -1966,7 +1995,7 @@ function setAppMiscMenuOpen(open) {
   }
 
   const onTransitionEnd = (event) => {
-    if (event.target !== menu || event.propertyName !== "transform") return;
+    if (event.target !== menu || event.propertyName !== "clip-path") return;
     menu.removeEventListener("transitionend", onTransitionEnd);
     clearTimeout(setAppMiscMenuOpen.closeFallback);
     finishAppMiscMenuClose();
@@ -2086,13 +2115,13 @@ function commitAccentColor(normalized, { instant = false } = {}) {
     return;
   }
 
-  accentTransitionCleanup = (event) => {
+  accentRuntime.transitionCleanup = (event) => {
     if (event.target !== root || event.propertyName !== "--accent-color") return;
     finalizeAccentTransition(targetHex);
   };
-  root.addEventListener("transitionend", accentTransitionCleanup);
+  root.addEventListener("transitionend", accentRuntime.transitionCleanup);
 
-  accentTransitionFallback = window.setTimeout(() => {
+  accentRuntime.transitionFallback = window.setTimeout(() => {
     finalizeAccentTransition(targetHex);
   }, 400);
 
@@ -2101,35 +2130,39 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v8";
+const APP_CACHE_VERSION = "morning-roast-v30";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
 }
 
-let appMasterVolume = 1;
+const audioState = {
+  masterVolume: 1,
+};
 
 function getMasterVolume() {
-  return appMasterVolume;
+  return audioState.masterVolume;
 }
 
 function loadMasterVolume() {
   const saved = parseInt(localStorage.getItem("prefMasterVolume") ?? "100", 10);
-  appMasterVolume = Math.max(0, Math.min(100, Number.isFinite(saved) ? saved : 100)) / 100;
+  audioState.masterVolume = Math.max(0, Math.min(100, Number.isFinite(saved) ? saved : 100)) / 100;
 }
 
 function setMasterVolume(percent) {
   const pct = Math.max(0, Math.min(100, percent));
-  appMasterVolume = pct / 100;
+  audioState.masterVolume = pct / 100;
   localStorage.setItem("prefMasterVolume", String(pct));
 }
 
 function getAppAudioGain(baseGain = 0.05) {
-  if (appMasterVolume <= 0) return 0;
-  return baseGain * appMasterVolume;
+  if (audioState.masterVolume <= 0) return 0;
+  return baseGain * audioState.masterVolume;
 }
 
-let pendingResetAction = null;
+const resetDialogState = {
+  pendingAction: null,
+};
 
 function isScrollLockedByOverlay() {
   return document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active") || document.getElementById("reaction-test-overlay")?.classList.contains("active") || document.getElementById("lineup-video-overlay")?.classList.contains("active") || document.getElementById("lineup-badge-info-overlay")?.classList.contains("active");
@@ -2142,7 +2175,7 @@ function syncBodyScrollLock() {
 function closeConfirmReset() {
   const overlay = document.getElementById("confirm-reset-overlay");
   if (overlay) overlay.classList.remove("active");
-  pendingResetAction = null;
+  resetDialogState.pendingAction = null;
   syncBodyScrollLock();
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 }
@@ -2152,7 +2185,7 @@ function confirmBeforeReset(message, action) {
     action();
     return;
   }
-  pendingResetAction = action;
+  resetDialogState.pendingAction = action;
   const overlay = document.getElementById("confirm-reset-overlay");
   const messageEl = document.getElementById("confirm-reset-message");
   if (messageEl) messageEl.textContent = message;
@@ -2165,7 +2198,7 @@ function initConfirmReset() {
 
   document.getElementById("confirm-reset-cancel")?.addEventListener("click", closeConfirmReset);
   document.getElementById("confirm-reset-ok")?.addEventListener("click", () => {
-    const action = pendingResetAction;
+    const action = resetDialogState.pendingAction;
     closeConfirmReset();
     action?.();
   });
@@ -2701,6 +2734,7 @@ const aimTrainer = {
   totalTimeTaken: 0,
   lastHitTime: 0,
   hits: 0,
+  kills: 0,
   totalClicks: 0,
   active: false,
   isCountingDown: false,
@@ -4149,6 +4183,7 @@ const aimTrainer = {
 
   start() {
     this.hits = 0;
+    this.kills = 0;
     this.totalClicks = 0;
     this.totalTimeTaken = 0;
     this.lastHitTime = performance.now();
@@ -4265,7 +4300,7 @@ const aimTrainer = {
     sCtx.globalAlpha = 1.0;
 
     const acc = isTrainerAccuracyMode(this.mode) ? (this.totalTrackingFrames === 0 ? 0 : Math.round((this.trackingFrames / this.totalTrackingFrames) * 100)) : this.totalClicks > 0 ? Math.ceil((this.hits / this.totalClicks) * 100) : 0;
-    const reaction = this.hits > 0 ? (this.totalTimeTaken / this.hits).toFixed(0) : 0;
+    const reaction = this.kills > 0 ? (this.totalTimeTaken / this.kills).toFixed(0) : 0;
 
     const stats = [
       { label: "HITS", value: this.hits, color: "hsl(30, 35%, 64%)" },
@@ -5351,7 +5386,7 @@ const aimTrainer = {
 
     const currentHits = this.hits;
     const currentAccuracy = isTrainerAccuracyMode(this.mode) ? (this.totalTrackingFrames === 0 ? 0 : Math.round((this.trackingFrames / this.totalTrackingFrames) * 100)) : this.totalClicks > 0 ? Math.ceil((this.hits / this.totalClicks) * 100) : 0;
-    const currentReaction = this.hits > 0 ? (this.totalTimeTaken / this.hits).toFixed(0) : 0;
+    const currentReaction = this.kills > 0 ? (this.totalTimeTaken / this.kills).toFixed(0) : 0;
 
     const currentSens = elements["canvas-sens"]?.value || "0";
     const currentDpi = elements["canvas-dpi"]?.value || "0";
@@ -5508,6 +5543,7 @@ const aimTrainer = {
       const now = performance.now();
       const reactionTime = now - this.lastHitTime;
       this.damageShots++;
+      this.hits++;
       const maxHealth = targetHit.maxHealth ?? this.getTrackingTargetMaxHealth();
       targetHit.maxHealth = maxHealth;
       const unlimitedHp = this.isTrackingUnlimitedHp();
@@ -5532,7 +5568,7 @@ const aimTrainer = {
         const killedPhaseY = targetHit.phaseY;
         this.targets.splice(targetIndex, 1);
 
-        this.hits++;
+        this.kills++;
         if (this.randomizerEnabled) {
           this.randomizeSensitivity();
           this.randomizerTimer = 0;
@@ -5696,8 +5732,7 @@ const aimTrainer = {
     this.ctx.textAlign = "left";
     this.ctx.font = canvasFont("bold 14px");
     this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.88)";
-    const hitsLabel = isTrainerAccuracyMode(this.mode) ? "KILLS" : "HITS";
-    this.ctx.fillText(`${hitsLabel}: ${this.hits}`, pad, topY);
+    this.ctx.fillText(`HITS: ${this.hits}`, pad, topY);
     this.ctx.fillText(`ACC: ${acc}%`, pad, topY + 22);
 
     if (!isTrainerAccuracyMode(this.mode) && this.missFlashAlpha > 0) {
@@ -5744,7 +5779,7 @@ const aimTrainer = {
 
     this.ctx.restore();
 
-    const bulletsHit = this.totalClicks - this.misses;
+    const bulletsHit = this.hits;
     const bulletsShot = this.totalClicks;
     const bulletCounter = `${bulletsHit} / ${bulletsShot}`;
     this.ctx.textAlign = "right";
@@ -5943,7 +5978,7 @@ const aimTrainer = {
       } else {
         acc = this.totalClicks === 0 ? 0 : Math.ceil((this.hits / this.totalClicks) * 100);
       }
-      const reaction = this.hits > 0 ? (this.totalTimeTaken / this.hits).toFixed(0) : 0;
+      const reaction = this.kills > 0 ? (this.totalTimeTaken / this.kills).toFixed(0) : 0;
 
       const hitsChartMax = isInfiniteTrainerTimer(this.sessionTimerId) ? Math.max(this.hits, Math.ceil(this.timeLeft * 2) || 10) : Math.ceil(parseInt(this.sessionTimerId, 10) * 2.6);
       this.drawChart(cx - 120, cy - 194, "HITS", this.hits, hitsChartMax, "", "hsl(30, 35%, 64%)", this.sessionPBs.hits);
@@ -6101,10 +6136,281 @@ const aimTrainer = {
   },
 };
 
-let updateEdpiTimer = 0;
+const debounceTimers = {
+  edpi: 0,
+  conversion: 0,
+};
 function scheduleUpdateEDPI() {
-  clearTimeout(updateEdpiTimer);
-  updateEdpiTimer = setTimeout(updateEDPI, 64);
+  clearTimeout(debounceTimers.edpi);
+  debounceTimers.edpi = setTimeout(updateEDPI, 64);
+}
+
+function getEdpiSpectrumBounds(game) {
+  const yaw = MorningRoastGames.getGameYaw(game);
+  const profile = MorningRoastGames.getGameSensProfile(game);
+  if (yaw == null || yaw <= 0 || !profile) return null;
+  // cm/360 ↔ eDPI: cm = (360 * 2.54) / (edpi * yaw)
+  const edpiFromCm = (cm) => (360 * CM360_INCH_TO_CM) / (cm * yaw);
+  // Low = above lowAbove cm/360 · average = highBelow–lowAbove · high = below highBelow
+  const lowThreshold = edpiFromCm(profile.lowAbove);
+  const midThreshold = edpiFromCm(profile.highBelow);
+  const maxCm = Math.max(8, Math.round(profile.highBelow * 0.4));
+  const recommendedMinEdpi = edpiFromCm(profile.recommendedMax);
+  const recommendedMaxEdpi = edpiFromCm(profile.recommendedMin);
+  return {
+    lowThreshold,
+    midThreshold,
+    maxEdpi: Math.max(Math.round(edpiFromCm(maxCm)), Math.round(midThreshold) + 1),
+    profile,
+    recommendedMinEdpi,
+    recommendedMaxEdpi,
+    recommendedMinCm: profile.recommendedMin,
+    recommendedMaxCm: profile.recommendedMax,
+  };
+}
+
+function updateEdpiSpectrumRecommended(bounds) {
+  const marks = document.getElementById("edpi-spectrum-recommended");
+  if (!marks) return;
+
+  if (!bounds?.profile) {
+    if (marks.hidden) {
+      marks.classList.remove("is-visible");
+      return;
+    }
+    marks.classList.remove("is-visible");
+    const onFadeOut = (event) => {
+      if (event.target !== marks || event.propertyName !== "opacity") return;
+      marks.removeEventListener("transitionend", onFadeOut);
+      if (!marks.classList.contains("is-visible")) marks.hidden = true;
+    };
+    marks.addEventListener("transitionend", onFadeOut);
+    return;
+  }
+
+  const minMark = marks.querySelector('[data-mark="min"]');
+  const maxMark = marks.querySelector('[data-mark="max"]');
+  // Higher cm/360 = lower eDPI = further left on the bar.
+  const leftPct = edpiToSpectrumPercent(bounds.recommendedMinEdpi, bounds);
+  const rightPct = edpiToSpectrumPercent(bounds.recommendedMaxEdpi, bounds);
+  const nextLeft = Math.min(leftPct, rightPct);
+  const nextWidth = Math.abs(rightPct - leftPct);
+  // Snap layout on first show so fade-in doesn't also slide from 0.
+  const shouldSnap = marks.hidden || !marks.classList.contains("is-visible");
+
+  if (shouldSnap) marks.classList.add("is-snapping");
+
+  if (maxMark) {
+    maxMark.style.left = `${leftPct}%`;
+    maxMark.setAttribute("data-label", `${bounds.recommendedMaxCm}`);
+    maxMark.title = `Recommended ${bounds.recommendedMaxCm} cm/360`;
+  }
+  if (minMark) {
+    minMark.style.left = `${rightPct}%`;
+    minMark.setAttribute("data-label", `${bounds.recommendedMinCm}`);
+    minMark.title = `Recommended ${bounds.recommendedMinCm} cm/360`;
+  }
+  marks.style.setProperty("--rec-left", `${nextLeft}%`);
+  marks.style.setProperty("--rec-width", `${nextWidth}%`);
+  marks.title = `Recommended ${bounds.recommendedMinCm}–${bounds.recommendedMaxCm} cm/360. ${bounds.profile.why} ${bounds.profile.proExample}`;
+
+  marks.hidden = false;
+  if (shouldSnap) {
+    marks.classList.remove("is-visible");
+    void marks.offsetWidth;
+    marks.classList.remove("is-snapping");
+    marks.classList.add("is-visible");
+  } else {
+    marks.classList.add("is-visible");
+  }
+}
+
+function edpiToSpectrumPercent(edpi, bounds) {
+  const { lowThreshold, midThreshold, maxEdpi } = bounds;
+  const value = Math.min(maxEdpi, Math.max(0, edpi));
+  if (value <= 0) return 0;
+  if (value <= lowThreshold) return (value / lowThreshold) * 33;
+  if (value <= midThreshold) return 33 + ((value - lowThreshold) / (midThreshold - lowThreshold)) * 33;
+  return 66 + ((value - midThreshold) / (maxEdpi - midThreshold)) * 34;
+}
+
+function spectrumPercentToEdpi(percent, bounds) {
+  const pct = Math.min(100, Math.max(0, percent));
+  const { lowThreshold, midThreshold, maxEdpi } = bounds;
+  let edpi;
+  if (pct <= 0) {
+    edpi = 0;
+  } else if (pct <= 33) {
+    edpi = (pct / 33) * lowThreshold;
+  } else if (pct <= 66) {
+    edpi = lowThreshold + ((pct - 33) / 33) * (midThreshold - lowThreshold);
+  } else {
+    edpi = midThreshold + ((pct - 66) / 34) * (maxEdpi - midThreshold);
+  }
+  return Math.min(maxEdpi, Math.max(0, Math.round(edpi)));
+}
+
+function formatSensForTargetEdpi(edpi, dpi) {
+  if (!dpi || !Number.isFinite(dpi) || dpi <= 0) return "";
+  const target = Math.round(edpi);
+  if (target <= 0) return "0";
+  for (let decimals = 1; decimals <= 8; decimals++) {
+    const sens = (target / dpi).toFixed(decimals);
+    if (Math.round(Number(sens) * dpi) === target) return sens;
+  }
+  // Prefer a value that still rounds back to the exact eDPI.
+  const exact = target / dpi;
+  for (let decimals = 6; decimals <= 12; decimals++) {
+    const sens = exact.toFixed(decimals);
+    if (Math.round(Number(sens) * dpi) === target) return sens;
+  }
+  return exact.toFixed(8);
+}
+
+function getEdpiSpectrumTierStyle(edpi, bounds) {
+  const { lowThreshold, midThreshold } = bounds;
+  if (edpi < lowThreshold) {
+    return { label: "PRO LOW", color: EDPI_TIER_COLORS.low, tier: "low" };
+  }
+  if (edpi <= midThreshold) {
+    return { label: "PRO AVERAGE", color: EDPI_TIER_COLORS.average, tier: "average" };
+  }
+  return { label: "PRO HIGH", color: EDPI_TIER_COLORS.high, tier: "high" };
+}
+
+const edpiSpectrumDrag = {
+  active: false,
+  pointerId: null,
+  lastEdpi: null,
+};
+
+function getCurrentEdpiValue(bounds) {
+  const dpi = parseFloat(elements["edpi-dpi"]?.value);
+  const sens = parseFloat(String(elements["edpi-sens"]?.value || "").replace(",", "."));
+  if (!bounds || !Number.isFinite(dpi) || dpi <= 0) return 0;
+  if (!Number.isFinite(sens) || sens < 0) return 0;
+  return Math.min(bounds.maxEdpi, Math.max(0, Math.round(sens * dpi)));
+}
+
+function setEdpiFromSpectrumValue(edpi) {
+  const dpiInput = elements["edpi-dpi"];
+  const sensInput = elements["edpi-sens"];
+  const gameVal = resolveEdpiGameInput();
+  const dpi = parseFloat(dpiInput?.value);
+  const bounds = getEdpiSpectrumBounds(gameVal);
+  if (!bounds || !dpiInput || !sensInput || !Number.isFinite(dpi) || dpi <= 0) return false;
+
+  const nextEdpi = Math.min(bounds.maxEdpi, Math.max(0, Math.round(edpi)));
+  const sens = formatSensForTargetEdpi(nextEdpi, dpi);
+  if (sens === "") return false;
+
+  sensInput.value = sens;
+  edpiSpectrumDrag.lastEdpi = nextEdpi;
+  updateEDPI();
+  return true;
+}
+
+function applyEdpiSpectrumPointerFromClientX(clientX) {
+  const container = document.querySelector("#edpi-calculator-tab .spectrum-container");
+  const pointer = elements["spectrum-pointer"] || document.getElementById("spectrum-pointer");
+  const gameVal = resolveEdpiGameInput();
+  const bounds = getEdpiSpectrumBounds(gameVal);
+  if (!container || !bounds) return;
+
+  const rect = container.getBoundingClientRect();
+  if (!rect.width) return;
+  const percent = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
+  // Follow the cursor instantly while dragging; value still snaps to whole eDPI.
+  if (pointer && edpiSpectrumDrag.active) {
+    pointer.style.transition = "none";
+    pointer.style.left = `${percent}%`;
+  }
+  const target = spectrumPercentToEdpi(percent, bounds);
+  if (target === (edpiSpectrumDrag.lastEdpi ?? getCurrentEdpiValue(bounds))) return;
+  setEdpiFromSpectrumValue(target);
+}
+
+function nudgeEdpiSpectrum(delta) {
+  const gameVal = resolveEdpiGameInput();
+  const bounds = getEdpiSpectrumBounds(gameVal);
+  if (!bounds) return;
+  setEdpiFromSpectrumValue(getCurrentEdpiValue(bounds) + delta);
+}
+
+function initEdpiSpectrumDrag() {
+  const container = document.querySelector("#edpi-calculator-tab .spectrum-container");
+  const pointer = elements["spectrum-pointer"] || document.getElementById("spectrum-pointer");
+  if (!container || !pointer || initEdpiSpectrumDrag._init) return;
+  initEdpiSpectrumDrag._init = true;
+
+  pointer.setAttribute("role", "slider");
+  pointer.setAttribute("aria-label", "eDPI spectrum");
+  pointer.setAttribute("aria-valuemin", "0");
+  pointer.tabIndex = 0;
+
+  const canDrag = () => {
+    const dpi = parseFloat(elements["edpi-dpi"]?.value);
+    const gameVal = resolveEdpiGameInput();
+    return Boolean(getEdpiSpectrumBounds(gameVal) && Number.isFinite(dpi) && dpi > 0);
+  };
+
+  const stopDrag = (event) => {
+    if (!edpiSpectrumDrag.active) return;
+    if (event?.pointerId != null && edpiSpectrumDrag.pointerId != null && event.pointerId !== edpiSpectrumDrag.pointerId) return;
+    edpiSpectrumDrag.active = false;
+    edpiSpectrumDrag.pointerId = null;
+    edpiSpectrumDrag.lastEdpi = null;
+    container.classList.remove("is-dragging");
+    pointer.classList.remove("is-dragging");
+    pointer.style.transition = "";
+    try {
+      pointer.releasePointerCapture?.(event.pointerId);
+    } catch (_) {}
+    updateEDPI();
+  };
+
+  const startDrag = (event) => {
+    if (event.button != null && event.button !== 0) return;
+    if (!canDrag()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const bounds = getEdpiSpectrumBounds(resolveEdpiGameInput());
+    edpiSpectrumDrag.active = true;
+    edpiSpectrumDrag.pointerId = event.pointerId;
+    edpiSpectrumDrag.lastEdpi = getCurrentEdpiValue(bounds);
+    container.classList.add("is-dragging");
+    pointer.classList.add("is-dragging");
+    pointer.style.transition = "none";
+    pointer.setPointerCapture?.(event.pointerId);
+    pointer.focus({ preventScroll: true });
+  };
+
+  pointer.addEventListener("pointerdown", startDrag);
+  pointer.addEventListener("pointermove", (event) => {
+    if (!edpiSpectrumDrag.active || event.pointerId !== edpiSpectrumDrag.pointerId) return;
+    event.preventDefault();
+    applyEdpiSpectrumPointerFromClientX(event.clientX);
+  });
+  pointer.addEventListener("pointerup", stopDrag);
+  pointer.addEventListener("pointercancel", stopDrag);
+
+  pointer.addEventListener("keydown", (event) => {
+    if (!canDrag()) return;
+    const step = event.shiftKey ? 10 : 1;
+    if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      event.preventDefault();
+      nudgeEdpiSpectrum(-step);
+    } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      event.preventDefault();
+      nudgeEdpiSpectrum(step);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setEdpiFromSpectrumValue(0);
+    } else if (event.key === "End") {
+      const bounds = getEdpiSpectrumBounds(resolveEdpiGameInput());
+      if (bounds) setEdpiFromSpectrumValue(bounds.maxEdpi);
+    }
+  });
 }
 
 function updateEDPI() {
@@ -6112,11 +6418,8 @@ function updateEDPI() {
     sensVal = elements["edpi-sens"].value,
     gameVal = resolveEdpiGameInput(),
     display = elements["edpi-value"],
-    cmDisplay = elements["edpi-cm360"],
     pointer = elements["spectrum-pointer"],
     rankLabel = elements["edpi-rank"],
-    proDisplay = elements["pro-comparison"],
-    proName = elements["pro-name"],
     copyBtn = document.getElementById("edpi-copy"),
     shareBtn = document.getElementById("edpi-share-btn"),
     defaultColor = "white";
@@ -6132,14 +6435,24 @@ function updateEDPI() {
 
   if (!gameVal || isNaN(edpi) || edpi === 0) {
     if (display) display.innerText = "0";
-    if (cmDisplay) cmDisplay.textContent = formatEdpiInlineDistance360(parseFloat(sensVal.replace(",", ".")), parseFloat(dpiVal), gameVal);
+    setEdpiCm360Display(parseFloat(sensVal.replace(",", ".")), parseFloat(dpiVal), gameVal);
     if (rankLabel) rankLabel.style.opacity = "0";
-    if (proDisplay) proDisplay.style.opacity = "0";
-    hideSensSuggestion();
+    const dpiReady = Number.isFinite(parseFloat(dpiVal)) && parseFloat(dpiVal) > 0;
+    const boundsReady = gameVal && dpiReady ? getEdpiSpectrumBounds(gameVal) : null;
+    updateEdpiSpectrumRecommended(boundsReady);
     if (pointer) {
-      pointer.style.left = "0%";
+      if (!edpiSpectrumDrag.active) pointer.style.left = "0%";
       pointer.style.backgroundColor = defaultColor;
       pointer.style.boxShadow = "none";
+      if (boundsReady) {
+        pointer.setAttribute("aria-valuenow", "0");
+        pointer.setAttribute("aria-valuetext", "0 eDPI");
+        pointer.setAttribute("aria-valuemax", String(boundsReady.maxEdpi));
+        pointer.setAttribute("aria-disabled", "false");
+      } else {
+        pointer.setAttribute("aria-valuenow", "0");
+        pointer.setAttribute("aria-disabled", "true");
+      }
     }
     toggleVisibility(copyBtn, false);
     toggleVisibility(shareBtn, false);
@@ -6149,43 +6462,34 @@ function updateEDPI() {
   if (display) display.innerText = edpi;
   const sensNum = parseFloat(sensVal.replace(",", "."));
   const dpiNum = parseFloat(dpiVal);
-  if (cmDisplay) cmDisplay.textContent = formatEdpiInlineDistance360(sensNum, dpiNum, gameVal);
+  setEdpiCm360Display(sensNum, dpiNum, gameVal);
   toggleVisibility(copyBtn, edpi !== 0);
   toggleVisibility(shareBtn, edpi !== 0);
 
   let percent, color, label, tier;
-  const multiplier = getGameConversionFactor(gameVal);
-  if (multiplier == null) {
+  const bounds = getEdpiSpectrumBounds(gameVal);
+  if (!bounds) {
+    updateEdpiSpectrumRecommended(null);
     if (rankLabel) rankLabel.style.opacity = "0";
-    if (proDisplay) proDisplay.style.opacity = "0";
     if (pointer) {
       pointer.style.left = "0%";
       pointer.style.backgroundColor = defaultColor;
       pointer.style.boxShadow = "none";
+      pointer.setAttribute("aria-valuenow", "0");
+      pointer.setAttribute("aria-disabled", "true");
     }
     toggleProfileSensConvButtons();
     updateGameInfoPanelVisibility();
     return;
   }
-  const lowThreshold = 200 * multiplier;
-  const midThreshold = 320 * multiplier;
 
-  if (edpi < lowThreshold) {
-    label = "PRO LOW";
-    color = EDPI_TIER_COLORS.low;
-    tier = "low";
-    percent = Math.min((edpi / lowThreshold) * 33, 33);
-  } else if (edpi < midThreshold) {
-    label = "PRO AVERAGE";
-    color = EDPI_TIER_COLORS.average;
-    tier = "average";
-    percent = 33 + ((edpi - lowThreshold) / (midThreshold - lowThreshold)) * 33;
-  } else {
-    label = "PRO HIGH";
-    color = EDPI_TIER_COLORS.high;
-    tier = "high";
-    percent = Math.min(66 + ((edpi - midThreshold) / (midThreshold * 1.5)) * 34, 100);
-  }
+  updateEdpiSpectrumRecommended(bounds);
+
+  const spectrumStyle = getEdpiSpectrumTierStyle(edpi, bounds);
+  label = spectrumStyle.label;
+  color = spectrumStyle.color;
+  tier = spectrumStyle.tier;
+  percent = edpiToSpectrumPercent(edpi, bounds);
 
   if (edpi > 0 && gameVal) {
     localStorage.setItem("lastEdpiCalc", edpi);
@@ -6217,27 +6521,20 @@ function updateEDPI() {
   updateGameInfoPanelVisibility();
 
   if (pointer) {
-    pointer.style.left = `${percent}%`;
+    if (!edpiSpectrumDrag.active) {
+      pointer.style.left = `${percent}%`;
+    }
     pointer.style.backgroundColor = color;
-    pointer.style.boxShadow = `0 0 1rem ${color}`;
+    pointer.style.boxShadow = edpiSpectrumDrag.active ? "none" : `0 0 1rem ${color}`;
+    pointer.setAttribute("aria-valuenow", String(edpi));
+    pointer.setAttribute("aria-valuetext", `${edpi} eDPI`);
+    pointer.setAttribute("aria-valuemax", String(bounds.maxEdpi));
+    pointer.setAttribute("aria-disabled", "false");
   }
   if (rankLabel) {
     rankLabel.innerText = label;
     rankLabel.style.color = color;
     rankLabel.style.opacity = "1";
-  }
-  if (proDisplay && proName) {
-    const poolKey = gameVal === "CS2" ? "CS2" : gameVal === "Valorant" ? "Valorant" : "General";
-    const gamePool = proDatabase[poolKey] || proDatabase.General;
-    const pros = [...(gamePool[tier] || [])];
-    if (pros.length > 0) {
-      proName.innerText = pros[Math.floor(Math.random() * pros.length)];
-      proName.style.color = color;
-      proDisplay.style.opacity = "1";
-    }
-  }
-  if (isEdpiTabVisible()) {
-    showTacticalAdvice(edpi, gameVal, tier);
   }
 }
 
@@ -6265,78 +6562,45 @@ function isMobileViewport() {
   return window.matchMedia("(max-width: 768px)").matches;
 }
 
-let aimTrainerNode = null;
-let aimTrainerAnchor = null;
-let wasMobile = null;
+const trainerViewport = {
+  node: null,
+  anchor: null,
+  wasMobile: null,
+};
 
 function syncAimTrainerForViewport() {
   const mobile = isMobileViewport();
-  if (mobile === wasMobile) return;
+  if (mobile === trainerViewport.wasMobile) return;
 
   if (mobile) {
     const node = document.getElementById("aim-training-tab");
     if (node) {
-      aimTrainerAnchor = document.createComment("aim-training-tab-anchor");
-      node.parentNode.insertBefore(aimTrainerAnchor, node);
-      aimTrainerNode = node.parentNode.removeChild(node);
+      trainerViewport.anchor = document.createComment("aim-training-tab-anchor");
+      node.parentNode.insertBefore(trainerViewport.anchor, node);
+      trainerViewport.node = node.parentNode.removeChild(node);
     }
   } else {
-    if (aimTrainerNode && aimTrainerAnchor && aimTrainerAnchor.parentNode) {
-      aimTrainerAnchor.parentNode.insertBefore(aimTrainerNode, aimTrainerAnchor);
-      aimTrainerAnchor.parentNode.removeChild(aimTrainerAnchor);
-      aimTrainerNode = null;
-      aimTrainerAnchor = null;
+    if (trainerViewport.node && trainerViewport.anchor && trainerViewport.anchor.parentNode) {
+      trainerViewport.anchor.parentNode.insertBefore(trainerViewport.node, trainerViewport.anchor);
+      trainerViewport.anchor.parentNode.removeChild(trainerViewport.anchor);
+      trainerViewport.node = null;
+      trainerViewport.anchor = null;
     }
   }
-  wasMobile = mobile;
-}
-
-const SENS_SUGGESTION_HIDDEN_TABS = new Set(["sensitivity-converter-tab", "aim-training-tab", "settings-tab", "stats-tab", "lineup-tab", "crosshair-converter-tab", "privacy-policy-tab", "terms-of-service-tab", "keybinds-tab", "updates-tab", "credit-tab"]);
-
-let lastTacticalAdviceKey = "";
-
-function getEdpiAdviceTier(edpi, game) {
-  const multiplier = getGameConversionFactor(game);
-  if (multiplier == null) return "average";
-  const lowThreshold = 200 * multiplier;
-  const midThreshold = 320 * multiplier;
-  if (edpi < lowThreshold) return "low";
-  if (edpi < midThreshold) return "average";
-  return "high";
-}
-
-function showTacticalAdvice(edpi, game, tier = getEdpiAdviceTier(edpi, game)) {
-  if (!isEdpiTabVisible() || !game || !edpi) return;
-  const key = `${game}:${tier}`;
-  if (key === lastTacticalAdviceKey) return;
-  lastTacticalAdviceKey = key;
-  const advice = getAdvice(edpi, game);
-  if (!advice) return;
-  Toast.notify({
-    message: `Tactical advice: ${advice}`,
-    type: "info",
-    duration: 6000,
-  });
-}
-
-function hideSensSuggestion() {
-  lastTacticalAdviceKey = "";
-}
-
-function isEdpiTabVisible() {
-  const edpiTab = document.getElementById("edpi-calculator-tab");
-  return edpiTab && edpiTab.style.display !== "none";
+  trainerViewport.wasMobile = mobile;
 }
 
 const LINEUP_TAB_ENABLED = true;
 const MISC_TAB_ENABLED = false;
 
-let crosshairConverterLoadPromise = null;
+const miscLoaderState = {
+  crosshairConverterPromise: null,
+};
 
 function ensureCrosshairConverterLoaded() {
   if (typeof window.initCrosshairConverterTab === "function") return Promise.resolve();
-  if (!crosshairConverterLoadPromise) {
-    crosshairConverterLoadPromise = new Promise((resolve, reject) => {
+  if (!miscLoaderState.crosshairConverterPromise) {
+    miscLoaderState.crosshairConverterPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
       script.src = "./crosshair-converter.js";
       script.onload = () => resolve();
@@ -6344,7 +6608,7 @@ function ensureCrosshairConverterLoaded() {
       document.head.appendChild(script);
     });
   }
-  return crosshairConverterLoadPromise;
+  return miscLoaderState.crosshairConverterPromise;
 }
 
 const TAB_SLUGS = {
@@ -6356,14 +6620,16 @@ const TAB_SLUGS = {
   "lineup-tab": "lineups",
   "aim-training-tab": "aim-training",
   "keybinds-tab": "keybinds",
-  "updates-tab": "updates",
+  "updates-tab": "changelog",
   "privacy-policy-tab": "privacy-policy",
   "terms-of-service-tab": "terms-of-service",
   "credit-tab": "credit",
 };
 const SLUG_TO_TAB = Object.fromEntries(Object.entries(TAB_SLUGS).map(([tabId, slug]) => [slug, tabId]));
 const DEFAULT_TAB_ID = "sensitivity-converter-tab";
-let isInitialRoute = true;
+const routeState = {
+  isInitial: true,
+};
 
 function getAppBasePath() {
   const script = document.querySelector('script[src*="script.js"]');
@@ -6393,6 +6659,7 @@ function getTabIdFromPath() {
   if (!slug) return DEFAULT_TAB_ID;
   if (!LINEUP_TAB_ENABLED && slug === TAB_SLUGS["lineup-tab"]) return DEFAULT_TAB_ID;
   if (!MISC_TAB_ENABLED && slug === TAB_SLUGS["crosshair-converter-tab"]) return DEFAULT_TAB_ID;
+  if (slug === "updates") return "updates-tab";
   return SLUG_TO_TAB[slug] || DEFAULT_TAB_ID;
 }
 
@@ -6549,7 +6816,9 @@ function initMobileNavMoreMenu() {
 }
 
 const LINEUP_GAME_STORAGE_KEY = "lineupGame";
-let activeLineupGame = null;
+const lineupSession = {
+  activeGame: null,
+};
 const LINEUP_SIDE_STORAGE_KEY = "lineupSide";
 const LINEUP_DIFFICULTY_STORAGE_KEY = "lineupDifficulty";
 const LINEUP_SEARCH_STORAGE_PREFIX = "lineupSearch:";
@@ -7787,7 +8056,7 @@ function applyLineupSearchHighlights(game = getActiveLineupGame()) {
 }
 
 function getActiveLineupGame() {
-  return LINEUP_GAMES.has(activeLineupGame) ? activeLineupGame : null;
+  return LINEUP_GAMES.has(lineupSession.activeGame) ? lineupSession.activeGame : null;
 }
 
 function getLineupGrid(game = getActiveLineupGame()) {
@@ -8822,7 +9091,7 @@ function setLineupSearch(query) {
 
 function setLineupGame(game) {
   if (!LINEUP_GAMES.has(game)) return;
-  activeLineupGame = game;
+  lineupSession.activeGame = game;
 
   syncLineupGameSelectorUi(game);
   switchLineupGamePanels(game);
@@ -8834,7 +9103,7 @@ function setLineupGame(game) {
 }
 
 function clearLineupGame() {
-  activeLineupGame = null;
+  lineupSession.activeGame = null;
   initLineupGameDropdown.close?.();
   syncLineupGameSelectorUi(null);
   switchLineupGamePanels(null);
@@ -9969,10 +10238,6 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
   setAppMoreMenuOpen(false);
   setAppMiscMenuOpen(false);
 
-  if (SENS_SUGGESTION_HIDDEN_TABS.has(id)) {
-    hideSensSuggestion();
-  }
-
   if (id === "aim-training-tab") {
     setTimeout(() => {
       aimTrainer.handleResize();
@@ -10015,7 +10280,7 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
   updateGameInfoPanelVisibility();
   toggleProfileSensConvButtons();
 
-  if (updateHistory && !isInitialRoute) {
+  if (updateHistory && !routeState.isInitial) {
     syncUrlToTab(id);
   }
 }
@@ -10033,7 +10298,7 @@ function toggleEDPIResetButton() {
   const sensVal = elements["edpi-sens"].value;
   const dpiVal = document.getElementById("edpi-dpi").value;
   const gameVal = elements["edpi-game-search"]?.value || "";
-  const isDefault = (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0") && gameVal === "";
+  const isDefault = (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0" || dpiVal === "800") && gameVal === "";
   toggleVisibility(resetBtn, !isDefault);
 }
 
@@ -10080,10 +10345,9 @@ function toggleProfileSensConvButtons() {
   syncProfileAimResetVisibility(hist, resolveProgressChartSelectedDay(hist));
 }
 
-let updateConversionTimer = 0;
 function scheduleUpdateConversion() {
-  clearTimeout(updateConversionTimer);
-  updateConversionTimer = setTimeout(updateConversion, 64);
+  clearTimeout(debounceTimers.conversion);
+  debounceTimers.conversion = setTimeout(updateConversion, 64);
 }
 
 function updateConversion() {
@@ -10196,95 +10460,6 @@ window.addEventListener("storage", (e) => {
   }
 });
 
-const tacticalAdvice = {
-  General: {
-    low: ["Large mousepad required. You'll need the extra surface area for big arm swipes.", "Focus on arm aiming. Use your arm as the pivot point for large turns.", "Great for long-range precision. You'll find clicking heads at a distance much easier.", "Crosshair placement is key. Since flicking is slower, keep your aim where enemies will appear.", "Warm up your shoulder and elbow. Low sens is more physically demanding over long sessions.", "Perfect for 'Tac-Shooters'. Most tactical pros prefer this range for consistent clicking."],
-    average: ["The 'Golden Ratio'. You have enough speed for 180s and enough control for micro-adjustments.", "Hybrid aiming style. Use your arm for large turns and your wrist for fine-tuning.", "Very versatile. This sensitivity works well across different roles and agent types.", "Easier to track moving targets. The balance helps keep your crosshair glued to enemies.", "Lower fatigue. You don't have to move your whole arm as much as low-sens players.", "Standard Pro range. Most top-tier players in Valorant and CS2 land in this bracket."],
-    high: ["Wrist-heavy aiming. Use small, precise flick motions rather than large arm sweeps.", "Lighting fast 180s. You can react to flankers much faster than low-sens players.", "High precision mouse needed. Ensure your sensor can handle micro-movements without jitter.", "Keep a light grip. Tensing your hand too much will make your aim shaky at high speeds.", "Great for verticality. If you play agents with movement abilities, high sens helps you keep up.", "Focus on smoothness. Practice 'smooth tracking' drills to avoid jumpy crosshair movement."],
-  },
-  Valorant: {
-    low: ["Valorant: Large mousepad required. You'll need the extra surface area for big arm swipes.", "Valorant: Focus on arm aiming. Use your elbow as the pivot point for large turns.", "Valorant: Great for long-range precision. You'll find clicking heads at a distance much easier.", "Valorant: Crosshair placement is key. Since flicking is slower, keep your aim where enemies will appear.", "Valorant: Warm up your shoulder and elbow. Low sens is more physically demanding over long sessions.", "Valorant: Perfect for 'Tac-Shooters'. Most tactical pros prefer this range for consistent clicking."],
-    average: ["Valorant: The 'Golden Ratio'. You have enough speed for 180s and enough control for micro-adjustments.", "Valorant: Hybrid aiming style. Use your arm for large turns and your wrist for fine-tuning.", "Valorant: Very versatile. This sensitivity works well across different roles and agent types.", "Valorant: Easier to track moving targets. The balance helps keep your crosshair glued to enemies.", "Valorant: Lower fatigue. You don't have to move your whole arm as much as low-sens players.", "Valorant: Standard Pro range. Most top-tier players in Valorant and CS2 land in this bracket."],
-    high: ["Valorant: Wrist-heavy aiming. Use small, precise flick motions rather than large arm sweeps.", "Valorant: Lighting fast 180s. You can react to flankers much faster than low-sens players.", "Valorant: High precision mouse needed. Ensure your sensor can handle micro-movements without jitter.", "Valorant: Keep a light grip. Tensing your hand too much will make your aim shaky at high speeds.", "Valorant: Great for verticality. If you play agents with movement abilities, high sens helps you keep up.", "Valorant: Focus on smoothness. Practice 'smooth tracking' drills to avoid jumpy crosshair movement."],
-  },
-  CS2: {
-    low: ["CS2: Large mousepad required. You'll need the extra surface area for big arm swipes.", "CS2: Focus on arm aiming. Use your elbow as the pivot point for large turns.", "CS2: Great for long-range precision. You'll find clicking heads at a distance much easier.", "CS2: Crosshair placement is key. Since flicking is slower, keep your aim where enemies will appear.", "CS2: Warm up your shoulder and elbow. Low sens is more physically demanding over long sessions.", "CS2: Perfect for 'Tac-Shooters'. Most tactical pros prefer this range for consistent clicking."],
-    average: ["CS2: The 'Golden Ratio'. You have enough speed for 180s and enough control for micro-adjustments.", "CS2: Hybrid aiming style. Use your arm for large turns and your wrist for fine-tuning.", "CS2: Very versatile. This sensitivity works well across different roles and agent types.", "CS2: Easier to track moving targets. The balance helps keep your crosshair glued to enemies.", "CS2: Lower fatigue. You don't have to move your whole arm as much as low-sens players.", "CS2: Standard Pro range. Most top-tier players in Valorant and CS2 land in this bracket."],
-    high: ["CS2: Wrist-heavy aiming. Use small, precise flick motions rather than large arm sweeps.", "CS2: Lighting fast 180s. You can react to flankers much faster than low-sens players.", "CS2: High precision mouse needed. Ensure your sensor can handle micro-movements without jitter.", "CS2: Keep a light grip. Tensing your hand too much will make your aim shaky at high speeds.", "CS2: Great for verticality. If you play agents with movement abilities, high sens helps you keep up.", "CS2: Focus on smoothness. Practice 'smooth tracking' drills to avoid jumpy crosshair movement."],
-  },
-  "Black Ops 7": {
-    low: ["CoD: Best for holding lanes and long-range AR beams.", "CoD: Slide-canceling and 180s will be more physically demanding.", "CoD: Superior stability for high-magnification sniper scopes."],
-    average: ["CoD: The versatile choice for SMG rushing and AR anchoring.", "CoD: Balanced for reactive flicking and target switching.", "CoD: Good for tracking through fast movement and omnimovement dives."],
-    high: ["CoD: Essential for ultra-aggressive play and rapid room clearing.", "CoD: Reactive 180s to counter enemies coming from any direction.", "CoD: Perfect for tracking high-speed targets in close-quarters combat."],
-  },
-  "Rainbow 6 Siege": {
-    low: ["Siege: Pixel-perfect angle holding. Ideal for anchors on site.", "Siege: High stability for one-tap headshots through barricades.", "Siege: Focus on crosshair placement as room clearing requires arm swipes."],
-    average: ["Siege: Great for flex players who switch between entry and support.", "Siege: Balanced for clearing utility and hitting moving targets.", "Siege: Enough control to hold tight peeks while still being able to flick."],
-    high: ["Siege: Faster target acquisition when clearing multiple rooms.", "Siege: Easier to react to roamers and flankers behind you.", "Siege: Ideal for high-mobility ops and quick-scope entries."],
-  },
-  "Escape from Tarkov": {
-    low: ["EFT: Maximum precision for long-distance sniping on Woods or Shoreline.", "EFT: Inertia feels heavy; low sens encourages deliberate movement.", "EFT: Superior control for managing horizontal recoil at a distance."],
-    average: ["EFT: The standard for most PMC engagements and CQB.", "EFT: Balanced for loot-goblin speed and tactical precision.", "EFT: Good for tracking moving targets while wearing heavy armor."],
-    high: ["EFT: Faster 180s to check your six in high-tension areas.", "EFT: Easier to manage mouse movement with heavy gear penalties.", "EFT: Better for aggressive 'point-firing' in close quarters."],
-  },
-  "Apex Legends": {
-    low: ["Apex: Superior stability for long-range poke and sniping.", "Apex: Harder to track fast Octanes or Pathfinders up close.", "Apex: Focus on positioning; your arm will workout in close-range 1v1s."],
-    average: ["Apex: Balanced for R-99 tracking and Peacekeeper flicks.", "Apex: The sweet spot for most Legends, providing mobility and control.", "Apex: Great for tracking through Horizon lifts and Valkyrie launches."],
-    high: ["Apex: Essential for reactive tracking against strafing targets.", "Apex: Makes movement tech like tap-strafing much easier.", "Apex: Perfect for close-quarters submachine gun tracking."],
-  },
-  "ARC Raiders": {
-    low: ["ARC: Best for precision shots on machine weakpoints.", "ARC: Stable aim for long-range scouting and sniper support.", "ARC: Arm movements are key for tracking large, slow-moving enemies."],
-    average: ["ARC: Balanced for third-person perspective and combat mobility.", "ARC: Good for tracking flying drones and moving Raider units.", "ARC: The standard range for a mix of melee and ranged combat."],
-    high: ["ARC: Quick reactions to unexpected machine ambushes.", "ARC: Faster 360-degree awareness in vertical environments.", "ARC: Essential for high-octane close-quarters evasion."],
-  },
-  Overwatch: {
-    low: ["OW2: Ideal for Hitscan heroes like Cassidy, Ashe, and Widowmaker.", "OW2: Very difficult for high-mobility heroes like Genji or Tracer.", "OW2: Precision is key; focus on headclick consistency."],
-    average: ["OW2: The ultimate 'Flex' sensitivity. Handles most heroes well.", "OW2: Balanced for tracking as Soldier: 76 and flicking as Sojourn.", "OW2: Great for dealing with vertical movement from Pharah or Echo."],
-    high: ["OW2: Necessary for Tracer blinks and Genji Dragonblade swings.", "OW2: Reactive tracking for fast-paced close-range tank brawls.", "OW2: Better for heroes that require frequent 180-degree turns."],
-  },
-  "Delta Force": {
-    low: ["Delta Force: Precision is king in large-scale battlefield combat.", "Delta Force: Stable aim for vehicles and long-range tactical ops.", "Delta Force: Best for sniper specialists and designated marksmen."],
-    average: ["Delta Force: Versatile for both infantry combat and vehicle gunning.", "Delta Force: Balanced for tracking infantry and reactive flicking.", "Delta Force: Good for mid-range engagements and clearing buildings."],
-    high: ["Delta Force: Faster reaction times in hectic urban firefights.", "Delta Force: Easier to clear corners in high-risk zones.", "Delta Force: Best for high-speed assault roles and CQC."],
-  },
-  Fortnite: {
-    low: ["Fortnite: Unrivaled shotgun precision. Every pellet counts.", "Fortnite: Editing and building will require significant arm movement.", "Fortnite: Best for passive play and long-range AR beams."],
-    average: ["Fortnite: The hybrid choice for fast building and accurate aiming.", "Fortnite: Smooth enough for consistent piece control and box fighting.", "Fortnite: Great balance for rotating and tracking in end-game zones."],
-    high: ["Fortnite: Flashy edits and rapid piece control are much easier.", "Fortnite: Reactive 180-degree box flips to counter unexpected players.", "Fortnite: Building is effortless, but keep a steady hand for AR tracking."],
-  },
-  Roblox: {
-    low: ["Roblox: Best for FPS titles requiring high precision and control.", "Roblox: Stable aim for obstacle courses and long-range combat.", "Roblox: Focus on arm movement for consistent camera control."],
-    average: ["Roblox: The versatile standard for a wide variety of mini-games.", "Roblox: Balanced for both casual play and competitive shooters.", "Roblox: Good for tracking moving parts in fast-paced games."],
-    high: ["Roblox: Quick reactions for high-speed obstacle courses (Obbys).", "Roblox: Faster camera movement for casual social exploration.", "Roblox: Essential for fast-paced sword fighting or CQC."],
-  },
-  Aimlabs: {
-    low: ["Aimlabs: Focus on precision tasks like Sixshot and Microflex.", "Aimlabs: Great for developing arm-aiming muscle memory.", "Aimlabs: Higher physical exertion; take breaks during long sessions."],
-    average: ["Aimlabs: The benchmark range for general aim improvement.", "Aimlabs: Balanced for both flicking and tracking scenarios.", "Aimlabs: Ideal for Gridshot speed and SphereTrack smoothness."],
-    high: ["Aimlabs: Best for high-speed target switching and reactiveness.", "Aimlabs: Focus on wrist precision for small target micro-flicks.", "Aimlabs: Perfect for close-range tracking and fast reaction tasks."],
-  },
-  Rust: {
-    low: ["Rust: Superior control for managing high-recoil AK sprays.", "Rust: Precision for long-distance roof camping and bolt-action shots.", "Rust: Low sensitivity helps smooth out shaky tracking during raids."],
-    average: ["Rust: The all-rounder for farming, roaming, and base defense.", "Rust: Balanced for bow fights and automatic weapon tracking.", "Rust: Versatile enough for both long-range and close-range combat."],
-    high: ["Rust: Faster 180s to spot flankers while you're farming nodes.", "Rust: Better for hectic close-range building and rapid placement.", "Rust: Easier to clear corners while moving through tight monuments."],
-  },
-};
-
-function getAdvice(edpi, game) {
-  const multiplier = getGameConversionFactor(game);
-  if (multiplier == null) return tacticalAdvice.General.average[0];
-  const lowThreshold = 200 * multiplier;
-  const midThreshold = 320 * multiplier;
-  let tier;
-
-  if (edpi < lowThreshold) tier = "low";
-  else if (edpi < midThreshold) tier = "average";
-  else tier = "high";
-
-  const resolvedGame = MorningRoastGames.resolveGameName(game) || game;
-  const adviceForGame = tacticalAdvice[resolvedGame] || tacticalAdvice.General;
-  const options = adviceForGame[tier];
-  return options[Math.floor(Math.random() * options.length)];
-}
 
 function handleInputValidation(input, callback) {
   const isDpiField = input.id.includes("-dpi"),
@@ -10448,12 +10623,7 @@ const DEFAULT_PROFILE_FILTER_GAME = "Aimlabs";
 function getProfileGameFilter() {
   const input = document.getElementById("profile-game-search");
   if (!input) return DEFAULT_PROFILE_FILTER_GAME;
-  return (
-    getCommittedGameFromInput(input) ||
-    resolveStoredGameName(input.dataset.lastValid) ||
-    resolveStoredGameName(localStorage.getItem(PROFILE_FILTER_GAME_KEY)) ||
-    DEFAULT_PROFILE_FILTER_GAME
-  );
+  return getCommittedGameFromInput(input) || resolveStoredGameName(input.dataset.lastValid) || resolveStoredGameName(localStorage.getItem(PROFILE_FILTER_GAME_KEY)) || DEFAULT_PROFILE_FILTER_GAME;
 }
 
 function initProfileGameFilter() {
@@ -10704,11 +10874,13 @@ function initProfileChartsWatcher() {
   initProgressChartCalendar();
 }
 
-let progressChartHoverIndex = -1;
+const progressUi = {
+  chartHoverIndex: -1,
+  calendarView: { year: new Date().getFullYear(), month: new Date().getMonth() },
+};
 const PROGRESS_CHART_DATE_KEY = "prefProgressChartDate";
 const PROGRESS_CHART_HEIGHT = 228;
 const PROGRESS_CHART_PAD = { x: 18, top: 14, bottom: 16 };
-let progressCalendarView = { year: new Date().getFullYear(), month: new Date().getMonth() };
 
 function getProgressDayKey(ts) {
   const d = new Date(ts);
@@ -10788,7 +10960,7 @@ function renderProgressCalendarGrid(hist) {
 
   const selected = resolveProgressChartSelectedDay(hist);
   const daysWithData = getProgressDaysWithData(hist);
-  const { year, month } = progressCalendarView;
+  const { year, month } = progressUi.calendarView;
   const todayKey = getProgressDayKey(Date.now());
   const todayStart = getProgressDayWindow(todayKey).start;
 
@@ -10824,7 +10996,7 @@ function syncProgressChartDateUi(hist) {
 
   const parsed = parseProgressDayKey(selected);
   if (parsed.year && parsed.month) {
-    progressCalendarView = { year: parsed.year, month: parsed.month - 1 };
+    progressUi.calendarView = { year: parsed.year, month: parsed.month - 1 };
   }
   renderProgressCalendarGrid(hist);
 }
@@ -10865,10 +11037,10 @@ function initProgressChartCalendar() {
 
   prevBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
-    progressCalendarView.month -= 1;
-    if (progressCalendarView.month < 0) {
-      progressCalendarView.month = 11;
-      progressCalendarView.year -= 1;
+    progressUi.calendarView.month -= 1;
+    if (progressUi.calendarView.month < 0) {
+      progressUi.calendarView.month = 11;
+      progressUi.calendarView.year -= 1;
     }
     const { game, mode, timer } = getProfileAimContext();
     const histKey = `aimHistory_${game}_${mode}_${timer}`;
@@ -10881,10 +11053,10 @@ function initProgressChartCalendar() {
 
   nextBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
-    progressCalendarView.month += 1;
-    if (progressCalendarView.month > 11) {
-      progressCalendarView.month = 0;
-      progressCalendarView.year += 1;
+    progressUi.calendarView.month += 1;
+    if (progressUi.calendarView.month > 11) {
+      progressUi.calendarView.month = 0;
+      progressUi.calendarView.year += 1;
     }
     const { game, mode, timer } = getProfileAimContext();
     const histKey = `aimHistory_${game}_${mode}_${timer}`;
@@ -10946,8 +11118,8 @@ function hideProgressChartTooltip() {
     tooltip.setAttribute("aria-hidden", "true");
   }
   if (canvas) canvas.style.cursor = "default";
-  const changed = progressChartHoverIndex !== -1;
-  progressChartHoverIndex = -1;
+  const changed = progressUi.chartHoverIndex !== -1;
+  progressUi.chartHoverIndex = -1;
   return changed;
 }
 
@@ -11014,8 +11186,8 @@ function initProgressChartInteraction() {
 
   canvas.addEventListener("mousemove", (e) => {
     const idx = findProgressChartPoint(canvas, e.clientX, e.clientY);
-    if (idx === progressChartHoverIndex) return;
-    progressChartHoverIndex = idx;
+    if (idx === progressUi.chartHoverIndex) return;
+    progressUi.chartHoverIndex = idx;
     if (idx >= 0) {
       const state = canvas._progressChartState;
       showProgressChartTooltip(state.points[idx], state.mode, state.cssW, state.cssH);
@@ -11168,7 +11340,7 @@ function renderProgressChart(game, mode, timer) {
   const yFor = (v) => chartBottom - ((v - min) / scoreRange) * chartHeight;
   const points = getProgressChartPoints(sessions, dayStart, dayEnd, padX, cssW, yFor);
 
-  if (progressChartHoverIndex >= points.length) {
+  if (progressUi.chartHoverIndex >= points.length) {
     hideProgressChartTooltip();
   }
 
@@ -11198,7 +11370,7 @@ function renderProgressChart(game, mode, timer) {
   }
 
   points.forEach(({ x, y }, i) => {
-    const hovered = i === progressChartHoverIndex;
+    const hovered = i === progressUi.chartHoverIndex;
     const outerR = hovered ? 5 : 3;
     const innerR = hovered ? 2 : 1.5;
     ctx.beginPath();
@@ -11218,8 +11390,8 @@ function renderProgressChart(game, mode, timer) {
     ctx.fill();
   });
 
-  if (progressChartHoverIndex >= 0 && points[progressChartHoverIndex]) {
-    const point = points[progressChartHoverIndex];
+  if (progressUi.chartHoverIndex >= 0 && points[progressUi.chartHoverIndex]) {
+    const point = points[progressUi.chartHoverIndex];
     showProgressChartTooltip(point, mode, cssW, h);
   }
 }
@@ -11385,7 +11557,7 @@ function syncKeybindLabels() {
 
   const key7Label = document.getElementById("keybind-7-label");
   if (!key7Label) return;
-  key7Label.textContent = LINEUP_TAB_ENABLED ? "Open Lineups" : "Cycle More pages (Keybinds / Updates / Privacy / Terms / Credit)";
+  key7Label.textContent = LINEUP_TAB_ENABLED ? "Open Lineups" : "Cycle More pages (Keybinds / Changelog / Privacy / Terms / Credit)";
 }
 
 function initLogoMask() {
@@ -11452,28 +11624,7 @@ const BG_PATTERN_ICONS = {
 
 const DEFAULT_FONT_FAMILY_ID = "inter";
 
-const FONT_FAMILY_IDS = new Set([
-  "inter",
-  "roboto",
-  "poppins",
-  "space-grotesk",
-  "dm-sans",
-  "montserrat",
-  "open-sans",
-  "lato",
-  "nunito",
-  "raleway",
-  "ubuntu",
-  "source-sans-3",
-  "work-sans",
-  "outfit",
-  "manrope",
-  "oswald",
-  "rubik",
-  "lexend",
-  "plus-jakarta-sans",
-  "figtree",
-]);
+const FONT_FAMILY_IDS = new Set(["inter", "roboto", "poppins", "space-grotesk", "dm-sans", "montserrat", "open-sans", "lato", "nunito", "raleway", "ubuntu", "source-sans-3", "work-sans", "outfit", "manrope", "oswald", "rubik", "lexend", "plus-jakarta-sans", "figtree"]);
 
 const FONT_FAMILY_STACKS = {
   inter: '"Inter", sans-serif',
@@ -12389,8 +12540,8 @@ function initPreferences() {
 
   const applyAccent = (hsl, { instant = false } = {}) => {
     const normalized = normalizeAccent(hsl);
-    if (appliedAccentKey === normalized) return;
-    appliedAccentKey = normalized;
+    if (accentRuntime.appliedKey === normalized) return;
+    accentRuntime.appliedKey = normalized;
     commitAccentColor(normalized, { instant });
   };
   const applyFontSize = (scale) => {
@@ -12647,7 +12798,11 @@ function initPreferences() {
   };
 
   const setCustomAccentLabel = (color) => {
-    const hex = String(color || "").trim().startsWith("#") ? color : accentColorString(color);
+    const hex = String(color || "")
+      .trim()
+      .startsWith("#")
+      ? color
+      : accentColorString(color);
     const name = typeof getAccentColorName === "function" ? getAccentColorName(hex) : "Custom";
     if (accentLabel) accentLabel.textContent = name;
     accentCustomSwatch?.setAttribute("aria-label", name);
@@ -12810,7 +12965,9 @@ function initPreferences() {
   enableAccentTransitions();
 }
 
-let changelogCalendarView = { year: new Date().getFullYear(), month: new Date().getMonth() };
+const changelogUi = {
+  calendarView: { year: new Date().getFullYear(), month: new Date().getMonth() },
+};
 
 function getChangelogReleaseDates(panel) {
   const releaseDates = new Map();
@@ -12828,7 +12985,7 @@ function renderChangelogCalendarGrid(releaseDates, selected) {
   const title = document.getElementById("changelog-cal-title");
   if (!grid || !title) return;
 
-  const { year, month } = changelogCalendarView;
+  const { year, month } = changelogUi.calendarView;
   const todayKey = getProgressDayKey(Date.now());
   const todayStart = getProgressDayWindow(todayKey).start;
 
@@ -12852,10 +13009,7 @@ function renderChangelogCalendarGrid(releaseDates, selected) {
     const classes = ["aim-progress-cal-day", hasRelease ? "has-data" : "", selected !== "all" && dayKey === selected ? "selected" : "", dayKey === todayKey ? "today" : ""].filter(Boolean).join(" ");
     const disabled = !hasRelease || isFuture;
 
-    grid.insertAdjacentHTML(
-      "beforeend",
-      `<button type="button" class="${classes}" data-day="${dayKey}"${disabled ? " disabled" : ""} aria-label="${releaseDates.get(dayKey) || formatProgressDayLabel(dayKey)}">${day}</button>`,
-    );
+    grid.insertAdjacentHTML("beforeend", `<button type="button" class="${classes}" data-day="${dayKey}"${disabled ? " disabled" : ""} aria-label="${releaseDates.get(dayKey) || formatProgressDayLabel(dayKey)}">${day}</button>`);
   }
 
   const nextBtn = document.getElementById("changelog-cal-next");
@@ -12896,7 +13050,7 @@ function initChangelogDateFilter() {
     if (selected !== "all") {
       const parsed = parseProgressDayKey(selected);
       if (parsed.year && parsed.month) {
-        changelogCalendarView = { year: parsed.year, month: parsed.month - 1 };
+        changelogUi.calendarView = { year: parsed.year, month: parsed.month - 1 };
       }
     }
     renderChangelogCalendarGrid(releaseDates, selected);
@@ -12948,20 +13102,20 @@ function initChangelogDateFilter() {
 
   prevBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
-    changelogCalendarView.month -= 1;
-    if (changelogCalendarView.month < 0) {
-      changelogCalendarView.month = 11;
-      changelogCalendarView.year -= 1;
+    changelogUi.calendarView.month -= 1;
+    if (changelogUi.calendarView.month < 0) {
+      changelogUi.calendarView.month = 11;
+      changelogUi.calendarView.year -= 1;
     }
     renderChangelogCalendarGrid(releaseDates, selected);
   });
 
   nextBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
-    changelogCalendarView.month += 1;
-    if (changelogCalendarView.month > 11) {
-      changelogCalendarView.month = 0;
-      changelogCalendarView.year += 1;
+    changelogUi.calendarView.month += 1;
+    if (changelogUi.calendarView.month > 11) {
+      changelogUi.calendarView.month = 0;
+      changelogUi.calendarView.year += 1;
     }
     renderChangelogCalendarGrid(releaseDates, selected);
   });
@@ -13000,6 +13154,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   initChangelogDateFilter();
   cacheElements();
+  initEdpiSpectrumDrag();
   initSearchDropdownFocusLossHandlers();
   initLogoMask();
   renderGameOptions(document.getElementById("from-list"), "data-game");
@@ -13029,6 +13184,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initThemeSettingsMenu();
   initGeneralSettingsMenu();
   initConfirmReset();
+  window.MorningRoastAssistant?.initSiteAssistant?.();
   initOfflineStatus();
   initTrainerSettingsDropdowns();
   initProfileChartsWatcher();
@@ -13347,13 +13503,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const pGame = document.getElementById("profile-edpi-game");
       const pSens = document.getElementById("profile-edpi-sens");
       const pDpi = document.getElementById("profile-edpi-dpi");
+      const pCm = document.getElementById("profile-edpi-cm");
       const pDot = document.getElementById("profile-edpi-status-dot");
 
       if (pEdpi) pEdpi.innerText = "0.00";
       if (pGame) pGame.innerText = "";
       if (pSens) pSens.innerText = "-";
       if (pDpi) pDpi.innerText = "-";
+      if (pCm) pCm.textContent = "-";
       if (pDot) pDot.style.display = "none";
+
+      // Clear live calculator fields so updateEDPI cannot immediately rewrite saved stats.
+      const eD = document.getElementById("edpi-dpi");
+      const eS = document.getElementById("edpi-sens");
+      if (eD) eD.value = "800";
+      if (eS) eS.value = "";
+      clearEdpiGameDropdown();
+      updateEDPI();
 
       toggleProfileSensConvButtons();
       updateGameInfoPanelVisibility();
@@ -13379,15 +13545,18 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmBeforeReset("Reset the eDPI calculator fields?", () => {
       const eD = document.getElementById("edpi-dpi");
       const eS = document.getElementById("edpi-sens");
-      if (eD) eD.value = "";
+      if (eD) eD.value = "800";
       if (eS) eS.value = "";
       clearEdpiGameDropdown();
       updateEDPI();
     });
   });
   document.querySelectorAll(".copy-button").forEach((btn) => {
-    btn.addEventListener("click", function () {
-      if (isCopying) return;
+    if (!btn.getAttribute("type")) btn.setAttribute("type", "button");
+    btn.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (clipboardState.isCopying) return;
       if (this.id === "crosshair-converter-copy") return;
 
       const isProfileSensCopy = this.id === "profile-sens-conv-copy";
@@ -13395,7 +13564,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const isMainEdpi = this.id === "edpi-copy";
 
       const sourceId = isProfileSensCopy ? "last-sens-conv" : isProfileEdpiCopy ? "last-edpi-calc" : isMainEdpi ? "edpi-value" : "new-sens-value";
-      const val = document.getElementById(sourceId)?.innerText?.trim();
+      const source = document.getElementById(sourceId);
+      const val = (source?.textContent || source?.innerText || "").trim();
 
       if (!val || val === "0.00" || val === "0" || val === "" || val === "-") {
         this.classList.add("vibrate");
@@ -13403,9 +13573,9 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      isCopying = true;
+      clipboardState.isCopying = true;
       copyText(val).finally(() => {
-        isCopying = false;
+        clipboardState.isCopying = false;
       });
     });
   });
@@ -13507,12 +13677,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   toggleProfileSensConvButtons();
   updateGameInfoPanelVisibility();
-  isInitialRoute = true;
+  routeState.isInitial = true;
   initTabRouting();
   applySharedParams();
   syncAllGameTriggerIcons();
   syncUrlToTab(getCurrentTabId(), { replace: true, keepSearch: Boolean(new URLSearchParams(window.location.search).get("t")) });
-  isInitialRoute = false;
+  routeState.isInitial = false;
   scrollToTop(350);
   finishAppLoadingScreen();
 });
