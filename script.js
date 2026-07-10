@@ -2882,11 +2882,11 @@ const UI_REFRESH_MODES = new Set(["60", "144", "max"]);
 function normalizeUiRefreshMode(stored) {
   if (stored && UI_REFRESH_MODES.has(stored)) return stored;
   if (stored === "true") return "144";
-  return "60";
+  return "max";
 }
 
 const UiFpsCap = (() => {
-  let mode = "60";
+  let mode = "max";
   let intervalId = null;
   let queue = [];
   let nextId = 1;

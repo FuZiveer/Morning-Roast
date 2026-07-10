@@ -8539,8 +8539,8 @@ button.crosshair-preset-btn {
   cursor: pointer;
 }
 
-.site-assistant-clear:hover,
-.site-assistant-clear:focus-visible,
+.site-assistant-clear:hover:not(:disabled),
+.site-assistant-clear:focus-visible:not(:disabled),
 .site-assistant-close:hover,
 .site-assistant-close:focus-visible {
   border-color: var(--accent-color);
@@ -8548,7 +8548,7 @@ button.crosshair-preset-btn {
   outline: none;
 }
 
-.site-assistant.is-busy .site-assistant-clear {
+.site-assistant-clear:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -9092,10 +9092,15 @@ button.crosshair-preset-btn {
   cursor: pointer;
 }
 
-.site-assistant-send:hover,
-.site-assistant-send:focus-visible {
+.site-assistant-send:hover:not(:disabled),
+.site-assistant-send:focus-visible:not(:disabled) {
   background: hsl(from var(--accent-color) h s l / 0.32);
   outline: none;
+}
+
+.site-assistant-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .site-assistant-stop {

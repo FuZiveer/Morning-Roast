@@ -659,26 +659,31 @@
     let offline = !navigator.onLine;
     const toggleMagnet = initToggleMagnetism(dock, toggle, { isLocked: () => open });
 
+    const hasChatMessages = () => messages.querySelector(".site-assistant-msg") != null;
+    const hasMessageToSend = () => Boolean(String(input.value || "").trim());
+
+    const syncComposerControls = () => {
+      input.disabled = offline || busy;
+      if (sendBtn) sendBtn.disabled = offline || busy || !hasMessageToSend();
+      if (clearBtn) clearBtn.disabled = offline || busy || !hasChatMessages();
+      if (stopBtn) {
+        stopBtn.hidden = !busy;
+        stopBtn.disabled = stopping;
+      }
+      root.classList.toggle("is-busy", busy);
+    };
+
     const setConnectionOnline = (online) => {
       offline = !online;
       root.classList.toggle("is-offline", offline);
       if (offlineNotice) offlineNotice.hidden = !offline;
-      input.disabled = offline || busy;
-      if (sendBtn) sendBtn.disabled = offline || busy;
-      if (clearBtn) clearBtn.disabled = offline || busy;
+      syncComposerControls();
       if (offline && busy) stopResponse();
     };
 
     const setBusy = (next) => {
       busy = Boolean(next);
-      input.disabled = offline || busy;
-      if (sendBtn) sendBtn.disabled = offline || busy;
-      if (stopBtn) {
-        stopBtn.hidden = !busy;
-        stopBtn.disabled = stopping;
-      }
-      if (clearBtn) clearBtn.disabled = offline || busy;
-      root.classList.toggle("is-busy", busy);
+      syncComposerControls();
     };
 
     const trackActiveReply = (row, bubble, abortController, token) => {
@@ -738,6 +743,7 @@
       messages.replaceChildren();
       conversation.length = 0;
       setBusy(false);
+      syncComposerControls();
       input.focus({ preventScroll: true });
     };
 
@@ -976,9 +982,13 @@
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const value = input.value;
+      if (!String(value || "").trim()) return;
       input.value = "";
+      syncComposerControls();
       ask(value);
     });
+
+    input.addEventListener("input", syncComposerControls);
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && open) {
@@ -1022,6 +1032,7 @@
 
     const syncConnection = () => setConnectionOnline(navigator.onLine);
     syncConnection();
+    syncComposerControls();
     window.addEventListener("online", syncConnection);
     window.addEventListener("offline", syncConnection);
   }

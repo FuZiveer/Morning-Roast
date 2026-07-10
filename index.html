@@ -2720,9 +2720,9 @@
                         <div class="control-group">
                           <div class="trainer-toggle-selector pref-toggle" id="refresh-selector">
                             <div class="glider"></div>
-                            <button class="toggle-btn active" data-refresh="60">60HZ</button>
+                            <button class="toggle-btn" data-refresh="60">60HZ</button>
                             <button class="toggle-btn" data-refresh="144">144HZ</button>
-                            <button class="toggle-btn" data-refresh="max">MAX</button>
+                            <button class="toggle-btn active" data-refresh="max">MAX</button>
                           </div>
                         </div>
                       </div>
@@ -3003,7 +3003,7 @@
             </div>
           </div>
           <div class="site-assistant-header-actions">
-            <button type="button" id="site-assistant-clear" class="site-assistant-clear" aria-label="Clear chat">
+            <button type="button" id="site-assistant-clear" class="site-assistant-clear" aria-label="Clear chat" disabled>
               <i class="ri-delete-bin-line" aria-hidden="true"></i>
             </button>
             <button type="button" id="site-assistant-close" class="site-assistant-close" aria-label="Close helper">
@@ -3018,7 +3018,7 @@
         <form id="site-assistant-form" class="site-assistant-form" autocomplete="off">
           <label class="visually-hidden" for="site-assistant-input">Ask a question</label>
           <input id="site-assistant-input" class="site-assistant-input" type="text" maxlength="280" placeholder="Ask anything" />
-          <button type="submit" class="site-assistant-send" aria-label="Send question">
+          <button type="submit" class="site-assistant-send" aria-label="Send question" disabled>
             <i class="ri-send-plane-2-line" aria-hidden="true"></i>
           </button>
           <button type="button" id="site-assistant-stop" class="site-assistant-stop" aria-label="Stop response" hidden>
