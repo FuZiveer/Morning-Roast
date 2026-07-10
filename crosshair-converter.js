@@ -226,26 +226,7 @@
   }
 
   function encodeCs2ShareCode(crosshair) {
-    const bytes = [
-      0,
-      1,
-      (crosshair.gap * 10) & 0xff,
-      crosshair.outlineThickness * 2,
-      crosshair.r,
-      crosshair.g,
-      crosshair.b,
-      crosshair.alpha,
-      (crosshair.splitDistance || 0) & 7 | (Number(crosshair.followRecoil) << 7),
-      ((crosshair.fixedCrosshairGap || 0) * 10) & 0xff,
-      (crosshair.color & 7) | (Number(crosshair.outline) << 3) | (((crosshair.innerSplitAlpha ?? 1) * 10) << 4),
-      ((crosshair.outerSplitAlpha ?? 0.5) * 10) | (((crosshair.splitSizeRatio ?? 1) * 10) << 4),
-      crosshair.thickness * 10,
-      (crosshair.style << 1) | (Number(crosshair.dot) << 4) | (Number(crosshair.deployedWeaponGap) << 5) | (Number(crosshair.useAlpha) << 6) | (Number(crosshair.t) << 7),
-      crosshair.size * 10,
-      0,
-      0,
-      0,
-    ];
+    const bytes = [0, 1, (crosshair.gap * 10) & 0xff, crosshair.outlineThickness * 2, crosshair.r, crosshair.g, crosshair.b, crosshair.alpha, ((crosshair.splitDistance || 0) & 7) | (Number(crosshair.followRecoil) << 7), ((crosshair.fixedCrosshairGap || 0) * 10) & 0xff, (crosshair.color & 7) | (Number(crosshair.outline) << 3) | (((crosshair.innerSplitAlpha ?? 1) * 10) << 4), ((crosshair.outerSplitAlpha ?? 0.5) * 10) | (((crosshair.splitSizeRatio ?? 1) * 10) << 4), crosshair.thickness * 10, (crosshair.style << 1) | (Number(crosshair.dot) << 4) | (Number(crosshair.deployedWeaponGap) << 5) | (Number(crosshair.useAlpha) << 6) | (Number(crosshair.t) << 7), crosshair.size * 10, 0, 0, 0];
     bytes[0] = sumArray(bytes) & 0xff;
     return bytesToShareCode(bytes);
   }

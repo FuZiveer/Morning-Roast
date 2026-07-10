@@ -74,6 +74,243 @@ function bindHeightResizeAnimation(el, { durationMs = 300, onSettle } = {}) {
   }).observe(el);
 }
 
+function prefersReducedUiMotion() {
+  return document.body?.classList.contains("reduce-motion") || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+}
+
+function isSiteAssistantPullBlocked() {
+  return (
+    document.getElementById("confirm-reset-overlay")?.classList.contains("active") ||
+    document.getElementById("theme-settings-overlay")?.classList.contains("active") ||
+    document.getElementById("general-settings-overlay")?.classList.contains("active") ||
+    document.getElementById("trainer-settings-overlay")?.classList.contains("active")
+  );
+}
+
+function initMagneticPull(element, {
+  pullRadius = 100,
+  followRadius = null,
+  maxOffset = 42,
+  pullXVar = "--magnetic-pull-x",
+  pullYVar = "--magnetic-pull-y",
+  isLocked = () => false,
+  isBlocked = () => false,
+  buttonSizeFallback = 50,
+  hoverElement = null,
+} = {}) {
+  if (!element) return { lock() {}, unlock() {} };
+  const hoverTarget = hoverElement || element;
+
+  let offsetX = 0;
+  let offsetY = 0;
+  let velX = 0;
+  let velY = 0;
+  let mouseX = null;
+  let mouseY = null;
+  let lockedOffsetX = 0;
+  let lockedOffsetY = 0;
+  let hovered = false;
+  let animating = false;
+  let lastTs = 0;
+
+  const applyOffset = () => {
+    element.style.setProperty(pullXVar, `${offsetX}px`);
+    element.style.setProperty(pullYVar, `${offsetY}px`);
+  };
+
+  const getRestCenter = () => {
+    const rect = element.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2 - offsetX,
+      y: rect.top + rect.height / 2 - offsetY,
+    };
+  };
+
+  const tick = (ts) => {
+    const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0.016;
+    lastTs = ts;
+    const dtScale = Math.min(2.5, dt * 60);
+    const reduced = prefersReducedUiMotion();
+    const buttonSize = element.offsetWidth || buttonSizeFallback;
+    let active = false;
+
+    if (isLocked()) {
+      offsetX = lockedOffsetX;
+      offsetY = lockedOffsetY;
+      velX = 0;
+      velY = 0;
+      applyOffset();
+      animating = false;
+      return;
+    }
+
+    if (isBlocked()) {
+      hovered = false;
+      const spring = 0.18 * dtScale;
+      velX += -offsetX * spring;
+      velY += -offsetY * spring;
+      velX *= Math.pow(0.82, dtScale);
+      velY *= Math.pow(0.82, dtScale);
+      offsetX += velX * dtScale;
+      offsetY += velY * dtScale;
+      applyOffset();
+      if (Math.hypot(offsetX, offsetY) > 0.05 || Math.hypot(velX, velY) > 0.002) {
+        requestAnimationFrame(tick);
+      } else {
+        offsetX = 0;
+        offsetY = 0;
+        velX = 0;
+        velY = 0;
+        applyOffset();
+        animating = false;
+      }
+      return;
+    }
+
+    if (!reduced && mouseX != null && mouseY != null) {
+      const center = getRestCenter();
+      const dx = mouseX - center.x;
+      const dy = mouseY - center.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist > 0.001) {
+        if (hovered) {
+          const follow = 0.24 * dtScale;
+          velX += (dx - offsetX) * follow;
+          velY += (dy - offsetY) * follow;
+          active = true;
+        } else if (followRadius != null && dist < followRadius) {
+          const t = 1 - dist / followRadius;
+          const follow = (0.32 + t * 0.5) * dtScale;
+          velX += (dx - offsetX) * follow;
+          velY += (dy - offsetY) * follow;
+          active = true;
+        } else if (dist < pullRadius) {
+          const t = 1 - dist / pullRadius;
+          const pullStrength = (0.28 + t * t * 2.6) * (reduced ? 0.35 : 1);
+          velX += (dx / dist) * pullStrength * dtScale;
+          velY += (dy / dist) * pullStrength * dtScale;
+          velX *= 1 - t * 0.018 * dtScale;
+          velY *= 1 - t * 0.018 * dtScale;
+          active = true;
+
+          if (dist < buttonSize * 0.85) {
+            const push = ((buttonSize * 0.85 - dist) / buttonSize) * 0.18;
+            velX -= (dx / dist) * push * dtScale;
+            velY -= (dy / dist) * push * dtScale;
+          }
+        }
+      }
+    }
+
+    const spring = mouseX == null ? 0.16 : hovered ? 0.03 : 0.08;
+    velX += -offsetX * spring * dtScale;
+    velY += -offsetY * spring * dtScale;
+    velX *= Math.pow(0.86, dtScale);
+    velY *= Math.pow(0.86, dtScale);
+    offsetX += velX * dtScale;
+    offsetY += velY * dtScale;
+
+    const mag = Math.hypot(offsetX, offsetY);
+    if (mag > maxOffset) {
+      const scale = maxOffset / mag;
+      offsetX *= scale;
+      offsetY *= scale;
+      velX *= 0.45;
+      velY *= 0.45;
+    }
+
+    applyOffset();
+
+    if (active || Math.hypot(velX, velY) > 0.002 || Math.hypot(offsetX, offsetY) > 0.05) {
+      requestAnimationFrame(tick);
+    } else {
+      animating = false;
+    }
+  };
+
+  const retract = () => {
+    if (isLocked()) return;
+    schedule();
+  };
+
+  const schedule = () => {
+    if (isLocked() || animating) return;
+    animating = true;
+    lastTs = 0;
+    requestAnimationFrame(tick);
+  };
+
+  const onPointerMove = (event) => {
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+    if (isBlocked()) {
+      retract();
+      return;
+    }
+    if (!isLocked()) schedule();
+  };
+
+  const onPointerLeave = () => {
+    mouseX = null;
+    mouseY = null;
+    schedule();
+  };
+
+  const onElementEnter = () => {
+    hovered = true;
+    schedule();
+  };
+
+  const onElementLeave = () => {
+    hovered = false;
+    schedule();
+  };
+
+  document.addEventListener("pointermove", onPointerMove, { passive: true });
+  document.addEventListener("pointerleave", onPointerLeave);
+  hoverTarget.addEventListener("pointerenter", onElementEnter);
+  hoverTarget.addEventListener("pointerleave", onElementLeave);
+
+  registerMagneticPullRetractor(retract);
+
+  return {
+    lock() {
+      lockedOffsetX = offsetX;
+      lockedOffsetY = offsetY;
+      applyOffset();
+    },
+    unlock() {
+      schedule();
+    },
+    retract,
+  };
+}
+
+const magneticPullRetractors = [];
+
+function registerMagneticPullRetractor(retract) {
+  if (typeof retract === "function") magneticPullRetractors.push(retract);
+}
+
+function retractAllMagneticPulls() {
+  magneticPullRetractors.forEach((retract) => retract());
+}
+
+function initTopicIndicatorMagnetism() {
+  document.querySelectorAll("#stats-tab .topic-indicator").forEach((indicator) => {
+    initMagneticPull(indicator, {
+      pullRadius: 100,
+      followRadius: null,
+      maxOffset: 50,
+      pullXVar: "--topic-indicator-pull-x",
+      pullYVar: "--topic-indicator-pull-y",
+      isBlocked: isSiteAssistantPullBlocked,
+      buttonSizeFallback: 42,
+    });
+  });
+}
+
 const Toast = (() => {
   const DEFAULT_DURATION = 5000;
   const RESIZE_MS = 300;
@@ -2130,7 +2367,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v30";
+const APP_CACHE_VERSION = "morning-roast-v43";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -2170,6 +2407,7 @@ function isScrollLockedByOverlay() {
 
 function syncBodyScrollLock() {
   document.body.style.overflow = isScrollLockedByOverlay() ? "hidden" : "";
+  retractAllMagneticPulls();
 }
 
 function closeConfirmReset() {
@@ -6620,7 +6858,7 @@ const TAB_SLUGS = {
   "lineup-tab": "lineups",
   "aim-training-tab": "aim-training",
   "keybinds-tab": "keybinds",
-  "updates-tab": "changelog",
+  "updates-tab": "updates",
   "privacy-policy-tab": "privacy-policy",
   "terms-of-service-tab": "terms-of-service",
   "credit-tab": "credit",
@@ -6659,7 +6897,6 @@ function getTabIdFromPath() {
   if (!slug) return DEFAULT_TAB_ID;
   if (!LINEUP_TAB_ENABLED && slug === TAB_SLUGS["lineup-tab"]) return DEFAULT_TAB_ID;
   if (!MISC_TAB_ENABLED && slug === TAB_SLUGS["crosshair-converter-tab"]) return DEFAULT_TAB_ID;
-  if (slug === "updates") return "updates-tab";
   return SLUG_TO_TAB[slug] || DEFAULT_TAB_ID;
 }
 
@@ -10460,7 +10697,6 @@ window.addEventListener("storage", (e) => {
   }
 });
 
-
 function handleInputValidation(input, callback) {
   const isDpiField = input.id.includes("-dpi"),
     isSensField = input.id === "base-sens" || input.id === "edpi-sens" || input.id === "canvas-sens";
@@ -10879,6 +11115,7 @@ const progressUi = {
   calendarView: { year: new Date().getFullYear(), month: new Date().getMonth() },
 };
 const PROGRESS_CHART_DATE_KEY = "prefProgressChartDate";
+const PROGRESS_CHART_DATE_ANCHOR_KEY = "prefProgressChartDateAnchor";
 const PROGRESS_CHART_HEIGHT = 228;
 const PROGRESS_CHART_PAD = { x: 18, top: 14, bottom: 16 };
 
@@ -10911,12 +11148,35 @@ function getProgressDayWindow(dayKey) {
 }
 
 function getProgressChartSelectedDay() {
-  return localStorage.getItem(PROGRESS_CHART_DATE_KEY) || getProgressDayKey(Date.now());
+  const todayKey = getProgressDayKey(Date.now());
+
+  let anchor = "";
+  try {
+    anchor = sessionStorage.getItem(PROGRESS_CHART_DATE_ANCHOR_KEY) || "";
+  } catch (err) {}
+
+  if (anchor !== todayKey) {
+    try {
+      sessionStorage.setItem(PROGRESS_CHART_DATE_ANCHOR_KEY, todayKey);
+      sessionStorage.setItem(PROGRESS_CHART_DATE_KEY, todayKey);
+    } catch (err) {}
+    return todayKey;
+  }
+
+  try {
+    return sessionStorage.getItem(PROGRESS_CHART_DATE_KEY) || todayKey;
+  } catch (err) {
+    return todayKey;
+  }
 }
 
 function setProgressChartSelectedDay(dayKey) {
-  if (dayKey) localStorage.setItem(PROGRESS_CHART_DATE_KEY, dayKey);
-  else localStorage.removeItem(PROGRESS_CHART_DATE_KEY);
+  const todayKey = getProgressDayKey(Date.now());
+  const resolved = dayKey || todayKey;
+  try {
+    sessionStorage.setItem(PROGRESS_CHART_DATE_ANCHOR_KEY, todayKey);
+    sessionStorage.setItem(PROGRESS_CHART_DATE_KEY, resolved);
+  } catch (err) {}
 }
 
 function getProgressDaysWithData(hist) {
@@ -11029,6 +11289,10 @@ function initProgressChartCalendar() {
   if (!picker || !trigger || !panel || !grid || initProgressChartCalendar._init) return;
   initProgressChartCalendar._init = true;
 
+  try {
+    localStorage.removeItem(PROGRESS_CHART_DATE_KEY);
+  } catch (err) {}
+
   trigger.addEventListener("click", (e) => {
     e.stopPropagation();
     if (picker.classList.contains("is-open")) closeProgressChartCalendar();
@@ -11087,6 +11351,16 @@ function initProgressChartCalendar() {
       trigger.blur();
     }
   });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+    const todayKey = getProgressDayKey(Date.now());
+    if (progressUi.lastKnownProgressDayKey && progressUi.lastKnownProgressDayKey !== todayKey) {
+      requestProfileChartsRedraw();
+    }
+    progressUi.lastKnownProgressDayKey = todayKey;
+  });
+  progressUi.lastKnownProgressDayKey = getProgressDayKey(Date.now());
 }
 
 function formatProgressTooltipHtml(entry, mode) {
@@ -13423,7 +13697,21 @@ document.addEventListener("DOMContentLoaded", () => {
   ["from", "to", "edpi-game", "trainer-game"].forEach((idPrefix) => {
     syncGameClearButton(`${idPrefix}-search`, `${idPrefix}-clear`);
   });
-  document.getElementById("swap-btn")?.addEventListener("click", () => {
+  const swapBtn = document.getElementById("swap-btn");
+  let swapBtnRotation = 0;
+  if (swapBtn) {
+    initMagneticPull(swapBtn, {
+      pullRadius: 50,
+      followRadius: null,
+      maxOffset: 25,
+      pullXVar: "--swap-btn-pull-x",
+      pullYVar: "--swap-btn-pull-y",
+      buttonSizeFallback: 50,
+      isBlocked: isSiteAssistantPullBlocked,
+    });
+  }
+  initTopicIndicatorMagnetism();
+  swapBtn?.addEventListener("click", () => {
     const el = {
       fG: document.getElementById("from-search"),
       tG: document.getElementById("to-search"),
@@ -13433,6 +13721,8 @@ document.addEventListener("DOMContentLoaded", () => {
       res: document.getElementById("new-sens-value"),
     };
     if (Object.values(el).every((x) => x)) {
+      swapBtnRotation -= 180;
+      swapBtn.style.setProperty("--swap-btn-rotate", `${swapBtnRotation}deg`);
       if (el.res.innerText !== "0.00") el.bS.value = el.res.innerText;
       const fromGame = getConverterGameState(el.fG);
       const toGame = getConverterGameState(el.tG);

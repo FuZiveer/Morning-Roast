@@ -7,11 +7,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      id="google-font-inter"
-      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      rel="stylesheet"
-    />
+    <link id="google-font-inter" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.8.0/fonts/remixicon.css" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
     <script>
@@ -23,10 +19,7 @@
           if (parts.length >= 3) {
             root.style.setProperty("--accent-color", "hsl(" + parts[0] + " " + parts[1] + " " + parts[2] + ")");
             var lightness = parseFloat(parts[2]);
-            root.style.setProperty(
-              "--accent-on-color",
-              lightness > 62 ? "hsl(0, 0%, 5%)" : "hsl(0, 0%, 100%)"
-            );
+            root.style.setProperty("--accent-on-color", lightness > 62 ? "hsl(0, 0%, 5%)" : "hsl(0, 0%, 100%)");
           }
           var pattern = localStorage.getItem("prefBgPattern") || "waves";
           if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "particles") {
@@ -692,14 +685,14 @@
                   </div>
                 </div>
                 <div id="spectrum-pointer" role="slider" aria-label="eDPI spectrum" aria-valuemin="0" aria-valuenow="0" tabindex="0"></div>
+                <p class="spectrum-hint">
+                  <span>Use</span>
+                  <i class="ri-mouse-line" aria-hidden="true"></i>
+                  <span>mouse and</span>
+                  <i class="ri-keyboard-box-line" aria-hidden="true"></i>
+                  <span>arrow keys</span>
+                </p>
               </div>
-              <p class="spectrum-hint">
-                <span>Use</span>
-                <i class="ri-mouse-line" aria-hidden="true"></i>
-                <span>mouse and</span>
-                <i class="ri-keyboard-box-line" aria-hidden="true"></i>
-                <span>arrow keys</span>
-              </p>
 
               <div class="tab-action-bar">
                 <button id="edpi-reset" class="reset-button fade-element visible-fade">
@@ -961,7 +954,7 @@
 
         <div class="box-container-holder" style="gap: 0">
           <div class="box-container">
-            <div class="box-holder" style="box-shadow: none">
+            <div class="box-holder result-container">
               <div class="topic-indicator-holder">
                 <div
                   class="topic-indicator"
@@ -974,25 +967,6 @@
                   <span>Sensitivity converter</span>
                 </div>
               </div>
-            </div>
-
-            <div class="box-holder desktop-only" style="box-shadow: none">
-              <div class="topic-indicator-holder">
-                <div
-                  class="topic-indicator"
-                  onclick="
-                    document.getElementById('sidebar-edpi-calculator-button').click();
-                    scrollToTop(350);
-                  "
-                >
-                  <i class="ri-pencil-ruler-2-line topic-icon"></i>
-                  <span>EDPI calculator</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="box-container">
-            <div class="box-holder result-container">
               <div id="sens-game-info" class="profile-game-info">
                 <span id="profile-from-game"></span> <i class="ri-arrow-left-right-line" style="font-size: 0.6rem"></i> <span id="profile-to-game"></span>
                 <span style="opacity: 0.3">|</span>
@@ -1026,7 +1000,7 @@
               </div>
             </div>
 
-            <div class="box-holder mobile-only" style="box-shadow: none">
+            <div class="box-holder result-container">
               <div class="topic-indicator-holder">
                 <div
                   class="topic-indicator"
@@ -1035,13 +1009,11 @@
                     scrollToTop(350);
                   "
                 >
-                  <i class="ri-calculator-line topic-icon"></i>
+                  <i class="ri-pencil-ruler-2-line topic-icon topic-icon--desktop"></i>
+                  <i class="ri-calculator-line topic-icon topic-icon--mobile"></i>
                   <span>EDPI calculator</span>
                 </div>
               </div>
-            </div>
-
-            <div class="box-holder result-container">
               <div id="edpi-game-info" class="profile-game-info">
                 <span id="profile-edpi-game"></span>
                 <span>Sens: <span id="profile-edpi-sens" style="color: #bbb">-</span></span>
@@ -1079,7 +1051,7 @@
         </div>
         <div class="box-container-holder desktop-only" style="gap: 0">
           <div class="box-container">
-            <div class="box-holder" style="box-shadow: none">
+            <div class="box-holder result-container">
               <div class="topic-indicator-holder">
                 <div
                   class="topic-indicator"
@@ -1092,10 +1064,6 @@
                   <span>Aim trainer</span>
                 </div>
               </div>
-            </div>
-          </div>
-          <div class="box-container">
-            <div class="box-holder result-container">
               <div class="profile-stats-sections">
                 <section class="profile-stats-section">
                   <div class="app-status-dropdown profile-stats-dropdown">
@@ -1811,36 +1779,60 @@
                 </div>
               </div>
 
-              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-08">
+              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-10">
                 <header class="changelog-header">
-                  <time class="changelog-date" datetime="2026-07-08">July 8, 2026</time>
+                  <time class="changelog-date" datetime="2026-07-10">July 10, 2026</time>
                   <span class="changelog-badge">Latest</span>
                 </header>
                 <div class="changelog-versions">
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.6</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Morning Roast AI improved (Regenerate button added)</li>
+                          <li>Morning Roast AI improved (Message controls moved below text)</li>
+                          <li>Swap button improved (Magnetic pull added)</li>
+                          <li>Stats shortcuts improved (Magnetic pull added)</li>
+                          <li>Stats shortcuts improved (Moved above stat cards)</li>
+                          <li>eDPI spectrum improved (Hint moved below spectrum)</li>
+                          <li>Changelog improved (Entries explain what changed)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>Morning Roast AI fixed (Was appearing above modals)</li>
+                          <li>Aim progress fixed (Date picker stuck on old day)</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
                   <section class="changelog-version-block">
                     <h3 class="changelog-version">0.2.5</h3>
                     <div class="changelog-type-groups">
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
                         <ul class="changelog-list">
-                          <li>Morning Roast AI site assistant: bottom-right chat with typewriter replies and tab shortcuts when your question matches</li>
-                          <li>eDPI spectrum pointer: drag in ±1 eDPI steps with genre-based tier bounds and recommended cm/360 range markers</li>
+                          <li>Morning Roast AI added</li>
+                          <li>eDPI spectrum added</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
                         <ul class="changelog-list">
-                          <li>More and Misc flyout menus use clip-path reveal so labels stay stable during open and close</li>
-                          <li>Updates tab renamed to Changelog</li>
-                          <li>Service worker cache bumped to morning-roast-v30</li>
+                          <li>Changelog improved (Renamed from Updates tab)</li>
+                          <li>eDPI calculator improved (Cm/360 readout layout updated)</li>
+                          <li>Stats improved (Reset clears stored calculator state)</li>
+                          <li>More menu improved (Open animation was jumpy)</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
                         <ul class="changelog-list">
-                          <li>eDPI cm/360 readout hidden until DPI, sensitivity, and game produce a valid value</li>
-                          <li>Stats and calculator reset clears live eDPI fields and stored calculator state</li>
-                          <li>More menu hover no longer shifts label text via font-weight changes</li>
+                          <li>More menu fixed (Label text shifted on hover)</li>
+                          <li>eDPI spectrum fixed (Readout showed before valid values)</li>
                         </ul>
                       </fieldset>
                     </div>
@@ -1859,33 +1851,27 @@
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
                         <ul class="changelog-list">
-                          <li>Custom accent color picker: spectrum, hue slider, editable hex field, and portal dropdown</li>
-                          <li>Custom accent label shows the closest real color name for any picked hex</li>
-                          <li>Valorant lineup side icons (A/D) on Attacker and Defender; dual icon on All for CS2 and Valorant</li>
-                          <li>Particle background draws faint white connection lines between nearby dots</li>
+                          <li>Custom accent color added</li>
+                          <li>Lineups side icons added</li>
+                          <li>Particle background added</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
                         <ul class="changelog-list">
-                          <li>Game dropdowns show full display names (e.g. Counter-Strike 2, Call of Duty: Black Ops 7)</li>
-                          <li>Accent theme: original preset swatches plus custom picker; palette icon stays visible with adaptive contrast on the swatch</li>
-                          <li>Toggle glider labels auto-pick light or dark text for readable contrast on any accent</li>
-                          <li>Settings menu icons scale on hover for dropdown triggers and section titles</li>
-                          <li>Lineup toolbar: map filter fills the middle; search bar is 475px wide on desktop</li>
-                          <li>Lineup map filter resets on reload and stays per-game for the session only</li>
-                          <li>Mobile More nav toggle text is left-aligned</li>
-                          <li>eDPI game info hides instantly; removed the leading separator before the game name</li>
-                          <li>Sitewide hover no longer changes font weight</li>
-                          <li>Privacy, terms, updates, and credit fieldsets share generic <code>fieldset-style</code> classes</li>
-                          <li>Service worker cache bumped to morning-roast-v7</li>
+                          <li>Theme settings improved (Accent picker layout updated)</li>
+                          <li>Lineups improved (Map filter layout updated)</li>
+                          <li>Game dropdowns improved (Full game names shown)</li>
+                          <li>eDPI calculator improved (Game info hid too slowly)</li>
+                          <li>Mobile navigation improved (More toggle text was centered)</li>
+                          <li>Sitewide UI improved (Hover changed font weight)</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
                         <ul class="changelog-list">
-                          <li>Custom color spectrum: only the top-left is white; the top-right shows the full hue</li>
-                          <li>Black Ops 6 removed as a separate game entry; search aliases still resolve to Black Ops 7</li>
+                          <li>Custom accent color fixed (Spectrum colors were wrong)</li>
+                          <li>Game list fixed (Black Ops 6 was duplicated)</li>
                         </ul>
                       </fieldset>
                     </div>
@@ -1896,26 +1882,25 @@
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
                         <ul class="changelog-list">
-                          <li>Curated game list: original titles plus Marvel Rivals; Black Ops 6 and Black Ops 7 listed separately</li>
+                          <li>Game list expanded</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
                         <ul class="changelog-list">
-                          <li>Game registry moved to <code>games.js</code> with per-game yaw and editable multipliers</li>
-                          <li>Input icons glow and scale on hover; section title icons no longer react to nearby inputs</li>
-                          <li>Faster load: Inter font only at startup, lazy font picker loading, crosshair script deferred</li>
-                          <li>Debounced sensitivity and eDPI recalculation while typing</li>
-                          <li>Service worker cache bumped to morning-roast-v6 with a leaner precache list</li>
-                          <li>Updates tab groups changes by New, Improve, and Fix with fieldset-style legends</li>
+                          <li>Game list improved (Games moved to shared registry)</li>
+                          <li>Input icons improved (Icons did not react on hover)</li>
+                          <li>Performance improved (Startup was loading too much)</li>
+                          <li>eDPI calculator improved (Typing caused laggy updates)</li>
+                          <li>Changelog improved (Entries were hard to scan)</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
                         <ul class="changelog-list">
-                          <li>Swap button spins on hover; fixed swap when only one game field is filled</li>
-                          <li>Game dropdowns restore the last valid selection after clear, blur, or partial search</li>
-                          <li>Sensitivity converter reset now clears both game fields</li>
+                          <li>Swap button fixed (Swap failed with one game filled)</li>
+                          <li>Game dropdowns fixed (Selection lost after clear)</li>
+                          <li>Sensitivity converter fixed (Reset did not clear both games)</li>
                         </ul>
                       </fieldset>
                     </div>
@@ -1934,14 +1919,14 @@
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
                         <ul class="changelog-list">
-                          <li>Updates tab groups releases by date, with a filter to jump to a specific day</li>
+                          <li>Changelog date filter added</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
                         <ul class="changelog-list">
-                          <li>eDPI total is centered in the result card; cm/360° sits in the bottom-right corner</li>
-                          <li>cm/360° and in/360° readouts use three decimal places on the calculator and stats profile</li>
+                          <li>eDPI calculator improved (Cm/360 readout position changed)</li>
+                          <li>Stats improved (Distance readout precision increased)</li>
                         </ul>
                       </fieldset>
                     </div>
@@ -1952,23 +1937,23 @@
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
                         <ul class="changelog-list">
-                          <li>Loading screen: animated gradient border on the logo tile while the app loads</li>
-                          <li>eDPI shows cm/360° (or in/360°) beside the total, using per-game yaw values</li>
-                          <li>General settings: toggle 360° distance unit between centimeters and inches</li>
+                          <li>Loading screen added</li>
+                          <li>eDPI distance readout added</li>
+                          <li>General settings added</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
                         <ul class="changelog-list">
-                          <li>eDPI result card layout: rank and pro comparison flank the title, value and spectrum spaced below</li>
-                          <li>eDPI reset clears sensitivity and DPI only — your selected game stays put</li>
+                          <li>eDPI calculator improved (Result card layout updated)</li>
+                          <li>eDPI reset improved (Reset cleared selected game)</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
                         <ul class="changelog-list">
-                          <li>eDPI and lineup game selections no longer persist in local storage</li>
-                          <li>Clear buttons on search and dropdown fields are vertically centered</li>
+                          <li>Game selection fixed (Selections persisted in storage)</li>
+                          <li>Form fields fixed (Clear buttons were misaligned)</li>
                         </ul>
                       </fieldset>
                     </div>
@@ -1979,22 +1964,20 @@
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
                         <ul class="changelog-list">
-                          <li>Added Lineups tab with CS2 and Valorant utility videos, map filters, and difficulty tags</li>
-                          <li>Added local utility icons for smokes, molotovs, flashes, and side badges</li>
-                          <li>Crosshair settings: turn lines off for dot-only crosshairs, with outline wrapping lines and dot</li>
-                          <li>Theme settings: font family picker (Inter, Roboto, Poppins, Space Grotesk, DM Sans)</li>
+                          <li>Lineups added</li>
+                          <li>Crosshair settings added</li>
+                          <li>Theme settings added</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
                         <ul class="changelog-list">
-                          <li>Lineup grid uses lazy poster thumbnails; full video loads only when you open the modal</li>
-                          <li>Crosshair panel layout: color picker on its own row, toggles below with dividers</li>
-                          <li>Crosshair converter preview improvements and Apply to aim trainer for converted crosshairs</li>
-                          <li>Smoother button transitions when toggling selected states across the site</li>
-                          <li>eDPI result card spacing polish for value, tier, and pro comparison</li>
-                          <li>Lineup filter toolbar refinements and faster video scrub preview while dragging</li>
-                          <li>Updated tab taglines for Lineups, Viewmodel, Keybinds, and Updates</li>
+                          <li>Lineups improved (Videos loaded too eagerly)</li>
+                          <li>Crosshair converter improved (Could not apply to aim trainer)</li>
+                          <li>Crosshair settings improved (Dot-only crosshairs unsupported)</li>
+                          <li>Buttons improved (Selected state felt abrupt)</li>
+                          <li>eDPI calculator improved (Result card spacing was tight)</li>
+                          <li>Tab descriptions improved (Taglines were outdated)</li>
                         </ul>
                       </fieldset>
                     </div>
@@ -2013,21 +1996,22 @@
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
                         <ul class="changelog-list">
-                          <li>Added Crosshair Converter and Viewmodel Generator under Misc</li>
-                          <li>Added pro viewmodel presets for donk, ZywOo, sh1ro, and xantares</li>
-                          <li>Added Sonner-style notification toasts with timer rings and stacking</li>
-                          <li>Added Keybinds tab and keyboard shortcuts (1–7, C, R, ?)</li>
-                          <li>Aim trainer: press R during a session to restart countdown</li>
-                          <li>Added right-edge scroll-to-top control</li>
-                          <li>Added this Updates tab for version history</li>
+                          <li>Crosshair converter added</li>
+                          <li>Viewmodel generator added</li>
+                          <li>Viewmodel presets added</li>
+                          <li>Notifications added</li>
+                          <li>Keybinds added</li>
+                          <li>Scroll to top added</li>
+                          <li>Changelog added</li>
                         </ul>
                       </fieldset>
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
                         <ul class="changelog-list">
-                          <li>Moved tactical advice into notification toasts</li>
-                          <li>Polished sidebar More / Misc menus and open/close behavior</li>
-                          <li>Improved stats cards, action bars, and result layouts</li>
+                          <li>Aim trainer improved (Advice was shown in-panel)</li>
+                          <li>Notifications improved (Toasts replaced inline messages)</li>
+                          <li>Sidebar improved (More menu felt clunky)</li>
+                          <li>Stats improved (Cards and layouts felt cramped)</li>
                         </ul>
                       </fieldset>
                     </div>
@@ -2046,13 +2030,13 @@
                       <fieldset class="fieldset-style changelog-fieldset">
                         <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
                         <ul class="changelog-list">
-                          <li>Sensitivity Converter across supported games</li>
-                          <li>Mouse eDPI Calculator with pro tiers and presets</li>
-                          <li>Aim Trainer with session stats and sharing</li>
-                          <li>Stats tab for last conversions, eDPI, and aim progress</li>
-                          <li>Settings for theme, general preferences, and reaction test</li>
-                          <li>Privacy Policy, Terms of Service, and Credit pages</li>
-                          <li>Offline-ready install with service worker caching</li>
+                          <li>Sensitivity converter added</li>
+                          <li>eDPI calculator added</li>
+                          <li>Aim trainer added</li>
+                          <li>Stats added</li>
+                          <li>Settings added</li>
+                          <li>Legal pages added</li>
+                          <li>Offline mode added</li>
                         </ul>
                       </fieldset>
                     </div>
@@ -2591,33 +2575,14 @@
                               <button type="button" class="accent-swatch" data-accent="217 91% 60%" style="--swatch: hsl(217 91% 60%)" aria-label="Blue" role="radio" aria-checked="false"></button>
                               <button type="button" class="accent-swatch" data-accent="265 84% 64%" style="--swatch: hsl(265 84% 64%)" aria-label="Purple" role="radio" aria-checked="false"></button>
                               <button type="button" class="accent-swatch" data-accent="330 81% 60%" style="--swatch: hsl(330 81% 60%)" aria-label="Pink" role="radio" aria-checked="false"></button>
-                              <button
-                                type="button"
-                                class="accent-swatch accent-custom-swatch"
-                                id="accent-custom-color"
-                                style="--swatch: #ef0141; --swatch-on-color: hsl(0, 0%, 100%)"
-                                aria-label="Custom color"
-                                role="radio"
-                                aria-checked="false"
-                                aria-expanded="false"
-                                aria-controls="accent-custom-panel"
-                              >
+                              <button type="button" class="accent-swatch accent-custom-swatch" id="accent-custom-color" style="--swatch: #ef0141; --swatch-on-color: hsl(0, 0%, 100%)" aria-label="Custom color" role="radio" aria-checked="false" aria-expanded="false" aria-controls="accent-custom-panel">
                                 <span class="accent-custom-swatch-preview" aria-hidden="true"></span>
                                 <i class="ri-palette-line accent-custom-swatch-icon" aria-hidden="true"></i>
                               </button>
                             </div>
                             <input type="color" id="accent-color-input" class="accent-color-input-native" value="#ef0141" tabindex="-1" aria-hidden="true" />
                             <div class="accent-custom-panel pref-dropdown-list hidden" id="accent-custom-panel" hidden>
-                              <div
-                                class="accent-custom-spectrum"
-                                id="accent-custom-spectrum"
-                                role="slider"
-                                aria-label="Saturation and brightness"
-                                aria-valuemin="0"
-                                aria-valuemax="100"
-                                aria-valuenow="47"
-                                tabindex="0"
-                              >
+                              <div class="accent-custom-spectrum" id="accent-custom-spectrum" role="slider" aria-label="Saturation and brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="47" tabindex="0">
                                 <div class="accent-custom-spectrum-cursor" id="accent-custom-spectrum-cursor"></div>
                               </div>
                               <label class="accent-custom-hue-label" for="accent-custom-hue">
@@ -2626,17 +2591,7 @@
                               </label>
                               <div class="accent-custom-hex-row">
                                 <span class="accent-custom-hex-swatch" id="accent-custom-hex-swatch" aria-hidden="true"></span>
-                                <input
-                                  type="text"
-                                  class="accent-custom-hex"
-                                  id="accent-custom-hex"
-                                  value="#EF0141"
-                                  spellcheck="false"
-                                  autocapitalize="characters"
-                                  autocomplete="off"
-                                  maxlength="7"
-                                  aria-label="Hex color"
-                                />
+                                <input type="text" class="accent-custom-hex" id="accent-custom-hex" value="#EF0141" spellcheck="false" autocapitalize="characters" autocomplete="off" maxlength="7" aria-label="Hex color" />
                               </div>
                             </div>
                             <div class="accent-picker-nav">
@@ -3037,14 +2992,8 @@
     </button>
 
     <div id="site-assistant" class="site-assistant">
-      <div
-        id="site-assistant-panel"
-        class="site-assistant-panel"
-        role="dialog"
-        aria-modal="false"
-        aria-labelledby="site-assistant-title"
-        aria-hidden="true"
-      >
+      <div class="site-assistant-dock">
+      <div id="site-assistant-panel" class="site-assistant-panel" role="dialog" aria-modal="false" aria-labelledby="site-assistant-title" aria-hidden="true">
         <div class="site-assistant-header">
           <div class="site-assistant-header-copy">
             <span class="site-assistant-status" aria-hidden="true"></span>
@@ -3062,32 +3011,26 @@
             </button>
           </div>
         </div>
+        <div id="site-assistant-offline" class="site-assistant-offline" hidden>
+          <p>You are offline, try again</p>
+        </div>
         <div id="site-assistant-messages" class="site-assistant-messages" aria-live="polite"></div>
         <form id="site-assistant-form" class="site-assistant-form" autocomplete="off">
           <label class="visually-hidden" for="site-assistant-input">Ask a question</label>
-          <input
-            id="site-assistant-input"
-            class="site-assistant-input"
-            type="text"
-            maxlength="280"
-            placeholder="Ask anything"
-          />
+          <input id="site-assistant-input" class="site-assistant-input" type="text" maxlength="280" placeholder="Ask anything" />
           <button type="submit" class="site-assistant-send" aria-label="Send question">
             <i class="ri-send-plane-2-line" aria-hidden="true"></i>
           </button>
+          <button type="button" id="site-assistant-stop" class="site-assistant-stop" aria-label="Stop response" hidden>
+            <i class="ri-stop-fill" aria-hidden="true"></i>
+          </button>
         </form>
       </div>
-      <button
-        type="button"
-        id="site-assistant-toggle"
-        class="site-assistant-toggle"
-        aria-controls="site-assistant-panel"
-        aria-expanded="false"
-        aria-label="Open site helper"
-      >
+      <button type="button" id="site-assistant-toggle" class="site-assistant-toggle" aria-controls="site-assistant-panel" aria-expanded="false" aria-label="Open site helper">
         <i class="ri-chat-3-line site-assistant-toggle-open" aria-hidden="true"></i>
         <i class="ri-close-line site-assistant-toggle-close" aria-hidden="true"></i>
       </button>
+      </div>
     </div>
   </body>
 </html>
