@@ -12,7 +12,7 @@ if (!match) throw new Error("Could not parse ntc names");
 
 const entries = [...match[1].matchAll(/\["([0-9A-F]{6})",\s*"([^"]+)"\]/g)].map(([, hex, name]) => `${hex}:${name}`);
 const compact = entries.join("|");
-const outPath = path.join(__dirname, "../color-names.js");
+const outPath = path.join(__dirname, "color-names.js");
 const js = `/* Name That Color dataset (Chirag Mehta / ntc.js, CC BY 2.5) */
 (function () {
   const COMPACT = ${JSON.stringify(compact)};

@@ -870,9 +870,7 @@
       setBusy(true);
 
       try {
-        const answer = regenerate
-          ? await regenerateAiReply({ signal: abortController.signal })
-          : await answerWithAi(trimmed, { signal: abortController.signal });
+        const answer = regenerate ? await regenerateAiReply({ signal: abortController.signal }) : await answerWithAi(trimmed, { signal: abortController.signal });
         if (token !== replyToken || stopping) return;
         const typewriterTask = typewriterBotBubble(
           typing.bubble,

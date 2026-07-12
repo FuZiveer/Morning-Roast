@@ -79,25 +79,10 @@ function prefersReducedUiMotion() {
 }
 
 function isSiteAssistantPullBlocked() {
-  return (
-    document.getElementById("confirm-reset-overlay")?.classList.contains("active") ||
-    document.getElementById("theme-settings-overlay")?.classList.contains("active") ||
-    document.getElementById("general-settings-overlay")?.classList.contains("active") ||
-    document.getElementById("trainer-settings-overlay")?.classList.contains("active")
-  );
+  return document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active");
 }
 
-function initMagneticPull(element, {
-  pullRadius = 100,
-  followRadius = null,
-  maxOffset = 42,
-  pullXVar = "--magnetic-pull-x",
-  pullYVar = "--magnetic-pull-y",
-  isLocked = () => false,
-  isBlocked = () => false,
-  buttonSizeFallback = 50,
-  hoverElement = null,
-} = {}) {
+function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxOffset = 42, pullXVar = "--magnetic-pull-x", pullYVar = "--magnetic-pull-y", isLocked = () => false, isBlocked = () => false, buttonSizeFallback = 50, hoverElement = null } = {}) {
   if (!element) return { lock() {}, unlock() {} };
   const hoverTarget = hoverElement || element;
 
@@ -1594,6 +1579,13 @@ function formatDistance360ShortFromCm(cmValue, unit = getDistance360Unit()) {
   return `${value.toFixed(3)} ${unit}`;
 }
 
+function formatRecommendedSpectrumDistance(cmValue, unit = getDistance360Unit()) {
+  const cm = parseFloat(cmValue);
+  if (!cm || !Number.isFinite(cm) || cm <= 0) return "";
+  if (unit === "in") return `${(cm / CM360_INCH_TO_CM).toFixed(1)} in`;
+  return `${Math.round(cm)} cm`;
+}
+
 function refreshDistance360Displays() {
   updateEDPI();
   const savedEdpiCm = localStorage.getItem("lastEdpiCm");
@@ -1601,11 +1593,6 @@ function refreshDistance360Displays() {
   if (profileCm && savedEdpiCm) {
     profileCm.textContent = formatDistance360ShortFromCm(savedEdpiCm);
   }
-}
-
-function calculateCm360(sens, dpi, game) {
-  const cm = calculateCm360Value(sens, dpi, game);
-  return cm == null ? 0 : cm.toFixed(2);
 }
 
 function toggleVisibility(element, isVisible) {
@@ -1840,6 +1827,8 @@ const appLoadingState = {
   dismissed: false,
 };
 
+let appLoadingStarsController = null;
+
 function markAppLoadingReady(key) {
   if (appLoadingState[key] !== false) return;
   appLoadingState[key] = true;
@@ -1862,6 +1851,10 @@ function tryDismissAppLoadingScreen() {
   screen.setAttribute("aria-busy", "false");
 
   const removeScreen = () => {
+    if (appLoadingStarsController) {
+      appLoadingStarsController.destroy();
+      appLoadingStarsController = null;
+    }
     if (screen.isConnected) screen.remove();
   };
 
@@ -1874,12 +1867,21 @@ function tryDismissAppLoadingScreen() {
   setTimeout(removeScreen, 500);
 }
 
+function initAppLoadingShootingStars(screen) {
+  if (!screen || prefersReducedUiMotion()) return;
+  const root = screen.querySelector("#app-loading-stars") || screen.querySelector(".bg-stars");
+  if (!root) return;
+  appLoadingStarsController = mountBgStars(root, { count: BG_STAR_COUNT, animate: true });
+}
+
 function initAppLoadingScreen() {
   const screen = document.getElementById("app-loading-screen");
   if (!screen) {
     document.body.classList.add("app-ready");
     return;
   }
+
+  initAppLoadingShootingStars(screen);
 
   if (document.documentElement.classList.contains("accent-ready")) {
     markAppLoadingReady("accent");
@@ -2367,7 +2369,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v43";
+const APP_CACHE_VERSION = "morning-roast-v67";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -6439,18 +6441,21 @@ function updateEdpiSpectrumRecommended(bounds) {
   if (shouldSnap) marks.classList.add("is-snapping");
 
   if (maxMark) {
+    const maxLabel = formatRecommendedSpectrumDistance(bounds.recommendedMaxCm);
     maxMark.style.left = `${leftPct}%`;
-    maxMark.setAttribute("data-label", `${bounds.recommendedMaxCm}`);
-    maxMark.title = `Recommended ${bounds.recommendedMaxCm} cm/360`;
+    maxMark.setAttribute("data-label", maxLabel);
+    maxMark.title = `Recommended ${maxLabel}/360`;
   }
   if (minMark) {
+    const minLabel = formatRecommendedSpectrumDistance(bounds.recommendedMinCm);
     minMark.style.left = `${rightPct}%`;
-    minMark.setAttribute("data-label", `${bounds.recommendedMinCm}`);
-    minMark.title = `Recommended ${bounds.recommendedMinCm} cm/360`;
+    minMark.setAttribute("data-label", minLabel);
+    minMark.title = `Recommended ${minLabel}/360`;
   }
   marks.style.setProperty("--rec-left", `${nextLeft}%`);
   marks.style.setProperty("--rec-width", `${nextWidth}%`);
-  marks.title = `Recommended ${bounds.recommendedMinCm}–${bounds.recommendedMaxCm} cm/360. ${bounds.profile.why} ${bounds.profile.proExample}`;
+  const rangeLabel = `${formatRecommendedSpectrumDistance(bounds.recommendedMinCm)}–${formatRecommendedSpectrumDistance(bounds.recommendedMaxCm)}`;
+  marks.title = `Recommended ${rangeLabel}/360. ${bounds.profile.why} ${bounds.profile.proExample}`;
 
   marks.hidden = false;
   if (shouldSnap) {
@@ -6521,6 +6526,37 @@ const edpiSpectrumDrag = {
   pointerId: null,
   lastEdpi: null,
 };
+
+const edpiSpectrumHintState = {
+  dismissed: false,
+  lastValueText: null,
+};
+
+function syncEdpiSpectrumPointerTooltip() {
+  const tip = document.getElementById("spectrum-pointer-tooltip");
+  if (!tip) return;
+  const show = getCurrentTabId() === "edpi-calculator-tab" && !edpiSpectrumHintState.dismissed;
+  tip.hidden = !show;
+  tip.classList.toggle("is-visible", show);
+}
+
+function dismissEdpiSpectrumPointerTooltip() {
+  if (edpiSpectrumHintState.dismissed) return;
+  edpiSpectrumHintState.dismissed = true;
+  syncEdpiSpectrumPointerTooltip();
+}
+
+function setEdpiValueDisplay(nextText) {
+  const display = elements["edpi-value"];
+  if (!display) return;
+  const next = String(nextText);
+  const prev = edpiSpectrumHintState.lastValueText;
+  if (prev != null && prev !== next && getCurrentTabId() === "edpi-calculator-tab") {
+    dismissEdpiSpectrumPointerTooltip();
+  }
+  edpiSpectrumHintState.lastValueText = next;
+  display.innerText = next;
+}
 
 function getCurrentEdpiValue(bounds) {
   const dpi = parseFloat(elements["edpi-dpi"]?.value);
@@ -6655,7 +6691,6 @@ function updateEDPI() {
   const dpiVal = elements["edpi-dpi"].value,
     sensVal = elements["edpi-sens"].value,
     gameVal = resolveEdpiGameInput(),
-    display = elements["edpi-value"],
     pointer = elements["spectrum-pointer"],
     rankLabel = elements["edpi-rank"],
     copyBtn = document.getElementById("edpi-copy"),
@@ -6672,7 +6707,7 @@ function updateEDPI() {
   toggleEDPIResetButton();
 
   if (!gameVal || isNaN(edpi) || edpi === 0) {
-    if (display) display.innerText = "0";
+    setEdpiValueDisplay("0");
     setEdpiCm360Display(parseFloat(sensVal.replace(",", ".")), parseFloat(dpiVal), gameVal);
     if (rankLabel) rankLabel.style.opacity = "0";
     const dpiReady = Number.isFinite(parseFloat(dpiVal)) && parseFloat(dpiVal) > 0;
@@ -6697,14 +6732,14 @@ function updateEDPI() {
     return;
   }
 
-  if (display) display.innerText = edpi;
+  setEdpiValueDisplay(edpi);
   const sensNum = parseFloat(sensVal.replace(",", "."));
   const dpiNum = parseFloat(dpiVal);
   setEdpiCm360Display(sensNum, dpiNum, gameVal);
   toggleVisibility(copyBtn, edpi !== 0);
   toggleVisibility(shareBtn, edpi !== 0);
 
-  let percent, color, label, tier;
+  let percent, color, label;
   const bounds = getEdpiSpectrumBounds(gameVal);
   if (!bounds) {
     updateEdpiSpectrumRecommended(null);
@@ -6726,7 +6761,6 @@ function updateEDPI() {
   const spectrumStyle = getEdpiSpectrumTierStyle(edpi, bounds);
   label = spectrumStyle.label;
   color = spectrumStyle.color;
-  tier = spectrumStyle.tier;
   percent = edpiToSpectrumPercent(edpi, bounds);
 
   if (edpi > 0 && gameVal) {
@@ -6840,9 +6874,9 @@ function ensureCrosshairConverterLoaded() {
   if (!miscLoaderState.crosshairConverterPromise) {
     miscLoaderState.crosshairConverterPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = "./crosshair-converter.js";
+      script.src = "./tools/crosshair-converter.js";
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load crosshair-converter.js"));
+      script.onerror = () => reject(new Error("Failed to load tools/crosshair-converter.js"));
       document.head.appendChild(script);
     });
   }
@@ -7058,6 +7092,8 @@ const lineupSession = {
 };
 const LINEUP_SIDE_STORAGE_KEY = "lineupSide";
 const LINEUP_DIFFICULTY_STORAGE_KEY = "lineupDifficulty";
+const LINEUP_FAVORITES_STORAGE_KEY = "lineupFavorites";
+const LINEUP_FAVORITES_ONLY_STORAGE_KEY = "lineupFavoritesOnly";
 const LINEUP_SEARCH_STORAGE_PREFIX = "lineupSearch:";
 const lineupMapFilterByGame = new Map();
 const LINEUP_GAMES = new Set(["valorant", "cs2"]);
@@ -7254,15 +7290,6 @@ const LINEUP_MAP_CALLOUTS = {
   },
 };
 
-function shuffleArray(items) {
-  const list = [...items];
-  for (let i = list.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [list[i], list[j]] = [list[j], list[i]];
-  }
-  return list;
-}
-
 function getLineupVideoId(card) {
   return card?.dataset.lineupVideoId?.trim() || "";
 }
@@ -7296,6 +7323,10 @@ function getLineupVideoPosterAssetPath(card) {
   const direct = card?.dataset.lineupPosterUrl?.trim();
   if (direct) return resolveAppAssetUrl(direct);
 
+  const game = getLineupGameForCard(card);
+  const map = (card?.dataset.lineupMap || "").toLowerCase();
+  if (game && map) return resolveAppAssetUrl(`assets/lineups/${game}/${map}/thumbnail.webp`);
+
   const videoUrl = getLineupVideoAssetPath(card);
   if (!videoUrl) return "";
   return videoUrl.replace(/\.(mp4|webm|mov)(\?.*)?$/i, "-poster.jpg$2");
@@ -7316,6 +7347,7 @@ const lineupVideoModalState = {
   speed: 1,
   shouldAutoplay: false,
   loadToken: 0,
+  openedAt: 0,
 };
 
 function attemptLineupVideoAutoplay(player, { resumeTime = 0 } = {}) {
@@ -7555,11 +7587,13 @@ function resetLineupVideoPosterElement(poster) {
   if (!poster) return;
   poster.classList.remove("is-loaded", "is-error");
   poster.removeAttribute("src");
+  delete poster.dataset.loadedSrc;
+  delete poster.dataset.failedSrc;
 }
 
-function loadLineupVideoPoster(card) {
+function loadLineupVideoPoster(card, { force = false } = {}) {
   const embed = card?.querySelector(".lineup-video-embed");
-  if (!embed || embed.dataset.posterLoaded === "1" || embed.dataset.posterLoading === "1") return;
+  if (!embed || (!force && embed.dataset.posterLoading === "1")) return;
 
   const posterUrl = getLineupVideoPosterAssetPath(card);
   const videoUrl = getLineupVideoUrl(card);
@@ -7569,17 +7603,30 @@ function loadLineupVideoPoster(card) {
 
   if (!videoUrl) {
     resetLineupVideoPosterElement(poster);
+    delete poster.dataset.loadedSrc;
     embed.dataset.posterLoaded = "1";
+    embed.dataset.posterLoading = "0";
     return;
   }
 
   if (!posterUrl) {
+    resetLineupVideoPosterElement(poster);
+    delete poster.dataset.loadedSrc;
     embed.dataset.posterLoaded = "1";
+    embed.dataset.posterLoading = "0";
     return;
   }
 
   const absolutePosterUrl = new URL(posterUrl, window.location.href).href;
-  if (poster.dataset.loadedSrc === absolutePosterUrl) return;
+  if (!force && poster.dataset.loadedSrc === absolutePosterUrl && poster.classList.contains("is-loaded")) {
+    embed.dataset.posterLoaded = "1";
+    embed.dataset.posterLoading = "0";
+    return;
+  }
+
+  if (!force && embed.dataset.posterLoaded === "1" && poster.classList.contains("is-error") && poster.dataset.failedSrc === absolutePosterUrl) {
+    return;
+  }
 
   embed.dataset.posterLoading = "1";
   poster.classList.remove("is-loaded", "is-error");
@@ -7591,19 +7638,26 @@ function loadLineupVideoPoster(card) {
 
   poster.onload = () => {
     poster.dataset.loadedSrc = absolutePosterUrl;
+    delete poster.dataset.failedSrc;
     poster.classList.add("is-loaded");
     poster.classList.remove("is-error");
     finish();
   };
 
   poster.onerror = () => {
+    poster.dataset.failedSrc = absolutePosterUrl;
+    delete poster.dataset.loadedSrc;
     poster.classList.add("is-error");
     poster.classList.remove("is-loaded");
     poster.removeAttribute("src");
     finish();
   };
 
-  poster.src = posterUrl;
+  if (poster.getAttribute("src") !== posterUrl) {
+    poster.src = posterUrl;
+  } else if (poster.complete && poster.naturalWidth > 0) {
+    poster.onload?.();
+  }
 }
 
 function observeLineupVideoCard(card) {
@@ -7658,13 +7712,12 @@ function refreshLineupVideoCards(root = document) {
     }
 
     observeLineupVideoCard(card);
-
-    const rect = card.getBoundingClientRect();
-    const inView = rect.bottom > -200 && rect.top < window.innerHeight + 200;
-    if (inView) loadLineupVideoPoster(card);
+    loadLineupVideoPoster(card);
   });
 
   enhanceLineupVideoCardFoots(scope);
+  scope.querySelectorAll(".lineup-video-card").forEach((card) => ensureLineupVideoFavoriteButton(card));
+  initLineupCardTilt(scope);
 }
 
 function applyLineupVideoSources(root = document) {
@@ -8227,6 +8280,113 @@ function enhanceLineupVideoCardFoots(root = document) {
   });
 }
 
+/** Mouse-follow 3D tilt for lineup cards (SCALE_X / SCALE_Y match the tilt demo). */
+function initLineupCardTilt(root = document) {
+  const SCALE_X = 2;
+  const SCALE_Y = 3.5;
+  const scope = root?.querySelectorAll ? root : document;
+
+  scope.querySelectorAll(".lineup-video-card").forEach((card) => {
+    if (!(card instanceof HTMLElement) || card.dataset.tiltBound === "1") return;
+    card.dataset.tiltBound = "1";
+
+    let mouseHover = false;
+    let mousePosition = { x: 0, y: 0 };
+    let cardSize = { width: 0, height: 0 };
+    let currentX = 0;
+    let currentY = 0;
+    let targetX = 0;
+    let targetY = 0;
+    let animating = false;
+    let lastTs = 0;
+
+    const applyTilt = () => {
+      card.style.setProperty("--lineup-tilt-x", `${currentX}deg`);
+      card.style.setProperty("--lineup-tilt-y", `${currentY}deg`);
+    };
+
+    const measureCard = () => {
+      const rect = card.getBoundingClientRect();
+      cardSize = { width: rect.width, height: rect.height };
+      return rect;
+    };
+
+    const updateTargets = () => {
+      if (!mouseHover || prefersReducedUiMotion() || cardSize.width <= 0 || cardSize.height <= 0) {
+        targetX = 0;
+        targetY = 0;
+        return;
+      }
+      const nx = (mousePosition.x / cardSize.width) * 2 - 1;
+      const ny = (mousePosition.y / cardSize.height) * 2 - 1;
+      targetY = nx * SCALE_X;
+      targetX = -ny * SCALE_Y;
+    };
+
+    const tick = (ts) => {
+      const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0.016;
+      lastTs = ts;
+      const follow = mouseHover ? 0.22 : 0.16;
+      const t = 1 - Math.pow(1 - follow, dt * 60);
+      currentX += (targetX - currentX) * t;
+      currentY += (targetY - currentY) * t;
+
+      if (Math.abs(currentX) < 0.01 && Math.abs(targetX) < 0.01) currentX = 0;
+      if (Math.abs(currentY) < 0.01 && Math.abs(targetY) < 0.01) currentY = 0;
+
+      applyTilt();
+
+      if (Math.abs(currentX - targetX) > 0.01 || Math.abs(currentY - targetY) > 0.01 || Math.abs(currentX) > 0.01 || Math.abs(currentY) > 0.01) {
+        requestAnimationFrame(tick);
+      } else {
+        currentX = targetX;
+        currentY = targetY;
+        applyTilt();
+        animating = false;
+      }
+    };
+
+    const schedule = () => {
+      if (animating) return;
+      animating = true;
+      lastTs = 0;
+      requestAnimationFrame(tick);
+    };
+
+    card.addEventListener("pointerenter", (event) => {
+      if (prefersReducedUiMotion()) return;
+      mouseHover = true;
+      card.classList.add("is-tilting");
+      const rect = measureCard();
+      mousePosition = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+      updateTargets();
+      schedule();
+    });
+
+    card.addEventListener("pointermove", (event) => {
+      if (!mouseHover || prefersReducedUiMotion()) return;
+      const rect = measureCard();
+      mousePosition = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      };
+      updateTargets();
+      schedule();
+    });
+
+    card.addEventListener("pointerleave", () => {
+      mouseHover = false;
+      card.classList.remove("is-tilting");
+      targetX = 0;
+      targetY = 0;
+      schedule();
+    });
+  });
+}
+
 function syncLineupSideFilterIcons(game = getActiveLineupGame()) {
   const sideIcons = game === "cs2" ? LINEUP_CS2_SIDE_ICONS : game === "valorant" ? LINEUP_VALORANT_SIDE_ICONS : null;
   document.querySelectorAll(".lineup-side-icon[data-lineup-side-icon]").forEach((icon) => {
@@ -8770,16 +8930,119 @@ function toggleLineupDifficulty(level) {
   syncLineupFiltersUI();
 }
 
+function getLineupFavoriteIds() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LINEUP_FAVORITES_STORAGE_KEY) || "[]");
+    if (!Array.isArray(raw)) return new Set();
+    return new Set(raw.filter((id) => typeof id === "string" && id.trim()).map((id) => id.trim()));
+  } catch (_) {
+    return new Set();
+  }
+}
+
+function setLineupFavoriteIds(ids) {
+  const list = [...ids];
+  if (!list.length) localStorage.removeItem(LINEUP_FAVORITES_STORAGE_KEY);
+  else localStorage.setItem(LINEUP_FAVORITES_STORAGE_KEY, JSON.stringify(list));
+}
+
+function getLineupCardFavoriteId(card) {
+  return (card?.dataset?.lineupVideoId || "").trim();
+}
+
+function isLineupFavorite(id) {
+  if (!id) return false;
+  return getLineupFavoriteIds().has(id);
+}
+
+function toggleLineupFavorite(id) {
+  if (!id) return false;
+  const favorites = getLineupFavoriteIds();
+  if (favorites.has(id)) favorites.delete(id);
+  else favorites.add(id);
+  setLineupFavoriteIds(favorites);
+  return favorites.has(id);
+}
+
+function getLineupFavoritesOnly() {
+  return localStorage.getItem(LINEUP_FAVORITES_ONLY_STORAGE_KEY) === "1";
+}
+
+function setLineupFavoritesOnly(enabled) {
+  if (enabled) localStorage.setItem(LINEUP_FAVORITES_ONLY_STORAGE_KEY, "1");
+  else localStorage.removeItem(LINEUP_FAVORITES_ONLY_STORAGE_KEY);
+}
+
+function toggleLineupFavoritesOnly() {
+  setLineupFavoritesOnly(!getLineupFavoritesOnly());
+  syncLineupFiltersUI();
+}
+
+function syncLineupFavoriteButton(btn, favorited) {
+  if (!btn) return;
+  btn.classList.toggle("is-favorite", favorited);
+  btn.setAttribute("aria-pressed", favorited ? "true" : "false");
+  btn.setAttribute("aria-label", favorited ? "Remove from favorites" : "Add to favorites");
+  btn.title = favorited ? "Remove from favorites" : "Add to favorites";
+  const icon = btn.querySelector("i");
+  if (icon) icon.className = favorited ? "ri-heart-fill" : "ri-heart-line";
+}
+
+function ensureLineupVideoFavoriteButton(card) {
+  const id = getLineupCardFavoriteId(card);
+  if (!id) return;
+
+  card.querySelector(".lineup-video-embed .lineup-video-favorite-btn")?.remove();
+
+  const body = card.querySelector(".lineup-video-card-foot-body") || card.querySelector(".lineup-video-card-foot");
+  if (!body) return;
+
+  let meta = body.querySelector(".lineup-video-card-foot-meta");
+  if (!meta) {
+    meta = document.createElement("div");
+    meta.className = "lineup-video-card-foot-meta";
+    const difficulty = body.querySelector(".lineup-difficulty");
+    if (difficulty) {
+      difficulty.replaceWith(meta);
+      meta.appendChild(difficulty);
+    } else {
+      body.appendChild(meta);
+    }
+  }
+
+  let btn = meta.querySelector(".lineup-video-favorite-btn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "lineup-video-favorite-btn";
+    btn.innerHTML = '<i class="ri-heart-line" aria-hidden="true"></i>';
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const next = toggleLineupFavorite(id);
+      syncLineupFavoriteButton(btn, next);
+      card.classList.toggle("is-favorite", next);
+      if (getLineupFavoritesOnly()) syncLineupFiltersUI();
+    });
+    meta.appendChild(btn);
+  }
+
+  const favorited = isLineupFavorite(id);
+  card.classList.toggle("is-favorite", favorited);
+  syncLineupFavoriteButton(btn, favorited);
+}
+
 function getLineupFilters(game = getActiveLineupGame()) {
   return {
     side: getLineupSideFilter(),
     map: getLineupMapFilter(game),
     query: getLineupSearchQuery(game).trim(),
     difficulties: getLineupDifficultyFilter(),
+    favoritesOnly: getLineupFavoritesOnly(),
   };
 }
 
-function lineupCardMatchesFilters(card, { side, query, map, difficulties }) {
+function lineupCardMatchesFilters(card, { side, query, map, difficulties, favoritesOnly }) {
   const cardSide = (card.dataset.lineupSide || "").toLowerCase();
   const cardMap = (card.dataset.lineupMap || "").toLowerCase();
   const cardDifficulty = card.dataset.lineupDifficulty || "";
@@ -8788,18 +9051,23 @@ function lineupCardMatchesFilters(card, { side, query, map, difficulties }) {
   const mapMatch = map === "all" || cardMap === map;
   const searchMatch = !query || searchText.includes(query.toLowerCase());
   const difficultyMatch = !difficulties?.size || difficulties.has(cardDifficulty);
-  return sideMatch && mapMatch && searchMatch && difficultyMatch;
+  const favoriteMatch = !favoritesOnly || isLineupFavorite(getLineupCardFavoriteId(card));
+  return sideMatch && mapMatch && searchMatch && difficultyMatch && favoriteMatch;
 }
 
-function setLineupFilterEmptyState(grid, show) {
+function setLineupFilterEmptyState(grid, show, { favoritesOnly = false } = {}) {
   let empty = grid.querySelector(".lineup-filter-empty-state");
   if (show) {
     if (!empty) {
       empty = document.createElement("p");
       empty.className = "lineup-empty-state lineup-filter-empty-state";
-      empty.textContent = "No lineups match your filters.";
       grid.appendChild(empty);
     }
+    empty.textContent = favoritesOnly
+      ? getLineupFavoriteIds().size
+        ? "No favorite lineups match your filters."
+        : "No favorite lineups yet."
+      : "No lineups match your filters.";
     empty.hidden = false;
     empty.classList.remove("hidden");
     return;
@@ -9098,7 +9366,7 @@ function applyLineupFiltersInstant(grid, game, filters) {
     }
   });
 
-  setLineupFilterEmptyState(grid, targetCards.length === 0);
+  setLineupFilterEmptyState(grid, targetCards.length === 0, { favoritesOnly: filters.favoritesOnly });
   applyLineupSearchHighlights(game);
   refreshLineupVideoCards(grid);
   updateLineupVideosScrollState(game);
@@ -9173,7 +9441,7 @@ async function runLineupFilterTransition(grid, game, filters) {
   }
 
   allCards.forEach(hideLineupCardInstant);
-  setLineupFilterEmptyState(grid, targetCards.length === 0);
+  setLineupFilterEmptyState(grid, targetCards.length === 0, { favoritesOnly: filters.favoritesOnly });
 
   if (!targetCards.length) {
     applyLineupSearchHighlights(game);
@@ -9263,7 +9531,7 @@ function applyLineupGridStateInstant() {
     }
   });
 
-  setLineupFilterEmptyState(enterGrid, targetCards.length === 0);
+  setLineupFilterEmptyState(enterGrid, targetCards.length === 0, { favoritesOnly: filters.favoritesOnly });
   refreshLineupVideosFixedHeight(game);
   refreshLineupVideoCards(enterGrid);
   applyLineupSearchHighlights(game);
@@ -9292,6 +9560,13 @@ function syncLineupFiltersUiControls() {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-pressed", active ? "true" : "false");
   });
+
+  const favoritesOnly = getLineupFavoritesOnly();
+  const favoritesFilter = document.getElementById("lineup-favorites-filter");
+  if (favoritesFilter) {
+    favoritesFilter.classList.toggle("active", favoritesOnly);
+    favoritesFilter.setAttribute("aria-pressed", favoritesOnly ? "true" : "false");
+  }
 
   const searchInput = document.getElementById("lineup-search");
   const clearBtn = document.getElementById("lineup-search-clear");
@@ -9383,8 +9658,6 @@ function getLineupVideoProgressAnimState(video) {
     lineupVideoProgressAnimByVideo.set(video, {
       displayPlayed: 0,
       trailPlayed: 0,
-      displayBuffer: 0,
-      trailBuffer: 0,
     });
   }
   return lineupVideoProgressAnimByVideo.get(video);
@@ -9403,32 +9676,6 @@ function lineupProgressPctToThumbLeft(pct, wrap = document.getElementById("lineu
   const width = wrap?.clientWidth || 1;
   const clamped = Math.max(0, Math.min(100, pct));
   return (clamped / 100) * width;
-}
-
-function getLineupVideoBufferedEndPct(video) {
-  if (!video?.duration || !Number.isFinite(video.duration) || video.duration <= 0) return 0;
-
-  let end = 0;
-  try {
-    const time = video.currentTime ?? 0;
-    for (let i = 0; i < video.buffered.length; i += 1) {
-      const start = video.buffered.start(i);
-      const bufferedEnd = video.buffered.end(i);
-      end = Math.max(end, bufferedEnd);
-      if (time >= start - 0.25 && time <= bufferedEnd + 0.25) {
-        end = Math.max(end, bufferedEnd);
-      }
-    }
-
-    // Some browsers expose ahead-buffer via seekable before buffered updates.
-    if (end <= 0 && video.seekable?.length) {
-      end = video.seekable.end(video.seekable.length - 1);
-    }
-  } catch {
-    return 0;
-  }
-
-  return Math.max(0, Math.min(100, (end / video.duration) * 100));
 }
 
 function getLineupVideoPlayedPct(video) {
@@ -9464,64 +9711,26 @@ function stepLineupVideoProgressAnim(current, target, trail, dt, { snap = false 
   return { display, trail: nextTrail };
 }
 
-function ensureLineupVideoEmbedProgress(embed) {
-  if (!embed || embed.querySelector(".lineup-video-embed-progress")) return;
-
-  const progress = document.createElement("div");
-  progress.className = "lineup-video-embed-progress";
-  progress.setAttribute("aria-hidden", "true");
-  progress.innerHTML = `
-    <div class="lineup-video-progress-track">
-      <div class="lineup-video-progress-buffer">
-        <div class="lineup-video-progress-buffer-trail"></div>
-        <div class="lineup-video-progress-buffer-fill"></div>
-      </div>
-    </div>
-  `;
-  embed.appendChild(progress);
-}
-
 function getLineupVideoProgressUi(video) {
-  if (!video) return null;
-
-  if (video.id === "lineup-video-modal-player") {
-    return {
-      mode: "modal",
-      wrap: document.getElementById("lineup-video-progress-wrap"),
-      bufferTrail: document.getElementById("lineup-video-progress-buffer-trail"),
-      bufferFill: document.getElementById("lineup-video-progress-buffer-fill"),
-      playedTrail: document.getElementById("lineup-video-progress-played-trail"),
-      playedFill: document.getElementById("lineup-video-progress-played"),
-      thumb: document.getElementById("lineup-video-progress-thumb"),
-      pctToWidth: (pct) => lineupProgressPctToTrackWidth(pct),
-      pctToThumb: (pct) => lineupProgressPctToThumbLeft(pct),
-    };
-  }
-
-  const embed = video.closest(".lineup-video-embed");
-  const root = embed?.querySelector(".lineup-video-embed-progress");
-  if (!embed || !root) return null;
+  if (!video || video.id !== "lineup-video-modal-player") return null;
 
   return {
-    mode: "embed",
-    root,
-    bufferTrail: root.querySelector(".lineup-video-progress-buffer-trail"),
-    bufferFill: root.querySelector(".lineup-video-progress-buffer-fill"),
-    pctToWidth: (pct) => Math.max(0, Math.min(100, pct)),
+    mode: "modal",
+    wrap: document.getElementById("lineup-video-progress-wrap"),
+    playedTrail: document.getElementById("lineup-video-progress-played-trail"),
+    playedFill: document.getElementById("lineup-video-progress-played"),
+    thumb: document.getElementById("lineup-video-progress-thumb"),
+    pctToWidth: (pct) => lineupProgressPctToTrackWidth(pct),
+    pctToThumb: (pct) => lineupProgressPctToThumbLeft(pct),
   };
 }
 
-function applyLineupVideoProgressVisuals(ui, { playedDisplay, playedTrail, bufferDisplay, bufferTrail }) {
-  if (!ui) return;
+function applyLineupVideoProgressVisuals(ui, { playedDisplay, playedTrail }) {
+  if (!ui || ui.mode !== "modal") return;
 
-  if (ui.bufferTrail) ui.bufferTrail.style.width = `${ui.pctToWidth(bufferTrail)}%`;
-  if (ui.bufferFill) ui.bufferFill.style.width = `${ui.pctToWidth(bufferDisplay)}%`;
-
-  if (ui.mode === "modal") {
-    if (ui.playedTrail) ui.playedTrail.style.width = `${ui.pctToWidth(playedTrail)}%`;
-    if (ui.playedFill) ui.playedFill.style.width = `${ui.pctToWidth(playedDisplay)}%`;
-    if (ui.thumb) ui.thumb.style.left = `${ui.pctToThumb(playedDisplay)}px`;
-  }
+  if (ui.playedTrail) ui.playedTrail.style.width = `${ui.pctToWidth(playedTrail)}%`;
+  if (ui.playedFill) ui.playedFill.style.width = `${ui.pctToWidth(playedDisplay)}%`;
+  if (ui.thumb) ui.thumb.style.left = `${ui.pctToThumb(playedDisplay)}px`;
 }
 
 function lineupVideoNeedsProgressUpdates(video, anim) {
@@ -9529,11 +9738,6 @@ function lineupVideoNeedsProgressUpdates(video, anim) {
   if (!video.duration || !Number.isFinite(video.duration) || video.readyState < HTMLMediaElement.HAVE_METADATA) return true;
   if (video.networkState === HTMLMediaElement.NETWORK_LOADING) return true;
   if (!video.paused && !video.ended && !video.hidden) return true;
-
-  const targetBuffer = getLineupVideoBufferedEndPct(video);
-  if (targetBuffer < 99.5) return true;
-  if (Math.abs(anim.displayBuffer - targetBuffer) > 0.05) return true;
-  if (Math.abs(anim.trailBuffer - anim.displayBuffer) > 0.05) return true;
 
   if (video.id === "lineup-video-modal-player" && !video.hidden) {
     const targetPlayed = getLineupVideoPlayedPct(video);
@@ -9544,15 +9748,11 @@ function lineupVideoNeedsProgressUpdates(video, anim) {
   return false;
 }
 
-function setLineupVideoProgressTargets(video, { playedPct, bufferPct, snap = false, playedDisplayOnly = false } = {}) {
+function setLineupVideoProgressTargets(video, { playedPct, snap = false, playedDisplayOnly = false } = {}) {
   const anim = getLineupVideoProgressAnimState(video);
   if (playedPct != null) {
     anim.displayPlayed = playedPct;
     if (!playedDisplayOnly) anim.trailPlayed = snap ? playedPct : anim.trailPlayed;
-  }
-  if (bufferPct != null) {
-    anim.displayBuffer = bufferPct;
-    anim.trailBuffer = snap ? bufferPct : anim.trailBuffer;
   }
 
   const ui = getLineupVideoProgressUi(video);
@@ -9561,14 +9761,7 @@ function setLineupVideoProgressTargets(video, { playedPct, bufferPct, snap = fal
   applyLineupVideoProgressVisuals(ui, {
     playedDisplay: anim.displayPlayed,
     playedTrail: anim.trailPlayed,
-    bufferDisplay: anim.displayBuffer,
-    bufferTrail: anim.trailBuffer,
   });
-
-  if (ui.mode === "embed" && ui.root) {
-    const active = anim.displayBuffer > 0.05 || anim.trailBuffer > 0.05;
-    ui.root.classList.toggle("is-active", active);
-  }
 }
 
 function updateLineupVideoProgressForPlayer(video, dt, { snap = false } = {}) {
@@ -9576,18 +9769,10 @@ function updateLineupVideoProgressForPlayer(video, dt, { snap = false } = {}) {
   if (!ui) return false;
 
   const anim = getLineupVideoProgressAnimState(video);
-  const targetBuffer = getLineupVideoBufferedEndPct(video);
-  // Buffer should reflect loaded media immediately; trail can ease behind it.
-  const bufferStep = stepLineupVideoProgressAnim(anim.displayBuffer, targetBuffer, anim.trailBuffer, dt, {
-    snap: snap || targetBuffer > anim.displayBuffer,
-  });
-  anim.displayBuffer = bufferStep.display;
-  anim.trailBuffer = bufferStep.trail;
-
   let playedDisplay = anim.displayPlayed;
   let playedTrail = anim.trailPlayed;
 
-  if (ui.mode === "modal" && !lineupVideoSeekState.dragging) {
+  if (!lineupVideoSeekState.dragging) {
     const targetPlayed = getLineupVideoPlayedPct(video);
     const playedStep = stepLineupVideoProgressAnim(anim.displayPlayed, targetPlayed, anim.trailPlayed, dt, { snap });
     playedDisplay = playedStep.display;
@@ -9599,14 +9784,7 @@ function updateLineupVideoProgressForPlayer(video, dt, { snap = false } = {}) {
   applyLineupVideoProgressVisuals(ui, {
     playedDisplay,
     playedTrail,
-    bufferDisplay: anim.displayBuffer,
-    bufferTrail: anim.trailBuffer,
   });
-
-  if (ui.mode === "embed" && ui.root) {
-    const active = targetBuffer > 0.05 && targetBuffer < 99.5;
-    ui.root.classList.toggle("is-active", active || anim.trailBuffer > anim.displayBuffer + 0.05);
-  }
 
   return lineupVideoNeedsProgressUpdates(video, anim);
 }
@@ -9659,16 +9837,14 @@ function stopLineupVideoProgressLoop() {
   lineupVideoSeekState.lastProgressTs = 0;
 }
 
-function updateLineupVideoProgressBars({ playedPct, bufferPct, snap = false, playedDisplayOnly = false } = {}) {
+function updateLineupVideoProgressBars({ playedPct, snap = false, playedDisplayOnly = false } = {}) {
   const player = document.getElementById("lineup-video-modal-player");
   if (!player) return;
 
-  const nextBufferPct = bufferPct ?? getLineupVideoBufferedEndPct(player);
   const nextPlayedPct = playedPct ?? (lineupVideoSeekState.dragging ? null : getLineupVideoPlayedPct(player));
 
   setLineupVideoProgressTargets(player, {
     playedPct: nextPlayedPct,
-    bufferPct: playedDisplayOnly ? null : nextBufferPct,
     snap,
     playedDisplayOnly,
   });
@@ -9831,7 +10007,6 @@ function syncLineupVideoBufferUi() {
   if (!lineupVideoSeekState.dragging) {
     updateLineupVideoProgressBars({
       playedPct: getLineupVideoPlayedPct(player),
-      bufferPct: getLineupVideoBufferedEndPct(player),
       snap: true,
     });
   } else {
@@ -9964,7 +10139,7 @@ function closeLineupVideoModal() {
   lineupVideoSeekState.wasPlaying = false;
   if (player) {
     resetLineupVideoProgressAnimState(player);
-    setLineupVideoProgressTargets(player, { playedPct: 0, bufferPct: 0, snap: true });
+    setLineupVideoProgressTargets(player, { playedPct: 0, snap: true });
   }
   lineupVideoModalState.loadToken += 1;
   player?.pause();
@@ -10024,7 +10199,6 @@ function openLineupVideoModal(url, title = "", difficulty = "", posterUrl = "") 
 
   if (titleEl) titleEl.textContent = title;
   syncLineupVideoModalDifficulty(difficulty);
-
   closeLineupVideoOptionsMenu();
 
   lineupVideoModalState.baseUrl = url;
@@ -10037,14 +10211,21 @@ function openLineupVideoModal(url, title = "", difficulty = "", posterUrl = "") 
   const volume = document.getElementById("lineup-video-volume");
   if (volume) volume.value = "1";
   resetLineupVideoProgressAnimState(player);
-  setLineupVideoProgressTargets(player, { playedPct: 0, bufferPct: 0, snap: true });
+  setLineupVideoProgressTargets(player, { playedPct: 0, snap: true });
 
-  loadLineupVideoModalSource(url, { posterUrl, resumeTime: 0, autoplay: true });
-
+  // Show the modal before loading media so a progress/UI error can't block open.
+  lineupVideoModalState.openedAt = performance.now();
   overlay.classList.add("active");
+  overlay.hidden = false;
   syncBodyScrollLock();
-  syncLineupVideoControlsUi();
-  syncLineupVideoOptionsUi();
+
+  try {
+    loadLineupVideoModalSource(url, { posterUrl, resumeTime: 0, autoplay: true });
+    syncLineupVideoControlsUi();
+    syncLineupVideoOptionsUi();
+  } catch (error) {
+    console.error("Failed to open lineup video:", error);
+  }
 
   document.getElementById("lineup-video-modal-close")?.focus();
 }
@@ -10076,28 +10257,20 @@ function initLineupVideoModal() {
   if (!overlay || !player || overlay.dataset.lineupVideoModalInit) return;
   overlay.dataset.lineupVideoModalInit = "1";
 
-  applyLineupVideoSources();
-  initLineupVideoLazyLoader();
-  enhanceLineupVideoEmbeds();
-  initLineupVideoOptionsMenu();
-  startLineupVideoProgressLoop();
-
-  const modalBody = overlay.querySelector(".lineup-video-modal-body");
-  bindLineupVideoBufferUi(player, modalBody);
-  bindLineupVideoAutoplayEvents(player);
-
+  // Bind open/close first so a later setup error can't leave clicks dead.
   document.querySelectorAll(".lineup-video-grid").forEach((grid) => {
     grid.addEventListener("click", (event) => {
-      if (event.target.closest(".lineup-video-agent-badge, .lineup-video-ability-badge, .lineup-video-utility-badge[data-lineup-cs2-utility]")) return;
+      const playTrigger = event.target.closest(".lineup-video-play-trigger");
+      if (!playTrigger || !grid.contains(playTrigger)) return;
 
-      const embed = event.target.closest(".lineup-video-embed");
-      if (!embed || !grid.contains(embed)) return;
+      const card = playTrigger.closest(".lineup-video-card");
+      if (!card || !grid.contains(card) || card.classList.contains("lineup-video-card--no-source")) return;
 
-      const card = embed.closest(".lineup-video-card");
-      const src = card ? getLineupVideoUrl(card) : "";
+      const src = getLineupVideoUrl(card);
       if (!src) return;
 
-      openLineupVideoModal(src, card ? getLineupVideoTitle(card) : "", card?.dataset.lineupDifficulty || "", card ? getLineupVideoPosterAssetPath(card) : "");
+      event.preventDefault();
+      openLineupVideoModal(src, getLineupVideoTitle(card), card.dataset.lineupDifficulty || "", getLineupVideoPosterAssetPath(card));
     });
   });
 
@@ -10107,11 +10280,28 @@ function initLineupVideoModal() {
     event.stopPropagation();
   });
 
-  volume?.addEventListener("wheel", handleLineupVideoVolumeWheel, { passive: false });
-
   overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) closeLineupVideoModal();
+    if (event.target !== overlay) return;
+    // Ignore the same click that opened the modal (backdrop can appear under the cursor).
+    if (performance.now() - lineupVideoModalState.openedAt < 350) return;
+    closeLineupVideoModal();
   });
+
+  try {
+    applyLineupVideoSources();
+    initLineupVideoLazyLoader();
+    enhanceLineupVideoEmbeds();
+    initLineupVideoOptionsMenu();
+    startLineupVideoProgressLoop();
+
+    const modalBody = overlay.querySelector(".lineup-video-modal-body");
+    bindLineupVideoBufferUi(player, modalBody);
+    bindLineupVideoAutoplayEvents(player);
+  } catch (error) {
+    console.error("Failed to initialize lineup video UI:", error);
+  }
+
+  volume?.addEventListener("wheel", handleLineupVideoVolumeWheel, { passive: false });
 
   playBtn?.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -10378,6 +10568,7 @@ function initLineupTab() {
   initLineupMapDropdown();
   initLineupVideoModal();
   initLineupBadgeInfoPopovers();
+  initLineupCardTilt();
   syncLineupGameSelectorUi();
   syncLineupFiltersUiControls();
   const activeGame = getActiveLineupGame();
@@ -10398,6 +10589,10 @@ function initLineupTab() {
     const btn = event.target.closest(".lineup-difficulty-tag[data-lineup-difficulty]");
     if (!btn) return;
     toggleLineupDifficulty(btn.dataset.lineupDifficulty);
+  });
+
+  document.getElementById("lineup-favorites-filter")?.addEventListener("click", () => {
+    toggleLineupFavoritesOnly();
   });
 
   const searchInput = document.getElementById("lineup-search");
@@ -10491,6 +10686,7 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
     }
   } else if (id === "edpi-calculator-tab") {
     updateEDPI();
+    syncEdpiSpectrumPointerTooltip();
   } else if (id === "crosshair-converter-tab") {
     ensureCrosshairConverterLoaded()
       .then(() => {
@@ -10902,15 +11098,15 @@ function getCommittedGameFromInput(input) {
   if (!input) return null;
   const val = input.value.trim();
   if (val) {
-    const fromRegistry = MorningRoastGames.resolveGameName(val);
-    if (fromRegistry) return fromRegistry;
+    const fromDisplay = MorningRoastGames.resolveGameFromDisplayName(val);
+    if (fromDisplay) return fromDisplay;
 
     const list = document.getElementById(input.id.replace("-search", "-list"));
     if (list) {
       const options = Array.from(list.querySelectorAll(".pref-dropdown-option"));
       const exact = options.find((opt) => {
         const key = getGameOptionLabel(opt);
-        return key.toLowerCase() === val.toLowerCase() || getGameDisplayName(key).toLowerCase() === val.toLowerCase();
+        return getGameDisplayName(key).toLowerCase() === val.toLowerCase();
       });
       if (exact) return getGameOptionLabel(exact);
     }
@@ -10923,25 +11119,18 @@ function resolveGameFromInput(input, listId) {
   if (!input) return null;
   const val = input.value.trim();
   if (!val) return null;
-  const fromRegistry = MorningRoastGames.resolveGameName(val);
-  if (fromRegistry) return fromRegistry;
+  const fromDisplay = MorningRoastGames.resolveGameFromDisplayName(val);
+  if (fromDisplay) return fromDisplay;
   const list = document.getElementById(listId || input.id.replace("-search", "-list"));
   if (!list) return null;
 
   const options = Array.from(list.querySelectorAll(".pref-dropdown-option"));
   const getOptionName = (opt) => getGameOptionLabel(opt);
-  const exact = options.find((opt) => {
-    const key = getOptionName(opt);
-    return key.toLowerCase() === val.toLowerCase() || getGameDisplayName(key).toLowerCase() === val.toLowerCase();
-  });
+  const lower = val.toLowerCase();
+  const exact = options.find((opt) => getGameDisplayName(getOptionName(opt)).toLowerCase() === lower);
   if (exact) return getOptionName(exact);
 
-  const partial = options.find((opt) => {
-    const key = getOptionName(opt);
-    const display = getGameDisplayName(key).toLowerCase();
-    const lower = val.toLowerCase();
-    return key.toLowerCase().startsWith(lower) || display.startsWith(lower);
-  });
+  const partial = options.find((opt) => getGameDisplayName(getOptionName(opt)).toLowerCase().startsWith(lower));
   return partial ? getOptionName(partial) : null;
 }
 
@@ -11875,8 +12064,13 @@ function initLogoMask() {
   img.src = "./assets/logo.png";
 }
 
+const BG_STAR_COUNT = 80;
+const BG_STAR_SPAWN_EDGES = ["top", "left", "bottom"];
+
 function normalizeBgPattern(stored) {
-  if (stored === "none" || stored === "grid" || stored === "dots" || stored === "particles") return stored;
+  if (stored === "none" || stored === "grid" || stored === "dots" || stored === "particles" || stored === "stars") {
+    return stored;
+  }
   return "waves";
 }
 
@@ -11885,6 +12079,7 @@ const BG_PATTERN_LABELS = {
   grid: "Grid",
   dots: "Dots",
   particles: "Particles",
+  stars: "Stars",
   none: "None",
 };
 
@@ -11893,7 +12088,155 @@ const BG_PATTERN_ICONS = {
   grid: "ri-layout-grid-line",
   dots: "ri-more-2-fill",
   particles: "ri-sparkling-2-line",
+  stars: "ri-meteor-line",
   none: "ri-prohibited-line",
+};
+
+function randomBgStarSpawn(edge) {
+  const chosen = edge || BG_STAR_SPAWN_EDGES[Math.floor(Math.random() * BG_STAR_SPAWN_EDGES.length)];
+  if (chosen === "left") {
+    return {
+      top: `${8 + Math.random() * 72}%`,
+      left: `${-18 - Math.random() * 10}%`,
+    };
+  }
+  if (chosen === "bottom") {
+    return {
+      top: `${92 + Math.random() * 14}%`,
+      left: `${8 + Math.random() * 55}%`,
+    };
+  }
+  return {
+    top: `${-16 - Math.random() * 10}%`,
+    left: `${8 + Math.random() * 78}%`,
+  };
+}
+
+function mountBgStars(root, { count = BG_STAR_COUNT, animate = true } = {}) {
+  if (!root) return null;
+  root.innerHTML = "";
+  root.classList.add("bg-stars");
+  root.dataset.bgStarCount = String(count);
+
+  const field = document.createElement("div");
+  field.className = "bg-starfield";
+  for (let i = 0; i < count; i += 1) {
+    const dot = document.createElement("span");
+    dot.className = "bg-starfield-dot";
+    const size = 1 + Math.random() * 1.5;
+    dot.style.setProperty("--dot-x", `${(Math.random() * 100).toFixed(2)}%`);
+    dot.style.setProperty("--dot-y", `${(Math.random() * 100).toFixed(2)}%`);
+    dot.style.setProperty("--dot-size", `${size.toFixed(2)}px`);
+    dot.style.setProperty("--dot-opacity", String((0.28 + Math.random() * 0.55).toFixed(2)));
+    dot.style.setProperty("--dot-delay", `${(Math.random() * 4).toFixed(2)}s`);
+    field.appendChild(dot);
+  }
+  root.appendChild(field);
+
+  function applyBgStarSpawn(star) {
+    const spawn = randomBgStarSpawn();
+    star.style.setProperty("--star-top", spawn.top);
+    star.style.setProperty("--star-left", spawn.left);
+    star.style.setProperty("--star-duration", `${(1.8 + Math.random() * 1.8).toFixed(2)}s`);
+    star.style.setProperty("--star-length", `${(5.5 + Math.random() * 3.75).toFixed(2)}rem`);
+    star.style.setProperty("--star-thickness", Math.random() > 0.55 ? "0.1rem" : "0.125rem");
+    star.style.setProperty("--star-opacity", String((0.35 + Math.random() * 0.5).toFixed(2)));
+  }
+
+  const stars = [];
+  for (let i = 0; i < count; i += 1) {
+    const star = document.createElement("span");
+    star.className = "bg-star";
+    applyBgStarSpawn(star);
+    root.appendChild(star);
+    stars.push(star);
+  }
+
+  const timers = [];
+  let stopped = false;
+  let lastIndex = -1;
+
+  function shootOne() {
+    if (stopped || !animate || !stars.length) return;
+
+    let index = Math.floor(Math.random() * stars.length);
+    if (stars.length > 1 && index === lastIndex) {
+      index = (index + 1 + Math.floor(Math.random() * (stars.length - 1))) % stars.length;
+    }
+    lastIndex = index;
+
+    const star = stars[index];
+    applyBgStarSpawn(star);
+    star.classList.remove("is-shooting");
+    void star.offsetWidth;
+    star.classList.add("is-shooting");
+
+    const durationMs = (parseFloat(star.style.getPropertyValue("--star-duration")) || 2.4) * 1000;
+    let settled = false;
+    const settle = () => {
+      if (settled || stopped) return;
+      settled = true;
+      star.removeEventListener("animationend", onEnd);
+      star.classList.remove("is-shooting");
+      scheduleNext();
+    };
+    const onEnd = (event) => {
+      if (event.target !== star) return;
+      if (event.animationName && event.animationName !== "bg-shooting-star") return;
+      settle();
+    };
+    star.addEventListener("animationend", onEnd);
+    timers.push(setTimeout(settle, durationMs + 60));
+  }
+
+  function scheduleNext() {
+    if (stopped || !animate) return;
+    const wait = 1000 + Math.random() * 4000;
+    timers.push(setTimeout(shootOne, wait));
+  }
+
+  if (animate) scheduleNext();
+
+  return {
+    count,
+    schedule: "solo-1-5",
+    destroy() {
+      stopped = true;
+      while (timers.length) clearTimeout(timers.pop());
+      root.innerHTML = "";
+      delete root.dataset.bgStarCount;
+    },
+  };
+}
+
+const bgStars = {
+  layer: null,
+  controller: null,
+
+  motionAllowed() {
+    return !document.body.classList.contains("reduce-motion") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  },
+
+  ensure() {
+    this.layer = document.getElementById("bg-stars");
+    return this.layer;
+  },
+
+  sync() {
+    const layer = this.ensure();
+    if (!layer) return;
+    const active = document.documentElement.dataset.bgPattern === "stars" && this.motionAllowed();
+    if (active) {
+      if (this.controller?.count === BG_STAR_COUNT && this.controller?.schedule === "solo-1-5") return;
+      this.controller?.destroy();
+      this.controller = mountBgStars(layer, { count: BG_STAR_COUNT, animate: true });
+      return;
+    }
+    if (this.controller) {
+      this.controller.destroy();
+      this.controller = null;
+    }
+  },
 };
 
 const DEFAULT_FONT_FAMILY_ID = "inter";
@@ -12162,6 +12505,9 @@ const bgParticles = {
     const linkDistance = Math.min(150, Math.max(95, Math.min(width, height) * 0.14));
     const linkDistanceSq = linkDistance * linkDistance;
 
+    const highContrast = document.documentElement.classList.contains("high-contrast");
+    const alphaBoost = highContrast ? 2.4 : 1;
+
     for (let i = 0; i < particles.length; i++) {
       const a = particles[i];
       for (let j = i + 1; j < particles.length; j++) {
@@ -12172,20 +12518,20 @@ const bgParticles = {
         if (distSq > linkDistanceSq) continue;
 
         const dist = Math.sqrt(distSq);
-        const lineAlpha = (1 - dist / linkDistance) * 0.14;
+        const lineAlpha = Math.min(0.45, (1 - dist / linkDistance) * 0.14 * alphaBoost);
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
         ctx.strokeStyle = `hsla(0, 0%, 100%, ${lineAlpha})`;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = highContrast ? 1.25 : 1;
         ctx.stroke();
       }
     }
 
     for (const p of particles) {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `hsla(0, 0%, 100%, ${p.a})`;
+      ctx.arc(p.x, p.y, highContrast ? p.r * 1.15 : p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(0, 0%, 100%, ${Math.min(0.85, p.a * alphaBoost)})`;
       ctx.fill();
     }
   },
@@ -12194,6 +12540,7 @@ const bgParticles = {
 function applyBgPattern(mode) {
   document.documentElement.dataset.bgPattern = normalizeBgPattern(mode);
   bgParticles.sync();
+  bgStars.sync();
 }
 
 function syncBgPatternDropdownUi(value) {
@@ -12828,10 +13175,14 @@ function initPreferences() {
       renderTargetSpreadPreviewCanvas(spreadPreviewAnim.scale);
     }
   };
-  const applyContrast = (on) => body.classList.toggle("high-contrast", on);
+  const applyContrast = (on) => {
+    root.classList.toggle("high-contrast", on);
+    body.classList.toggle("high-contrast", on);
+  };
   const applyMotion = (on) => {
     body.classList.toggle("reduce-motion", on);
     bgParticles.sync();
+    bgStars.sync();
   };
 
   const savedAccent = localStorage.getItem("prefAccent");
@@ -13634,9 +13985,8 @@ document.addEventListener("DOMContentLoaded", () => {
     input.addEventListener("input", () => {
       const filter = input.value.toLowerCase();
       list.querySelectorAll(optionSelector).forEach((o) => {
-        const key = getOptionLabel(o).toLowerCase();
         const display = getGameDisplayName(getOptionLabel(o)).toLowerCase();
-        o.style.display = key.includes(filter) || display.includes(filter) ? "" : "none";
+        o.style.display = display.includes(filter) ? "" : "none";
       });
       showGameDropdownList(idPrefix);
       syncClear();
@@ -13701,9 +14051,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let swapBtnRotation = 0;
   if (swapBtn) {
     initMagneticPull(swapBtn, {
-      pullRadius: 50,
+      pullRadius: 100,
       followRadius: null,
-      maxOffset: 25,
+      maxOffset: 42,
       pullXVar: "--swap-btn-pull-x",
       pullYVar: "--swap-btn-pull-y",
       buttonSizeFallback: 50,

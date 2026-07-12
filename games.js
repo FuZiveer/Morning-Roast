@@ -67,14 +67,23 @@
     "Black Ops 7": "Call of Duty: Black Ops 7",
   });
 
-  const DISPLAY_NAME_ALIASES = Object.freeze(
-    Object.fromEntries(Object.entries(GAME_DISPLAY_NAMES).map(([key, display]) => [display.toLowerCase(), key])),
-  );
-
   function getGameDisplayName(game) {
     const resolved = resolveGameName(game);
     if (!resolved) return game == null ? "" : String(game).trim();
     return GAME_DISPLAY_NAMES[resolved] || resolved;
+  }
+
+  /** Match only the label shown in dropdowns (not internal keys or aliases). */
+  function resolveGameFromDisplayName(label) {
+    if (label == null) return null;
+    const trimmed = String(label).trim();
+    if (!trimmed) return null;
+    const lower = trimmed.toLowerCase();
+    for (const name of Object.keys(GAME_REGISTRY)) {
+      const display = (GAME_DISPLAY_NAMES[name] || name).toLowerCase();
+      if (display === lower) return name;
+    }
+    return null;
   }
 
   function resolveGameName(game) {
@@ -82,9 +91,10 @@
     const trimmed = String(game).trim();
     if (!trimmed) return null;
     if (GAME_REGISTRY[trimmed]) return trimmed;
+    const fromDisplay = resolveGameFromDisplayName(trimmed);
+    if (fromDisplay) return fromDisplay;
     const lower = trimmed.toLowerCase();
     if (GAME_ALIASES[lower]) return GAME_ALIASES[lower];
-    if (DISPLAY_NAME_ALIASES[lower]) return DISPLAY_NAME_ALIASES[lower];
     for (const name of Object.keys(GAME_REGISTRY)) {
       if (name.toLowerCase() === lower) return name;
     }
@@ -148,6 +158,7 @@
     SENS_PROFILES,
     SUPPORTED_GAMES,
     resolveGameName,
+    resolveGameFromDisplayName,
     getGameDisplayName,
     getGameYaw,
     getGameSensProfile,

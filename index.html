@@ -22,7 +22,7 @@
             root.style.setProperty("--accent-on-color", lightness > 62 ? "hsl(0, 0%, 5%)" : "hsl(0, 0%, 100%)");
           }
           var pattern = localStorage.getItem("prefBgPattern") || "waves";
-          if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "particles") {
+          if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "particles" || pattern === "stars") {
             root.setAttribute("data-bg-pattern", pattern);
           }
           var fontStacks = {
@@ -49,6 +49,7 @@
           };
           var font = localStorage.getItem("prefFontFamily") || "inter";
           if (fontStacks[font]) root.style.setProperty("--app-font-family", fontStacks[font]);
+          if (localStorage.getItem("prefContrast") === "true") root.classList.add("high-contrast");
         } catch (e) {}
         root.classList.add("accent-instant");
       })();
@@ -86,12 +87,13 @@
     </script>
 
     <script defer src="games.js"></script>
-    <script defer src="color-names.js"></script>
-    <script defer src="site-assistant.js"></script>
+    <script defer src="tools/color-names.js"></script>
+    <script defer src="tools/site-assistant.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
     <div id="app-loading-screen" class="app-loading-screen" role="status" aria-live="polite" aria-busy="true" aria-label="Loading Morning Roast">
+      <div class="app-loading-stars bg-stars" id="app-loading-stars" aria-hidden="true"></div>
       <div class="app-loading-screen-inner">
         <div class="app-loading-logo-shell">
           <span class="logo-stack app-loading-logo" aria-hidden="true">
@@ -102,6 +104,7 @@
         <span class="app-loading-label">Morning Roast</span>
       </div>
     </div>
+    <div id="bg-stars" class="bg-stars bg-stars--fixed" aria-hidden="true"></div>
     <canvas id="bg-particles-canvas" class="bg-particles-canvas" aria-hidden="true"></canvas>
     <aside class="app-sidebar" aria-label="Main navigation">
       <button type="button" class="app-sidebar-logo" aria-label="Morning Roast home" onclick="cycleTabFromLogo(event)">
@@ -678,20 +681,15 @@
               <div class="spectrum-container" id="edpi-spectrum">
                 <div class="spectrum-bar" aria-hidden="true"></div>
                 <div class="spectrum-recommended" id="edpi-spectrum-recommended" hidden aria-hidden="true">
-                  <span class="spectrum-recommended-mark" data-mark="max" title="Recommended max cm/360"></span>
-                  <span class="spectrum-recommended-mark" data-mark="min" title="Recommended min cm/360"></span>
+                  <span class="spectrum-recommended-mark" data-mark="max"></span>
+                  <span class="spectrum-recommended-mark" data-mark="min"></span>
                   <div class="spectrum-recommended-bracket" aria-hidden="true">
                     <span class="spectrum-recommended-label">recommended</span>
                   </div>
                 </div>
-                <div id="spectrum-pointer" role="slider" aria-label="eDPI spectrum" aria-valuemin="0" aria-valuenow="0" tabindex="0"></div>
-                <p class="spectrum-hint">
-                  <span>Use</span>
-                  <i class="ri-mouse-line" aria-hidden="true"></i>
-                  <span>mouse and</span>
-                  <i class="ri-keyboard-box-line" aria-hidden="true"></i>
-                  <span>arrow keys</span>
-                </p>
+                <div id="spectrum-pointer" role="slider" aria-label="eDPI spectrum" aria-valuemin="0" aria-valuenow="0" tabindex="0" aria-describedby="spectrum-pointer-tooltip">
+                  <div id="spectrum-pointer-tooltip" class="spectrum-pointer-tooltip" role="tooltip" hidden>Use mouse and arrow keys</div>
+                </div>
               </div>
 
               <div class="tab-action-bar">
@@ -1318,25 +1316,31 @@
               </div>
               <div class="lineup-videos-panel-head hidden" id="lineup-videos-panel-head" hidden>
                 <h4 class="settings-section-title" id="lineup-videos-panel-title"><i class="ri-fire-line" aria-hidden="true"></i> Valorant lineups</h4>
-                <div class="lineup-difficulty-filter" id="lineup-difficulty-filter" role="group" aria-label="Difficulty">
-                  <span class="lineup-difficulty-heading lineup-difficulty-filter-heading">
-                    <span class="lineup-difficulty-label">Difficulty</span>
-                    <span class="lineup-difficulty-dot" aria-hidden="true"></span>
-                  </span>
-                  <div class="lineup-difficulty-tags">
-                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="1" aria-pressed="false" aria-label="1 star"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">1</span></button>
-                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="2" aria-pressed="false" aria-label="2 stars"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">2</span></button>
-                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="3" aria-pressed="false" aria-label="3 stars"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">3</span></button>
-                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="4" aria-pressed="false" aria-label="4 stars"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">4</span></button>
-                    <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="5" aria-pressed="false" aria-label="5 stars"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">5</span></button>
+                <div class="lineup-videos-panel-filters">
+                  <button type="button" class="lineup-favorites-filter" id="lineup-favorites-filter" aria-pressed="false" aria-label="Show favorites only">
+                    <i class="ri-heart-fill" aria-hidden="true"></i>
+                    <span>Favorites</span>
+                  </button>
+                  <div class="lineup-difficulty-filter" id="lineup-difficulty-filter" role="group" aria-label="Difficulty">
+                    <span class="lineup-difficulty-heading lineup-difficulty-filter-heading">
+                      <span class="lineup-difficulty-label">Difficulty</span>
+                      <span class="lineup-difficulty-dot" aria-hidden="true"></span>
+                    </span>
+                    <div class="lineup-difficulty-tags">
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="1" aria-pressed="false" aria-label="1 star"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">1</span></button>
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="2" aria-pressed="false" aria-label="2 stars"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">2</span></button>
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="3" aria-pressed="false" aria-label="3 stars"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">3</span></button>
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="4" aria-pressed="false" aria-label="4 stars"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">4</span></button>
+                      <button type="button" class="lineup-difficulty-tag" data-lineup-difficulty="5" aria-pressed="false" aria-label="5 stars"><i class="ri-star-fill" aria-hidden="true"></i><span aria-hidden="true">5</span></button>
+                    </div>
                   </div>
                 </div>
               </div>
               <div class="lineup-videos-panel hidden" id="lineup-valorant-panel" data-lineup-game-panel="valorant" role="tabpanel" hidden>
                 <div class="lineup-video-grid" id="lineup-valorant-grid">
-                  <article class="lineup-video-card" data-lineup-map="pearl" data-lineup-side="attacker" data-lineup-agent="veto" data-lineup-ability="snare-trap" data-lineup-callout="B Push" data-lineup-difficulty="2" data-lineup-video-id="veto-pearl-attacker" data-lineup-video-url="assets/lineups/valorant/pearl/veto-pearl-attacker.mp4" data-lineup-search="attacker pearl veto b push flank trip snare trap chokehold">
+                  <article class="lineup-video-card" data-lineup-map="pearl" data-lineup-side="attacker" data-lineup-agent="veto" data-lineup-ability="snare-trap" data-lineup-callout="B Push" data-lineup-difficulty="2" data-lineup-video-id="veto-pearl-attacker" data-lineup-video-url="assets/lineups/valorant/pearl/veto-pearl-attacker.mp4" data-lineup-poster-url="assets/lineups/valorant/pearl/thumbnail.webp" data-lineup-search="attacker pearl veto b push flank trip snare trap chokehold">
                     <div class="lineup-video-embed">
-                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
+                      <img class="lineup-video-embed-poster" src="assets/lineups/valorant/pearl/thumbnail.webp" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">B Push Flank Trip</h3>
@@ -1360,9 +1364,9 @@
 
               <div class="lineup-videos-panel hidden" id="lineup-cs2-panel" data-lineup-game-panel="cs2" role="tabpanel" hidden aria-hidden="true">
                 <div class="lineup-video-grid" id="lineup-cs2-grid">
-                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Window" data-lineup-difficulty="1" data-lineup-utility="smoke" data-lineup-video-id="window-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/window-smoke-from-spawn.mp4" data-lineup-search="t side smoke window spawn mirage">
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Window" data-lineup-difficulty="1" data-lineup-utility="smoke" data-lineup-video-id="window-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/window-smoke-from-spawn.mp4" data-lineup-poster-url="assets/lineups/cs2/mirage/thumbnail.webp" data-lineup-search="t side smoke window spawn mirage">
                     <div class="lineup-video-embed">
-                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
+                      <img class="lineup-video-embed-poster" src="assets/lineups/cs2/mirage/thumbnail.webp" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Window Smoke From Spawn</h3>
@@ -1381,9 +1385,9 @@
                       </div>
                     </div>
                   </article>
-                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Connector" data-lineup-difficulty="1" data-lineup-utility="smoke" data-lineup-video-id="connector-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/connector-smoke-from-spawn.mp4" data-lineup-search="t side smoke connector spawn mirage">
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Connector" data-lineup-difficulty="1" data-lineup-utility="smoke" data-lineup-video-id="connector-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/connector-smoke-from-spawn.mp4" data-lineup-poster-url="assets/lineups/cs2/mirage/thumbnail.webp" data-lineup-search="t side smoke connector spawn mirage">
                     <div class="lineup-video-embed">
-                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
+                      <img class="lineup-video-embed-poster" src="assets/lineups/cs2/mirage/thumbnail.webp" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Connector Smoke From Spawn</h3>
@@ -1402,9 +1406,9 @@
                       </div>
                     </div>
                   </article>
-                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Bench" data-lineup-difficulty="3" data-lineup-utility="smoke" data-lineup-video-id="bench-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/bench-smoke-from-spawn.mp4" data-lineup-search="t side smoke bench spawn mirage">
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Bench" data-lineup-difficulty="3" data-lineup-utility="smoke" data-lineup-video-id="bench-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/bench-smoke-from-spawn.mp4" data-lineup-poster-url="assets/lineups/cs2/mirage/thumbnail.webp" data-lineup-search="t side smoke bench spawn mirage">
                     <div class="lineup-video-embed">
-                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
+                      <img class="lineup-video-embed-poster" src="assets/lineups/cs2/mirage/thumbnail.webp" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Bench Smoke From Spawn</h3>
@@ -1423,9 +1427,9 @@
                       </div>
                     </div>
                   </article>
-                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Jungle" data-lineup-difficulty="2" data-lineup-utility="smoke" data-lineup-video-id="jungle-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/jungle-smoke-from-spawn.mp4" data-lineup-search="t side smoke jungle spawn mirage">
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Jungle" data-lineup-difficulty="2" data-lineup-utility="smoke" data-lineup-video-id="jungle-smoke-from-spawn" data-lineup-video-url="assets/lineups/cs2/mirage/jungle-smoke-from-spawn.mp4" data-lineup-poster-url="assets/lineups/cs2/mirage/thumbnail.webp" data-lineup-search="t side smoke jungle spawn mirage">
                     <div class="lineup-video-embed">
-                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
+                      <img class="lineup-video-embed-poster" src="assets/lineups/cs2/mirage/thumbnail.webp" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Jungle Smoke From A Ramp</h3>
@@ -1444,9 +1448,9 @@
                       </div>
                     </div>
                   </article>
-                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Stairs" data-lineup-difficulty="5" data-lineup-utility="molotov" data-lineup-video-id="stairs-molotov" data-lineup-video-url="assets/lineups/cs2/mirage/stairs-molotov.mp4" data-lineup-search="t side molotov stairs mirage">
+                  <article class="lineup-video-card" data-lineup-map="mirage" data-lineup-side="attacker" data-lineup-callout="Stairs" data-lineup-difficulty="5" data-lineup-utility="molotov" data-lineup-video-id="stairs-molotov" data-lineup-video-url="assets/lineups/cs2/mirage/stairs-molotov.mp4" data-lineup-poster-url="assets/lineups/cs2/mirage/thumbnail.webp" data-lineup-search="t side molotov stairs mirage">
                     <div class="lineup-video-embed">
-                      <img class="lineup-video-embed-poster" alt="" decoding="async" loading="lazy" />
+                      <img class="lineup-video-embed-poster" src="assets/lineups/cs2/mirage/thumbnail.webp" alt="" decoding="async" loading="lazy" />
                     </div>
                     <div class="lineup-video-card-foot">
                       <h3 class="lineup-video-title">Stairs Molotov From A Ramp</h3>
@@ -1779,10 +1783,52 @@
                 </div>
               </div>
 
-              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-10">
+              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-12">
+                <header class="changelog-header">
+                  <time class="changelog-date" datetime="2026-07-12">July 12, 2026</time>
+                  <span class="changelog-badge">Latest</span>
+                </header>
+                <div class="changelog-versions">
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.8</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Lineup favorites added</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>eDPI spectrum improved (Pointer tip shows controls)</li>
+                          <li>eDPI spectrum improved (Recommended range layout updated)</li>
+                          <li>Lineups improved (Map thumbnails added)</li>
+                          <li>Lineups improved (Play opens from the play button only)</li>
+                          <li>Lineups improved (Filters no longer squish on resize)</li>
+                          <li>Lineups improved (Difficulty glow fades in)</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.7</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Morning Roast AI improved (Clear and send disable when empty)</li>
+                          <li>UI refresh rate improved (Default set to max)</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
+                </div>
+              </article>
+
+              <article class="changelog-date-group" data-changelog-date="2026-07-10">
                 <header class="changelog-header">
                   <time class="changelog-date" datetime="2026-07-10">July 10, 2026</time>
-                  <span class="changelog-badge">Latest</span>
                 </header>
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
@@ -2668,6 +2714,7 @@
                               <button type="button" class="pref-dropdown-option" data-bg-pattern="grid" role="option"><i class="ri-layout-grid-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Grid</span></button>
                               <button type="button" class="pref-dropdown-option" data-bg-pattern="dots" role="option"><i class="ri-more-2-fill pref-dropdown-option-icon" aria-hidden="true"></i><span>Dots</span></button>
                               <button type="button" class="pref-dropdown-option" data-bg-pattern="particles" role="option"><i class="ri-sparkling-2-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Particles</span></button>
+                              <button type="button" class="pref-dropdown-option" data-bg-pattern="stars" role="option"><i class="ri-meteor-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Stars</span></button>
                               <button type="button" class="pref-dropdown-option" data-bg-pattern="none" role="option"><i class="ri-prohibited-line pref-dropdown-option-icon" aria-hidden="true"></i><span>None</span></button>
                             </div>
                           </div>
@@ -2936,10 +2983,6 @@
               <span class="lineup-video-scrub-time" id="lineup-video-scrub-time">0:00</span>
             </div>
             <div class="lineup-video-progress-track" aria-hidden="true">
-              <div class="lineup-video-progress-buffer">
-                <div class="lineup-video-progress-buffer-trail" id="lineup-video-progress-buffer-trail"></div>
-                <div class="lineup-video-progress-buffer-fill" id="lineup-video-progress-buffer-fill"></div>
-              </div>
               <div class="lineup-video-progress-played-trail" id="lineup-video-progress-played-trail"></div>
               <div class="lineup-video-progress-played" id="lineup-video-progress-played"></div>
             </div>
@@ -2993,43 +3036,43 @@
 
     <div id="site-assistant" class="site-assistant">
       <div class="site-assistant-dock">
-      <div id="site-assistant-panel" class="site-assistant-panel" role="dialog" aria-modal="false" aria-labelledby="site-assistant-title" aria-hidden="true">
-        <div class="site-assistant-header">
-          <div class="site-assistant-header-copy">
-            <span class="site-assistant-status" aria-hidden="true"></span>
-            <div>
-              <h3 id="site-assistant-title">Morning Roast AI</h3>
-              <p class="site-assistant-subtitle">Ask a question</p>
+        <div id="site-assistant-panel" class="site-assistant-panel" role="dialog" aria-modal="false" aria-labelledby="site-assistant-title" aria-hidden="true">
+          <div class="site-assistant-header">
+            <div class="site-assistant-header-copy">
+              <span class="site-assistant-status" aria-hidden="true"></span>
+              <div>
+                <h3 id="site-assistant-title">Morning Roast AI</h3>
+                <p class="site-assistant-subtitle">Ask a question</p>
+              </div>
+            </div>
+            <div class="site-assistant-header-actions">
+              <button type="button" id="site-assistant-clear" class="site-assistant-clear" aria-label="Clear chat" disabled>
+                <i class="ri-delete-bin-line" aria-hidden="true"></i>
+              </button>
+              <button type="button" id="site-assistant-close" class="site-assistant-close" aria-label="Close helper">
+                <i class="ri-close-line" aria-hidden="true"></i>
+              </button>
             </div>
           </div>
-          <div class="site-assistant-header-actions">
-            <button type="button" id="site-assistant-clear" class="site-assistant-clear" aria-label="Clear chat" disabled>
-              <i class="ri-delete-bin-line" aria-hidden="true"></i>
-            </button>
-            <button type="button" id="site-assistant-close" class="site-assistant-close" aria-label="Close helper">
-              <i class="ri-close-line" aria-hidden="true"></i>
-            </button>
+          <div id="site-assistant-offline" class="site-assistant-offline" hidden>
+            <p>You are offline, try again</p>
           </div>
+          <div id="site-assistant-messages" class="site-assistant-messages" aria-live="polite"></div>
+          <form id="site-assistant-form" class="site-assistant-form" autocomplete="off">
+            <label class="visually-hidden" for="site-assistant-input">Ask a question</label>
+            <input id="site-assistant-input" class="site-assistant-input" type="text" maxlength="280" placeholder="Ask anything" />
+            <button type="submit" class="site-assistant-send" aria-label="Send question" disabled>
+              <i class="ri-send-plane-2-line" aria-hidden="true"></i>
+            </button>
+            <button type="button" id="site-assistant-stop" class="site-assistant-stop" aria-label="Stop response" hidden>
+              <i class="ri-stop-fill" aria-hidden="true"></i>
+            </button>
+          </form>
         </div>
-        <div id="site-assistant-offline" class="site-assistant-offline" hidden>
-          <p>You are offline, try again</p>
-        </div>
-        <div id="site-assistant-messages" class="site-assistant-messages" aria-live="polite"></div>
-        <form id="site-assistant-form" class="site-assistant-form" autocomplete="off">
-          <label class="visually-hidden" for="site-assistant-input">Ask a question</label>
-          <input id="site-assistant-input" class="site-assistant-input" type="text" maxlength="280" placeholder="Ask anything" />
-          <button type="submit" class="site-assistant-send" aria-label="Send question" disabled>
-            <i class="ri-send-plane-2-line" aria-hidden="true"></i>
-          </button>
-          <button type="button" id="site-assistant-stop" class="site-assistant-stop" aria-label="Stop response" hidden>
-            <i class="ri-stop-fill" aria-hidden="true"></i>
-          </button>
-        </form>
-      </div>
-      <button type="button" id="site-assistant-toggle" class="site-assistant-toggle" aria-controls="site-assistant-panel" aria-expanded="false" aria-label="Open site helper">
-        <i class="ri-chat-3-line site-assistant-toggle-open" aria-hidden="true"></i>
-        <i class="ri-close-line site-assistant-toggle-close" aria-hidden="true"></i>
-      </button>
+        <button type="button" id="site-assistant-toggle" class="site-assistant-toggle" aria-controls="site-assistant-panel" aria-expanded="false" aria-label="Open site helper">
+          <i class="ri-chat-3-line site-assistant-toggle-open" aria-hidden="true"></i>
+          <i class="ri-close-line site-assistant-toggle-close" aria-hidden="true"></i>
+        </button>
       </div>
     </div>
   </body>
