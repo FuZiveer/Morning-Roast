@@ -132,8 +132,6 @@ body:not(.app-ready) {
   justify-content: center;
   overflow: hidden;
   background-color: hsl(var(--rich-black));
-  background-image: var(--app-bg-pattern);
-  background-repeat: repeat;
   transition:
     opacity 300ms ease,
     visibility 300ms ease;

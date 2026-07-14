@@ -2369,7 +2369,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v67";
+const APP_CACHE_VERSION = "morning-roast-v68";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
