@@ -4,6 +4,12 @@
   initial-value: #ef0141;
 }
 
+@property --loading-border-sweep {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 90deg;
+}
+
 :root {
   --accent-color: #ef0141;
   --accent-on-color: hsl(0, 0%, 100%);
@@ -124,8 +130,17 @@ body:not(.app-ready) {
 }
 
 .app-loading-screen {
-  --app-loading-split-duration: 720ms;
+  --app-loading-border-fill-duration: 480ms;
+  --app-loading-border-fill-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --app-loading-label-fade-duration: 280ms;
+  --app-loading-morph-duration: 720ms;
+  --app-loading-morph-ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --app-loading-slice-duration: 720ms;
+  --app-loading-slice-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-loading-split-duration: 1750ms;
   --app-loading-split-ease: cubic-bezier(0.7, 0, 0.25, 1);
+  /* Match corner-to-corner clip diagonal (not fixed -45°, which only fits square viewports) */
+  --app-loading-slice-angle: -45deg;
   position: fixed;
   inset: 0;
   z-index: 20000;
@@ -133,25 +148,38 @@ body:not(.app-ready) {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background-color: transparent;
+  background-color: hsl(var(--rich-black));
+}
+
+.app-loading-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: hsl(var(--rich-black));
 }
 
 .app-loading-split {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 2;
   pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
 }
 
 .app-loading-panel {
   position: absolute;
   inset: 0;
   background-color: hsl(var(--rich-black));
+  overflow: hidden;
   will-change: transform;
-  transition: transform var(--app-loading-split-duration) var(--app-loading-split-ease);
+  transform: translate3d(0, 0, 0);
 }
 
-/* Diagonal split: top-left ↔ bottom-right */
+/* Diagonal split along the blade (top-right ↔ bottom-left) */
 .app-loading-panel--a {
   clip-path: polygon(0 0, 100% 0, 0 100%);
 }
@@ -160,100 +188,27 @@ body:not(.app-ready) {
   clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
-.bg-stars {
+.app-loading-panel-edge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  width: 220vmax;
+  height: var(--border-width);
+  background: var(--accent-color);
+  pointer-events: none;
+  transform-origin: center;
+  transform: translate(-50%, -50%) rotate(var(--app-loading-slice-angle)) scaleX(0);
+  transition: transform var(--app-loading-slice-duration) var(--app-loading-slice-ease);
+}
+
+.app-loading-screen.is-slicing .app-loading-panel-edge {
+  transform: translate(-50%, -50%) rotate(var(--app-loading-slice-angle)) scaleX(1);
+}
+
+.app-loading-panel .app-loading-stage {
   position: absolute;
   inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.bg-stars--fixed {
-  position: fixed;
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 300ms ease,
-    visibility 300ms ease;
-}
-
-html[data-bg-pattern="stars"] .bg-stars--fixed {
-  opacity: 1;
-  visibility: visible;
-}
-
-.bg-starfield {
-  position: absolute;
-  inset: 0;
-}
-
-.bg-starfield-dot {
-  --dot-x: 50%;
-  --dot-y: 50%;
-  --dot-size: 1.5px;
-  --dot-opacity: 0.55;
-  --dot-delay: 0s;
-  position: absolute;
-  top: var(--dot-y);
-  left: var(--dot-x);
-  width: var(--dot-size);
-  height: var(--dot-size);
-  border-radius: 50%;
-  background: hsl(0 0% 100% / var(--dot-opacity));
-  box-shadow: 0 0 0.35rem hsl(0 0% 100% / 0.25);
-  transform: translate(-50%, -50%);
-  animation: bg-starfield-twinkle 4.5s ease-in-out infinite;
-  animation-delay: var(--dot-delay);
-}
-
-.bg-star {
-  --star-left: -15%;
-  --star-top: 10%;
-  --star-duration: 2.8s;
-  --star-length: 7rem;
-  --star-thickness: 0.125rem;
-  --star-opacity: 0.8;
-  --star-angle: 28deg;
-  --star-travel: 145vw;
-  position: absolute;
-  top: var(--star-top);
-  left: var(--star-left);
-  width: var(--star-length);
-  height: var(--star-thickness);
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent 0%, hsl(0 0% 100% / 0.15) 35%, hsl(0 0% 100% / 0.85) 72%, hsl(0 0% 100% / 0.95) 100%);
-  box-shadow: 0 0 0.55rem hsl(0 0% 100% / 0.35);
-  opacity: 0;
-  transform: rotate(var(--star-angle)) translate3d(0, 0, 0);
-  pointer-events: none;
-  will-change: transform, opacity;
-}
-
-.bg-star.is-shooting {
-  animation: bg-shooting-star var(--star-duration) linear forwards;
-}
-
-.app-loading-screen .app-loading-stars {
-  z-index: 1;
-  transition: opacity 220ms ease;
-}
-
-.app-loading-screen.is-hiding {
-  pointer-events: none;
-}
-
-.app-loading-screen.is-hiding .app-loading-stars,
-.app-loading-screen.is-hiding .app-loading-screen-inner {
-  opacity: 0;
-  transition: opacity 180ms ease;
-}
-
-.app-loading-screen.is-hiding .app-loading-panel--a {
-  transform: translate3d(-110%, -110%, 0);
-}
-
-.app-loading-screen.is-hiding .app-loading-panel--b {
-  transform: translate3d(110%, 110%, 0);
 }
 
 .app-loading-screen-inner {
@@ -263,9 +218,18 @@ html[data-bg-pattern="stars"] .bg-stars--fixed {
   flex-direction: column;
   align-items: center;
   gap: 1.15rem;
-  transition: opacity 180ms ease;
 }
 
+.app-loading-label {
+  font-size: calc(0.82rem * var(--text-size-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsla(0, 0%, 100%, 0.72);
+  transition: opacity var(--app-loading-label-fade-duration) ease;
+}
+
+/* Logo becomes the slicing blade */
 .app-loading-logo-shell {
   position: relative;
   display: grid;
@@ -275,6 +239,27 @@ html[data-bg-pattern="stars"] .bg-stars--fixed {
   border-radius: 0.85rem;
   overflow: hidden;
   background-color: hsl(var(--rich-black));
+  transform: translate3d(0, 0, 0);
+  transform-origin: center;
+  transition:
+    width var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    height var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    border-radius var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    background-color var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    box-shadow var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    transform var(--app-loading-slice-duration) var(--app-loading-slice-ease),
+    opacity 160ms ease;
+}
+
+.app-loading-logo-shell.app-loading-blade {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 5;
+  margin: 0;
+  /* Explicit from-state so morph can interpolate into the blade line */
+  transform: translate(-50%, -50%) rotate(0deg);
+  pointer-events: none;
 }
 
 .app-loading-logo-shell::before {
@@ -285,8 +270,18 @@ html[data-bg-pattern="stars"] .bg-stars--fixed {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  background: conic-gradient(from 0deg, var(--accent-color) 0deg, var(--accent-color) 90deg, hsl(var(--border-subtle)) 90deg, hsl(var(--border-subtle)) 360deg);
+  --loading-border-sweep: 90deg;
+  background: conic-gradient(
+    from 0deg,
+    var(--accent-color) 0deg,
+    var(--accent-color) var(--loading-border-sweep),
+    hsl(var(--border-subtle)) var(--loading-border-sweep),
+    hsl(var(--border-subtle)) 360deg
+  );
   animation: app-loading-border-spin 1.1s linear infinite;
+  transition:
+    --loading-border-sweep var(--app-loading-border-fill-duration) var(--app-loading-border-fill-ease),
+    opacity 180ms ease;
 }
 
 .app-loading-logo-shell::after {
@@ -295,6 +290,12 @@ html[data-bg-pattern="stars"] .bg-stars--fixed {
   inset: var(--border-width);
   border-radius: calc(0.85rem - var(--border-width));
   background-color: hsl(var(--rich-black));
+  transform: scaleY(1);
+  transform-origin: center;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    border-radius 180ms ease;
 }
 
 .app-loading-logo {
@@ -302,23 +303,139 @@ html[data-bg-pattern="stars"] .bg-stars--fixed {
   z-index: 1;
   width: 2.75rem;
   height: 2.75rem;
+  transform: scale(1, 1);
+  transform-origin: center;
+  filter: blur(0);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    filter 180ms ease;
 }
 
 .app-loading-screen .logo-glow {
   opacity: 0.18;
+  transition: opacity 180ms ease;
 }
 
 .app-loading-screen .logo-mark {
   opacity: 1;
+  transition: opacity 180ms ease;
 }
 
-.app-loading-label {
-  font-size: calc(0.82rem * var(--text-size-scale, 1));
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: hsla(0, 0%, 100%, 0.72);
+/* Fully red border when load completes (sweep fills; spin keeps running until morph) */
+.app-loading-screen.is-border-ready .app-loading-logo-shell::before {
+  --loading-border-sweep: 360deg;
 }
+
+.app-loading-screen.is-label-fading .app-loading-label {
+  opacity: 0;
+}
+
+.app-loading-screen.is-morphing .app-loading-label {
+  opacity: 0;
+}
+
+/* Mark flattens into the blade before/with the shell squash */
+.app-loading-screen.is-morphing .app-loading-logo {
+  opacity: 0;
+  transform: scale(1.2, 0.06);
+  filter: blur(2px);
+  transition:
+    opacity calc(var(--app-loading-morph-duration) * 0.42) cubic-bezier(0.4, 0, 1, 1),
+    transform var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    filter calc(var(--app-loading-morph-duration) * 0.4) ease;
+}
+
+.app-loading-screen.is-morphing .app-loading-logo .logo-glow {
+  opacity: 0;
+  transition: opacity calc(var(--app-loading-morph-duration) * 0.3) ease;
+}
+
+.app-loading-screen.is-morphing .app-loading-logo .logo-mark {
+  opacity: 0.35;
+  transition: opacity calc(var(--app-loading-morph-duration) * 0.55) ease;
+}
+
+/* Ring holds, then dissolves once the bar has formed */
+.app-loading-screen.is-morphing .app-loading-logo-shell::before {
+  opacity: 0;
+  animation: none;
+  transition: opacity calc(var(--app-loading-morph-duration) * 0.28) ease calc(var(--app-loading-morph-duration) * 0.45);
+}
+
+/* Inner fill collapses so the accent body reads as the emerging line */
+.app-loading-screen.is-morphing .app-loading-logo-shell::after {
+  opacity: 0;
+  transform: scaleY(0);
+  border-radius: 0;
+  transition:
+    opacity calc(var(--app-loading-morph-duration) * 0.35) ease,
+    transform var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    border-radius calc(var(--app-loading-morph-duration) * 0.55) ease;
+}
+
+.app-loading-screen.is-morphing .app-loading-blade {
+  width: 3.4rem;
+  height: var(--border-width);
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--accent-color);
+  box-shadow: none;
+  transform: translate(-50%, -50%) rotate(var(--app-loading-slice-angle));
+  transition:
+    width var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    height var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    border-radius calc(var(--app-loading-morph-duration) * 0.65) var(--app-loading-morph-ease),
+    background-color calc(var(--app-loading-morph-duration) * 0.4) ease,
+    transform var(--app-loading-morph-duration) cubic-bezier(0.22, 1, 0.36, 1) 70ms,
+    opacity 160ms ease;
+}
+
+.app-loading-screen.is-slicing .app-loading-split {
+  opacity: 1;
+  visibility: visible;
+}
+
+.app-loading-screen.is-slicing > .app-loading-stage {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.app-loading-screen.is-slicing .app-loading-blade {
+  width: 220vmax;
+  height: var(--border-width);
+  border-radius: 0;
+  overflow: visible;
+  background: var(--accent-color);
+  box-shadow: none;
+  transform: translate(-50%, -50%) rotate(var(--app-loading-slice-angle));
+  transition:
+    width var(--app-loading-slice-duration) var(--app-loading-slice-ease),
+    height var(--app-loading-morph-duration) var(--app-loading-morph-ease),
+    background-color var(--app-loading-slice-duration) var(--app-loading-slice-ease),
+    transform var(--app-loading-slice-duration) var(--app-loading-slice-ease),
+    opacity 160ms ease;
+}
+
+/* Screen/gap pass through; clipped halves keep blocking until the cut edge moves past */
+.app-loading-screen.is-splitting {
+  pointer-events: none;
+  background-color: transparent;
+}
+
+.app-loading-screen.is-splitting .app-loading-split {
+  pointer-events: none;
+}
+
+.app-loading-screen.is-splitting .app-loading-panel {
+  pointer-events: auto;
+}
+
+.app-loading-screen.is-splitting .app-loading-blade {
+  opacity: 0;
+}
+
+/* Panel transforms are driven by requestAnimationFrame in script.js */
 
 @keyframes app-loading-border-spin {
   to {
@@ -392,6 +509,15 @@ body:not(.app-ready) .app-sidebar {
 body.app-ready .app,
 body.app-ready .app-sidebar {
   visibility: visible;
+}
+
+/* Kill hover/pull targets under the veil until the split opens a path */
+body.app-loading:not(.app-loading-splitting) .app,
+body.app-loading:not(.app-loading-splitting) .app-sidebar,
+body.app-loading:not(.app-loading-splitting) .site-assistant,
+body.app-loading:not(.app-loading-splitting) .site-assistant-dock,
+body.app-loading:not(.app-loading-splitting) #bg-particles-canvas {
+  pointer-events: none !important;
 }
 
 html {

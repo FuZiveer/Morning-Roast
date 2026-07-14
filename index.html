@@ -94,18 +94,24 @@
   <body>
     <div id="app-loading-screen" class="app-loading-screen" role="status" aria-live="polite" aria-busy="true" aria-label="Loading Morning Roast">
       <div class="app-loading-split" aria-hidden="true">
-        <div class="app-loading-panel app-loading-panel--a"></div>
-        <div class="app-loading-panel app-loading-panel--b"></div>
-      </div>
-      <div class="app-loading-stars bg-stars" id="app-loading-stars" aria-hidden="true"></div>
-      <div class="app-loading-screen-inner">
-        <div class="app-loading-logo-shell">
-          <span class="logo-stack app-loading-logo" aria-hidden="true">
-            <span class="logo-glow"></span>
-            <span class="logo-mark"></span>
-          </span>
+        <div class="app-loading-panel app-loading-panel--a">
+          <div class="app-loading-panel-edge" aria-hidden="true"></div>
         </div>
-        <span class="app-loading-label">Morning Roast</span>
+        <div class="app-loading-panel app-loading-panel--b">
+          <div class="app-loading-panel-edge" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="app-loading-stage" id="app-loading-stage">
+        <div class="app-loading-stars bg-stars" id="app-loading-stars" aria-hidden="true"></div>
+        <div class="app-loading-screen-inner">
+          <div class="app-loading-logo-shell">
+            <span class="logo-stack app-loading-logo" aria-hidden="true">
+              <span class="logo-glow"></span>
+              <span class="logo-mark"></span>
+            </span>
+          </div>
+          <span class="app-loading-label">Morning Roast</span>
+        </div>
       </div>
     </div>
     <div id="bg-stars" class="bg-stars bg-stars--fixed" aria-hidden="true"></div>
@@ -1862,10 +1868,49 @@
                 </div>
               </div>
 
-              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-12">
+              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-15">
+                <header class="changelog-header">
+                  <time class="changelog-date" datetime="2026-07-15">July 15, 2026</time>
+                  <span class="changelog-badge">Latest</span>
+                </header>
+                <div class="changelog-versions">
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.9</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>eDPI Compare added (A vs B side-by-side mode)</li>
+                          <li>Loading screen animation added (Logo morphs into a red blade, then splits)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Inputs improved (Hover text scales without shifting layout)</li>
+                          <li>Icons improved (Shared hover scale and glow)</li>
+                          <li>Gliders improved (Layout spacing tightened)</li>
+                          <li>Topic shortcuts improved (Larger icons with scale and glow)</li>
+                          <li>Settings menus improved (Scrollable lists; empty search results hide)</li>
+                          <li>Site helper improved (Icon hover scale and glow; close keeps magnetic pull)</li>
+                          <li>Loading screen improved (Interaction unlocks as the cut edges pass)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>Site helper fixed (Esc left a stuck border)</li>
+                          <li>Loading screen fixed (Split halves blocked the page)</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
+                </div>
+              </article>
+
+              <article class="changelog-date-group" data-changelog-date="2026-07-12">
                 <header class="changelog-header">
                   <time class="changelog-date" datetime="2026-07-12">July 12, 2026</time>
-                  <span class="changelog-badge">Latest</span>
                 </header>
                 <div class="changelog-versions">
                   <section class="changelog-version-block">

@@ -82,6 +82,16 @@ function isSiteAssistantPullBlocked() {
   return document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active");
 }
 
+/** True while the loading veil still covers this point (full screen, or a split half). */
+function isAppLoadingCoveringPoint(clientX, clientY) {
+  const screen = document.getElementById("app-loading-screen");
+  if (!screen?.isConnected) return false;
+  if (!screen.classList.contains("is-splitting")) return true;
+  if (clientX == null || clientY == null || Number.isNaN(clientX) || Number.isNaN(clientY)) return true;
+  const top = document.elementFromPoint(clientX, clientY);
+  return Boolean(top?.closest?.(".app-loading-panel, .app-loading-blade, .app-loading-panel-edge"));
+}
+
 function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxOffset = 42, pullXVar = "--magnetic-pull-x", pullYVar = "--magnetic-pull-y", isLocked = () => false, isBlocked = () => false, buttonSizeFallback = 50, hoverElement = null } = {}) {
   if (!element) return { lock() {}, unlock() {} };
   const hoverTarget = hoverElement || element;
@@ -111,6 +121,13 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
     };
   };
 
+  const pullBlocked = () => {
+    if (isBlocked()) return true;
+    if (isAppLoadingCoveringPoint(mouseX, mouseY)) return true;
+    const center = getRestCenter();
+    return isAppLoadingCoveringPoint(center.x, center.y);
+  };
+
   const tick = (ts) => {
     const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0.016;
     lastTs = ts;
@@ -129,7 +146,7 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
       return;
     }
 
-    if (isBlocked()) {
+    if (pullBlocked()) {
       hovered = false;
       const spring = 0.18 * dtScale;
       velX += -offsetX * spring;
@@ -229,7 +246,7 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
   const onPointerMove = (event) => {
     mouseX = event.clientX;
     mouseY = event.clientY;
-    if (isBlocked()) {
+    if (pullBlocked()) {
       retract();
       return;
     }
@@ -243,6 +260,7 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
   };
 
   const onElementEnter = () => {
+    if (pullBlocked()) return;
     hovered = true;
     schedule();
   };
@@ -1813,12 +1831,161 @@ const appLoadingState = {
   dismissed: false,
 };
 
-let appLoadingStarsController = null;
+let appLoadingStarsControllers = [];
 
 function markAppLoadingReady(key) {
   if (appLoadingState[key] !== false) return;
   appLoadingState[key] = true;
   tryDismissAppLoadingScreen();
+}
+
+function destroyAppLoadingStars() {
+  appLoadingStarsControllers.forEach((controller) => controller?.destroy?.());
+  appLoadingStarsControllers = [];
+}
+
+/** Unit cubic-bezier easing (matches CSS cubic-bezier). */
+function createCubicBezier(x1, y1, x2, y2) {
+  const cx = 3 * x1;
+  const bx = 3 * (x2 - x1) - cx;
+  const ax = 1 - cx - bx;
+  const cy = 3 * y1;
+  const by = 3 * (y2 - y1) - cy;
+  const ay = 1 - cy - by;
+
+  const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+  const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+  const sampleDX = (t) => (3 * ax * t + 2 * bx) * t + cx;
+
+  const solveT = (x) => {
+    let t = x;
+    for (let i = 0; i < 8; i += 1) {
+      const dx = sampleDX(t);
+      if (Math.abs(dx) < 1e-6) break;
+      const diff = sampleX(t) - x;
+      if (Math.abs(diff) < 1e-7) return t;
+      t -= diff / dx;
+    }
+    let lo = 0;
+    let hi = 1;
+    t = x;
+    for (let i = 0; i < 20; i += 1) {
+      const xEst = sampleX(t);
+      if (Math.abs(xEst - x) < 1e-7) return t;
+      if (x > xEst) lo = t;
+      else hi = t;
+      t = (lo + hi) / 2;
+    }
+    return t;
+  };
+
+  return (x) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    return sampleY(solveT(x));
+  };
+}
+
+const APP_LOADING_SPLIT_EASE = createCubicBezier(0.7, 0, 0.25, 1);
+
+function syncAppLoadingSliceAngle(screen) {
+  if (!screen) return null;
+  const w = screen.clientWidth;
+  const h = screen.clientHeight;
+  if (w <= 0 || h <= 0) return null;
+  // Corner clip (TR↔BL) angle — matches the panel diagonal, not a hard-coded -45deg.
+  const angleDeg = -Math.atan2(h, w) * (180 / Math.PI);
+  screen.style.setProperty("--app-loading-slice-angle", `${angleDeg}deg`);
+  // Slide halves apart along the perpendicular into each clipped region.
+  const len = Math.hypot(w, h) || 1;
+  const dist = Math.max(w, h) * 1.1;
+  const ax = (-h / len) * dist;
+  const ay = (-w / len) * dist;
+  screen.style.setProperty("--app-loading-split-a-x", `${ax}px`);
+  screen.style.setProperty("--app-loading-split-a-y", `${ay}px`);
+  screen.style.setProperty("--app-loading-split-b-x", `${-ax}px`);
+  screen.style.setProperty("--app-loading-split-b-y", `${-ay}px`);
+  return { ax, ay };
+}
+
+function animateAppLoadingSplit(screen, durationMs, onDone) {
+  const panelA = screen.querySelector(".app-loading-panel--a");
+  const panelB = screen.querySelector(".app-loading-panel--b");
+  const geometry = syncAppLoadingSliceAngle(screen);
+  if (!panelA || !panelB || !geometry) {
+    onDone?.();
+    return;
+  }
+
+  const { ax, ay } = geometry;
+  panelA.style.transition = "none";
+  panelB.style.transition = "none";
+  panelA.style.transform = "translate3d(0, 0, 0)";
+  panelB.style.transform = "translate3d(0, 0, 0)";
+  // Gap between halves can receive clicks; panels keep blocking where they still cover.
+  screen.style.pointerEvents = "none";
+  panelA.style.pointerEvents = "auto";
+  panelB.style.pointerEvents = "auto";
+  document.body.classList.add("app-loading-splitting");
+  screen.classList.add("is-splitting");
+  retractAllMagneticPulls();
+
+  let start = null;
+  let rafId = 0;
+
+  const tick = (now) => {
+    if (start == null) start = now;
+    const t = Math.min(1, (now - start) / durationMs);
+    const e = APP_LOADING_SPLIT_EASE(t);
+    const x = ax * e;
+    const y = ay * e;
+    panelA.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    panelB.style.transform = `translate3d(${-x}px, ${-y}px, 0)`;
+
+    if (t < 1) {
+      rafId = requestAnimationFrame(tick);
+      return;
+    }
+    onDone?.();
+  };
+
+  // Double rAF so the idle transform paints before the first eased frame.
+  requestAnimationFrame(() => {
+    rafId = requestAnimationFrame(tick);
+  });
+
+  return () => cancelAnimationFrame(rafId);
+}
+
+function prepareAppLoadingSplit(screen) {
+  const stage = screen.querySelector("#app-loading-stage");
+  const panelA = screen.querySelector(".app-loading-panel--a");
+  const panelB = screen.querySelector(".app-loading-panel--b");
+  if (!stage || !panelA || !panelB) return false;
+  syncAppLoadingSliceAngle(screen);
+
+  [panelA, panelB].forEach((panel) => {
+    const clone = stage.cloneNode(true);
+    clone.removeAttribute("id");
+    clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+    // Logo has already become the blade — keep stars/bg only in the split halves.
+    clone.querySelector(".app-loading-logo-shell")?.remove();
+    clone.querySelector(".app-loading-label")?.remove();
+    const edge = panel.querySelector(".app-loading-panel-edge");
+    panel.replaceChildren(clone);
+    if (edge) panel.appendChild(edge);
+  });
+
+  destroyAppLoadingStars();
+  return true;
+}
+
+function liftAppLoadingBlade(screen) {
+  const shell = screen.querySelector("#app-loading-stage .app-loading-logo-shell");
+  if (!shell) return null;
+  shell.classList.add("app-loading-blade");
+  screen.appendChild(shell);
+  return shell;
 }
 
 function tryDismissAppLoadingScreen() {
@@ -1832,38 +1999,66 @@ function tryDismissAppLoadingScreen() {
   }
 
   appLoadingState.dismissed = true;
-  document.body.classList.add("app-ready");
-  screen.classList.add("is-hiding");
+  document.body.classList.add("app-ready", "app-loading");
   screen.setAttribute("aria-busy", "false");
+  retractAllMagneticPulls();
 
   const removeScreen = () => {
-    if (appLoadingStarsController) {
-      appLoadingStarsController.destroy();
-      appLoadingStarsController = null;
-    }
+    destroyAppLoadingStars();
+    document.body.classList.remove("app-loading", "app-loading-splitting");
     if (screen.isConnected) screen.remove();
+    retractAllMagneticPulls();
   };
 
-  if (document.body.classList.contains("reduce-motion")) {
+  if (document.body.classList.contains("reduce-motion") || prefersReducedUiMotion()) {
     removeScreen();
     return;
   }
 
-  const panel = screen.querySelector(".app-loading-panel--a");
-  const onSplitEnd = (event) => {
-    if (event.target !== panel || event.propertyName !== "transform") return;
-    panel.removeEventListener("transitionend", onSplitEnd);
-    removeScreen();
-  };
-  if (panel) panel.addEventListener("transitionend", onSplitEnd);
-  setTimeout(removeScreen, 900);
+  const borderFillMs = 480;
+  const labelFadeMs = 280;
+  const morphMs = 720;
+  const sliceMs = 720;
+  const splitMs = 1750;
+  const splitFallbackMs = borderFillMs + labelFadeMs + morphMs + sliceMs + splitMs + 300;
+
+  // 1) Border fills fully accent when load completes
+  screen.classList.add("is-border-ready");
+
+  // 2) Label fades first
+  window.setTimeout(() => {
+    screen.classList.add("is-label-fading");
+  }, borderFillMs);
+
+  // 3) Logo morphs into the red blade line
+  window.setTimeout(() => {
+    syncAppLoadingSliceAngle(screen);
+    liftAppLoadingBlade(screen);
+    void screen.offsetWidth;
+    screen.classList.add("is-morphing");
+  }, borderFillMs + labelFadeMs);
+
+  // 4) Red line expands across the screen
+  window.setTimeout(() => {
+    prepareAppLoadingSplit(screen);
+    void screen.offsetWidth;
+    screen.classList.add("is-slicing");
+  }, borderFillMs + labelFadeMs + morphMs);
+
+  // 5) Halves split with red edge borders (rAF-driven for smooth motion)
+  window.setTimeout(() => {
+    animateAppLoadingSplit(screen, splitMs, removeScreen);
+  }, borderFillMs + labelFadeMs + morphMs + sliceMs);
+
+  setTimeout(removeScreen, splitFallbackMs);
 }
 
 function initAppLoadingShootingStars(screen) {
   if (!screen || prefersReducedUiMotion()) return;
-  const root = screen.querySelector("#app-loading-stars") || screen.querySelector(".bg-stars");
+  const root = screen.querySelector("#app-loading-stars");
   if (!root) return;
-  appLoadingStarsController = mountBgStars(root, { count: BG_STAR_COUNT, animate: true });
+  const controller = mountBgStars(root, { count: BG_STAR_COUNT, animate: true });
+  if (controller) appLoadingStarsControllers = [controller];
 }
 
 function initAppLoadingScreen() {
@@ -1872,6 +2067,16 @@ function initAppLoadingScreen() {
     document.body.classList.add("app-ready");
     return;
   }
+
+  syncAppLoadingSliceAngle(screen);
+  const onSliceResize = () => {
+    if (!screen.isConnected) {
+      window.removeEventListener("resize", onSliceResize);
+      return;
+    }
+    syncAppLoadingSliceAngle(screen);
+  };
+  window.addEventListener("resize", onSliceResize);
 
   initAppLoadingShootingStars(screen);
 
@@ -2361,7 +2566,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v93";
+const APP_CACHE_VERSION = "morning-roast-v115";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
