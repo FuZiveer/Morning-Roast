@@ -652,12 +652,35 @@
     initSiteAssistant._init = true;
 
     let open = false;
+    let magnetHold = false;
+    let closeUnlockTimer = 0;
+    let closeTransitionHandler = null;
     let busy = false;
     let replyToken = 0;
     let stopping = false;
     let activeReply = null;
     let offline = !navigator.onLine;
-    const toggleMagnet = initToggleMagnetism(dock, toggle, { isLocked: () => open });
+    const toggleMagnet = initToggleMagnetism(dock, toggle, {
+      isLocked: () => open || magnetHold,
+    });
+
+    const clearPendingCloseUnlock = () => {
+      if (closeUnlockTimer) {
+        clearTimeout(closeUnlockTimer);
+        closeUnlockTimer = 0;
+      }
+      if (closeTransitionHandler) {
+        panel.removeEventListener("transitionend", closeTransitionHandler);
+        closeTransitionHandler = null;
+      }
+    };
+
+    const releaseMagnetAfterClose = () => {
+      clearPendingCloseUnlock();
+      if (open) return;
+      magnetHold = false;
+      toggleMagnet.unlock();
+    };
 
     const hasChatMessages = () => messages.querySelector(".site-assistant-msg") != null;
     const hasMessageToSend = () => Boolean(String(input.value || "").trim());
@@ -754,8 +777,31 @@
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.setAttribute("aria-label", open ? "Close site helper" : "Open site helper");
       panel.setAttribute("aria-hidden", open ? "false" : "true");
-      if (open && !wasOpen) toggleMagnet.lock();
-      if (!open && wasOpen) toggleMagnet.unlock();
+      if (open && !wasOpen) {
+        clearPendingCloseUnlock();
+        magnetHold = false;
+        toggleMagnet.lock();
+      }
+      if (!open && wasOpen) {
+        // Hold pull so the panel closes in place instead of following the dock retract.
+        magnetHold = true;
+        clearPendingCloseUnlock();
+        closeTransitionHandler = (event) => {
+          if (event.target !== panel) return;
+          if (event.propertyName !== "opacity" && event.propertyName !== "transform") return;
+          releaseMagnetAfterClose();
+        };
+        panel.addEventListener("transitionend", closeTransitionHandler);
+        closeUnlockTimer = window.setTimeout(releaseMagnetAfterClose, 350);
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && (panel.contains(active) || active === toggle)) {
+          active.blur();
+        }
+        // Escape can hand focus to the toggle with :focus-visible still armed.
+        requestAnimationFrame(() => {
+          if (document.activeElement === toggle) toggle.blur();
+        });
+      }
       if (open) {
         if (!offline) requestAnimationFrame(() => input.focus({ preventScroll: true }));
       }

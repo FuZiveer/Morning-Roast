@@ -93,6 +93,10 @@
   </head>
   <body>
     <div id="app-loading-screen" class="app-loading-screen" role="status" aria-live="polite" aria-busy="true" aria-label="Loading Morning Roast">
+      <div class="app-loading-split" aria-hidden="true">
+        <div class="app-loading-panel app-loading-panel--a"></div>
+        <div class="app-loading-panel app-loading-panel--b"></div>
+      </div>
       <div class="app-loading-stars bg-stars" id="app-loading-stars" aria-hidden="true"></div>
       <div class="app-loading-screen-inner">
         <div class="app-loading-logo-shell">
@@ -195,7 +199,7 @@
             "
           >
             <i class="ri-history-line" aria-hidden="true"></i>
-            <span>Changelog</span>
+            <span>Patch Notes</span>
           </button>
           <button
             type="button"
@@ -368,7 +372,7 @@
                   <div class="icon-container">
                     <i class="ri-history-line" aria-hidden="true"></i>
                   </div>
-                  <span>Changelog</span>
+                  <span>Patch Notes</span>
                 </button>
 
                 <button
@@ -560,7 +564,7 @@
 
           <div class="box-container">
             <div class="box-holder result-container">
-              <div class="result-label">To Sensitivity</div>
+              <div class="result-label settings-section-title"><i class="ri-arrow-right-up-line" aria-hidden="true"></i> To Sensitivity</div>
               <div class="result-display">
                 <div class="value" id="new-sens-value">0.00</div>
               </div>
@@ -627,18 +631,27 @@
                 <div class="pref-dropdown-list hidden" id="edpi-game-list" role="listbox" aria-labelledby="edpi-game-trigger"></div>
               </div>
             </div>
+
+            <div class="box-holder edpi-compare-mode-holder">
+              <h4 class="settings-section-title"><i class="ri-flask-line" aria-hidden="true"></i> Mode</h4>
+              <div class="trainer-toggle-selector pref-toggle" id="edpi-compare-selector" role="tablist" aria-label="eDPI compare mode">
+                <div class="glider"></div>
+                <button type="button" class="toggle-btn active" data-edpi-compare="single" role="tab" aria-selected="true">Single</button>
+                <button type="button" class="toggle-btn" data-edpi-compare="compare" role="tab" aria-selected="false">Compare</button>
+              </div>
+            </div>
           </div>
 
           <div class="box-container">
             <div class="box-holder">
-              <h4 class="settings-section-title"><i class="ri-focus-3-line" aria-hidden="true"></i> Sensitivity</h4>
+              <h4 class="settings-section-title" id="edpi-sens-label"><i class="ri-focus-3-line" aria-hidden="true"></i> Sensitivity</h4>
               <div class="input-container-inner">
                 <svg class="icon-sens" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
                   <circle cx="12" cy="12" r="2" fill="currentColor" />
                   <path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
                 </svg>
-                <input type="text" id="edpi-sens" class="bottom-input" placeholder="Sensitivity" autocomplete="off" />
+                <input type="text" id="edpi-sens" class="bottom-input" placeholder="Sensitivity" autocomplete="off" aria-labelledby="edpi-sens-label" />
                 <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12 2V0" />
                   <rect x="5" y="4" width="14" height="18" rx="7" />
@@ -647,8 +660,15 @@
               </div>
             </div>
 
+            <div class="swap-button edpi-compare-arrow" role="presentation" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h14" />
+                <path d="M12 5l7 7-7 7" />
+              </svg>
+            </div>
+
             <div class="box-holder">
-              <h4 class="settings-section-title"><i class="ri-mouse-line" aria-hidden="true"></i> DPI</h4>
+              <h4 class="settings-section-title" id="edpi-dpi-label"><i class="ri-mouse-line" aria-hidden="true"></i> DPI</h4>
               <div class="input-container-inner">
                 <svg class="icon-dpi" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path d="M2 8H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
@@ -657,7 +677,52 @@
                   <path d="M15 8L19 12L15 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                   <circle cx="19" cy="12" r="1.5" fill="currentColor" />
                 </svg>
-                <input type="text" id="edpi-dpi" class="bottom-input" placeholder="DPI" value="800" autocomplete="off" />
+                <input type="text" id="edpi-dpi" class="bottom-input" placeholder="DPI" value="800" autocomplete="off" aria-labelledby="edpi-dpi-label" />
+                <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2V0" />
+                  <rect x="5" y="4" width="14" height="18" rx="7" />
+                  <path d="M12 8v4" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="box-container edpi-compare-fields" id="edpi-compare-fields" hidden>
+            <div class="box-holder">
+              <h4 class="settings-section-title"><i class="ri-focus-3-line" aria-hidden="true"></i> Sensitivity B</h4>
+              <div class="input-container-inner">
+                <svg class="icon-sens" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" />
+                  <path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <input type="text" id="edpi-sens-b" class="bottom-input" placeholder="Sensitivity B" autocomplete="off" />
+                <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2V0" />
+                  <rect x="5" y="4" width="14" height="18" rx="7" />
+                  <path d="M12 8v4" />
+                </svg>
+              </div>
+            </div>
+
+            <div class="swap-button edpi-compare-arrow" role="presentation" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h14" />
+                <path d="M12 5l7 7-7 7" />
+              </svg>
+            </div>
+
+            <div class="box-holder">
+              <h4 class="settings-section-title"><i class="ri-mouse-line" aria-hidden="true"></i> DPI B</h4>
+              <div class="input-container-inner">
+                <svg class="icon-dpi" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M2 8H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M4 12H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6" />
+                  <path d="M2 16H10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-opacity="0.3" />
+                  <path d="M15 8L19 12L15 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+                </svg>
+                <input type="text" id="edpi-dpi-b" class="bottom-input" placeholder="DPI B" value="800" autocomplete="off" />
                 <svg class="icon-mouse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12 2V0" />
                   <rect x="5" y="4" width="14" height="18" rx="7" />
@@ -670,12 +735,25 @@
           <div class="box-container">
             <div class="box-holder result-container">
               <div class="edpi-info-row">
-                <span id="edpi-rank"></span>
-                <div class="result-label">Total EDPI</div>
+                <div class="result-label settings-section-title"><i class="ri-speed-line" aria-hidden="true"></i> Total EDPI</div>
               </div>
               <div class="result-display">
-                <span id="edpi-value" class="value">0</span>
+                <div class="edpi-values">
+                  <div class="edpi-value-col" data-edpi-col="a">
+                    <span id="edpi-rank"></span>
+                    <span id="edpi-value" class="value">0</span>
+                  </div>
+                  <div class="edpi-value-col edpi-values-sep-col" data-edpi-col="sep" hidden>
+                    <span class="edpi-values-sep-spacer" aria-hidden="true"></span>
+                    <span class="edpi-values-sep" aria-hidden="true">·</span>
+                  </div>
+                  <div class="edpi-value-col" data-edpi-col="b" hidden>
+                    <span id="edpi-rank-b" class="edpi-rank-b"></span>
+                    <span id="edpi-value-b" class="value edpi-value-b"></span>
+                  </div>
+                </div>
                 <span id="edpi-cm360" class="edpi-cm360 fade-element hidden-fade" hidden></span>
+                <span id="edpi-compare-gap" class="edpi-compare-gap fade-element hidden-fade" hidden></span>
               </div>
 
               <div class="spectrum-container" id="edpi-spectrum">
@@ -687,9 +765,10 @@
                     <span class="spectrum-recommended-label">recommended</span>
                   </div>
                 </div>
-                <div id="spectrum-pointer" role="slider" aria-label="eDPI spectrum" aria-valuemin="0" aria-valuenow="0" tabindex="0" aria-describedby="spectrum-pointer-tooltip">
+                <div id="spectrum-pointer" class="spectrum-pointer" role="slider" aria-label="eDPI setup A" aria-valuemin="0" aria-valuenow="0" tabindex="0" aria-describedby="spectrum-pointer-tooltip">
                   <div id="spectrum-pointer-tooltip" class="spectrum-pointer-tooltip" role="tooltip" hidden>Use mouse and arrow keys</div>
                 </div>
+                <div id="spectrum-pointer-b" class="spectrum-pointer spectrum-pointer--b" role="slider" aria-label="eDPI setup B" aria-valuemin="0" aria-valuenow="0" tabindex="0" hidden aria-hidden="true"></div>
               </div>
 
               <div class="tab-action-bar">
@@ -1729,7 +1808,7 @@
                 <div class="keybind-row"><kbd>4</kbd><span>Open Settings</span></div>
                 <div class="keybind-row"><kbd>5</kbd><span>Open Stats</span></div>
                 <div class="keybind-row"><kbd>6</kbd><span>Open Aim Trainer</span></div>
-                <div class="keybind-row"><kbd>7</kbd><span id="keybind-7-label">Cycle More pages (Keybinds / Changelog / Privacy / Terms / Credit)</span></div>
+                <div class="keybind-row"><kbd>7</kbd><span id="keybind-7-label">Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)</span></div>
               </div>
 
               <h4 class="settings-section-title keybinds-section-title"><i class="ri-flashlight-line" aria-hidden="true"></i> Actions</h4>
@@ -1749,7 +1828,7 @@
             <div class="icon-container">
               <i class="ri-history-line"></i>
             </div>
-            <span>Changelog</span>
+            <span>Patch Notes</span>
           </div>
           <div class="description">See what's new. Track what changed. Stay current.</div>
         </div>

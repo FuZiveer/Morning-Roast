@@ -282,20 +282,6 @@ function retractAllMagneticPulls() {
   magneticPullRetractors.forEach((retract) => retract());
 }
 
-function initTopicIndicatorMagnetism() {
-  document.querySelectorAll("#stats-tab .topic-indicator").forEach((indicator) => {
-    initMagneticPull(indicator, {
-      pullRadius: 100,
-      followRadius: null,
-      maxOffset: 50,
-      pullXVar: "--topic-indicator-pull-x",
-      pullYVar: "--topic-indicator-pull-y",
-      isBlocked: isSiteAssistantPullBlocked,
-      buttonSizeFallback: 42,
-    });
-  });
-}
-
 const Toast = (() => {
   const DEFAULT_DURATION = 5000;
   const RESIZE_MS = 300;
@@ -1504,7 +1490,7 @@ const clipboardState = {
 
 const elements = {};
 const cacheElements = () => {
-  const ids = ["base-sens", "from-dpi", "to-dpi", "new-sens-value", "from-search", "to-search", "edpi-dpi", "edpi-sens", "edpi-game-search", "edpi-value", "edpi-cm360", "spectrum-pointer", "edpi-rank", "canvas-sens", "canvas-dpi", "profile-best-spatial-canvas", "profile-best-precision-canvas", "finder-reset-btn"];
+  const ids = ["base-sens", "from-dpi", "to-dpi", "new-sens-value", "from-search", "to-search", "edpi-dpi", "edpi-sens", "edpi-dpi-b", "edpi-sens-b", "edpi-game-search", "edpi-value", "edpi-value-b", "edpi-cm360", "edpi-compare-gap", "spectrum-pointer", "spectrum-pointer-b", "edpi-rank", "edpi-rank-b", "canvas-sens", "canvas-dpi", "profile-best-spatial-canvas", "profile-best-precision-canvas", "finder-reset-btn"];
   ids.forEach((id) => {
     elements[id] = document.getElementById(id);
   });
@@ -1863,8 +1849,14 @@ function tryDismissAppLoadingScreen() {
     return;
   }
 
-  screen.addEventListener("transitionend", removeScreen, { once: true });
-  setTimeout(removeScreen, 500);
+  const panel = screen.querySelector(".app-loading-panel--a");
+  const onSplitEnd = (event) => {
+    if (event.target !== panel || event.propertyName !== "transform") return;
+    panel.removeEventListener("transitionend", onSplitEnd);
+    removeScreen();
+  };
+  if (panel) panel.addEventListener("transitionend", onSplitEnd);
+  setTimeout(removeScreen, 900);
 }
 
 function initAppLoadingShootingStars(screen) {
@@ -2369,7 +2361,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v68";
+const APP_CACHE_VERSION = "morning-roast-v93";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -6525,12 +6517,118 @@ const edpiSpectrumDrag = {
   active: false,
   pointerId: null,
   lastEdpi: null,
+  setup: "a",
 };
 
 const edpiSpectrumHintState = {
   dismissed: false,
   lastValueText: null,
 };
+
+let edpiCompareMode = "single";
+
+function isEdpiCompareMode() {
+  return edpiCompareMode === "compare";
+}
+
+function getEdpiSetupElements(setup = "a") {
+  if (setup === "b") {
+    return {
+      dpi: elements["edpi-dpi-b"] || document.getElementById("edpi-dpi-b"),
+      sens: elements["edpi-sens-b"] || document.getElementById("edpi-sens-b"),
+      pointer: elements["spectrum-pointer-b"] || document.getElementById("spectrum-pointer-b"),
+      rank: elements["edpi-rank-b"] || document.getElementById("edpi-rank-b"),
+      value: elements["edpi-value-b"] || document.getElementById("edpi-value-b"),
+    };
+  }
+  return {
+    dpi: elements["edpi-dpi"] || document.getElementById("edpi-dpi"),
+    sens: elements["edpi-sens"] || document.getElementById("edpi-sens"),
+    pointer: elements["spectrum-pointer"] || document.getElementById("spectrum-pointer"),
+    rank: elements["edpi-rank"] || document.getElementById("edpi-rank"),
+    value: elements["edpi-value"] || document.getElementById("edpi-value"),
+  };
+}
+
+function syncEdpiCompareModeUi(mode = edpiCompareMode) {
+  const compare = mode === "compare";
+  const selector = document.getElementById("edpi-compare-selector");
+  const fields = document.getElementById("edpi-compare-fields");
+  const pointerB = getEdpiSetupElements("b").pointer;
+  const rankB = getEdpiSetupElements("b").rank;
+  const valueB = getEdpiSetupElements("b").value;
+  const colB = document.querySelector('#edpi-calculator-tab .edpi-value-col[data-edpi-col="b"]');
+  const valuesSep = document.querySelector('#edpi-calculator-tab .edpi-value-col[data-edpi-col="sep"]');
+  const gap = elements["edpi-compare-gap"] || document.getElementById("edpi-compare-gap");
+  const sensLabel = document.getElementById("edpi-sens-label");
+  const dpiLabel = document.getElementById("edpi-dpi-label");
+  const resultLabel = document.querySelector("#edpi-calculator-tab .edpi-info-row .result-label");
+  const tab = document.getElementById("edpi-calculator-tab");
+
+  tab?.classList.toggle("is-compare", compare);
+  if (fields) fields.hidden = !compare;
+  if (colB) colB.hidden = !compare;
+  if (valuesSep) valuesSep.hidden = !compare;
+
+  selector?.querySelectorAll(".toggle-btn[data-edpi-compare]").forEach((btn) => {
+    const active = btn.dataset.edpiCompare === mode;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  positionToggleGlider(selector);
+
+  if (sensLabel) {
+    sensLabel.innerHTML = compare ? '<i class="ri-focus-3-line" aria-hidden="true"></i> Sensitivity A' : '<i class="ri-focus-3-line" aria-hidden="true"></i> Sensitivity';
+  }
+  if (dpiLabel) {
+    dpiLabel.innerHTML = compare ? '<i class="ri-mouse-line" aria-hidden="true"></i> DPI A' : '<i class="ri-mouse-line" aria-hidden="true"></i> DPI';
+  }
+  if (resultLabel) {
+    resultLabel.innerHTML = compare ? '<i class="ri-speed-line" aria-hidden="true"></i> eDPI A · <span class="edpi-label-b">B</span>' : '<i class="ri-speed-line" aria-hidden="true"></i> Total EDPI';
+  }
+
+  if (pointerB) {
+    pointerB.hidden = !compare;
+    pointerB.setAttribute("aria-hidden", compare ? "false" : "true");
+    pointerB.tabIndex = compare ? 0 : -1;
+  }
+  if (!compare) {
+    if (rankB) {
+      rankB.style.opacity = "0";
+      rankB.textContent = "";
+    }
+    if (valueB) {
+      valueB.textContent = "";
+    }
+    if (gap) {
+      gap.hidden = true;
+      gap.textContent = "";
+      toggleVisibility(gap, false);
+    }
+  }
+}
+
+function setEdpiCompareMode(mode) {
+  edpiCompareMode = mode === "compare" ? "compare" : "single";
+  syncEdpiCompareModeUi(edpiCompareMode);
+  updateEDPI();
+}
+
+function initEdpiCompareMode() {
+  const selector = document.getElementById("edpi-compare-selector");
+  if (!selector || initEdpiCompareMode._init) return;
+  initEdpiCompareMode._init = true;
+
+  edpiCompareMode = "single";
+  localStorage.removeItem("edpiCompareMode");
+  syncEdpiCompareModeUi(edpiCompareMode);
+
+  selector.addEventListener("click", (event) => {
+    const btn = event.target.closest(".toggle-btn[data-edpi-compare]");
+    if (!btn || btn.classList.contains("active")) return;
+    setEdpiCompareMode(btn.dataset.edpiCompare);
+  });
+}
 
 function syncEdpiSpectrumPointerTooltip() {
   const tip = document.getElementById("spectrum-pointer-tooltip");
@@ -6558,17 +6656,17 @@ function setEdpiValueDisplay(nextText) {
   display.innerText = next;
 }
 
-function getCurrentEdpiValue(bounds) {
-  const dpi = parseFloat(elements["edpi-dpi"]?.value);
-  const sens = parseFloat(String(elements["edpi-sens"]?.value || "").replace(",", "."));
+function getCurrentEdpiValue(bounds, setup = "a") {
+  const { dpi: dpiInput, sens: sensInput } = getEdpiSetupElements(setup);
+  const dpi = parseFloat(dpiInput?.value);
+  const sens = parseFloat(String(sensInput?.value || "").replace(",", "."));
   if (!bounds || !Number.isFinite(dpi) || dpi <= 0) return 0;
   if (!Number.isFinite(sens) || sens < 0) return 0;
   return Math.min(bounds.maxEdpi, Math.max(0, Math.round(sens * dpi)));
 }
 
-function setEdpiFromSpectrumValue(edpi) {
-  const dpiInput = elements["edpi-dpi"];
-  const sensInput = elements["edpi-sens"];
+function setEdpiFromSpectrumValue(edpi, setup = "a") {
+  const { dpi: dpiInput, sens: sensInput } = getEdpiSetupElements(setup);
   const gameVal = resolveEdpiGameInput();
   const dpi = parseFloat(dpiInput?.value);
   const bounds = getEdpiSpectrumBounds(gameVal);
@@ -6584,9 +6682,9 @@ function setEdpiFromSpectrumValue(edpi) {
   return true;
 }
 
-function applyEdpiSpectrumPointerFromClientX(clientX) {
+function applyEdpiSpectrumPointerFromClientX(clientX, setup = edpiSpectrumDrag.setup || "a") {
   const container = document.querySelector("#edpi-calculator-tab .spectrum-container");
-  const pointer = elements["spectrum-pointer"] || document.getElementById("spectrum-pointer");
+  const { pointer } = getEdpiSetupElements(setup);
   const gameVal = resolveEdpiGameInput();
   const bounds = getEdpiSpectrumBounds(gameVal);
   if (!container || !bounds) return;
@@ -6595,45 +6693,40 @@ function applyEdpiSpectrumPointerFromClientX(clientX) {
   if (!rect.width) return;
   const percent = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
   // Follow the cursor instantly while dragging; value still snaps to whole eDPI.
-  if (pointer && edpiSpectrumDrag.active) {
+  if (pointer && edpiSpectrumDrag.active && edpiSpectrumDrag.setup === setup) {
     pointer.style.transition = "none";
     pointer.style.left = `${percent}%`;
   }
   const target = spectrumPercentToEdpi(percent, bounds);
-  if (target === (edpiSpectrumDrag.lastEdpi ?? getCurrentEdpiValue(bounds))) return;
-  setEdpiFromSpectrumValue(target);
+  if (target === (edpiSpectrumDrag.lastEdpi ?? getCurrentEdpiValue(bounds, setup))) return;
+  setEdpiFromSpectrumValue(target, setup);
 }
 
-function nudgeEdpiSpectrum(delta) {
+function nudgeEdpiSpectrum(delta, setup = "a") {
   const gameVal = resolveEdpiGameInput();
   const bounds = getEdpiSpectrumBounds(gameVal);
   if (!bounds) return;
-  setEdpiFromSpectrumValue(getCurrentEdpiValue(bounds) + delta);
+  setEdpiFromSpectrumValue(getCurrentEdpiValue(bounds, setup) + delta, setup);
 }
 
-function initEdpiSpectrumDrag() {
+function bindEdpiSpectrumPointer(pointer, setup) {
   const container = document.querySelector("#edpi-calculator-tab .spectrum-container");
-  const pointer = elements["spectrum-pointer"] || document.getElementById("spectrum-pointer");
-  if (!container || !pointer || initEdpiSpectrumDrag._init) return;
-  initEdpiSpectrumDrag._init = true;
-
-  pointer.setAttribute("role", "slider");
-  pointer.setAttribute("aria-label", "eDPI spectrum");
-  pointer.setAttribute("aria-valuemin", "0");
-  pointer.tabIndex = 0;
+  if (!container || !pointer) return;
 
   const canDrag = () => {
-    const dpi = parseFloat(elements["edpi-dpi"]?.value);
+    const { dpi: dpiInput } = getEdpiSetupElements(setup);
+    const dpi = parseFloat(dpiInput?.value);
     const gameVal = resolveEdpiGameInput();
     return Boolean(getEdpiSpectrumBounds(gameVal) && Number.isFinite(dpi) && dpi > 0);
   };
 
   const stopDrag = (event) => {
-    if (!edpiSpectrumDrag.active) return;
+    if (!edpiSpectrumDrag.active || edpiSpectrumDrag.setup !== setup) return;
     if (event?.pointerId != null && edpiSpectrumDrag.pointerId != null && event.pointerId !== edpiSpectrumDrag.pointerId) return;
     edpiSpectrumDrag.active = false;
     edpiSpectrumDrag.pointerId = null;
     edpiSpectrumDrag.lastEdpi = null;
+    edpiSpectrumDrag.setup = "a";
     container.classList.remove("is-dragging");
     pointer.classList.remove("is-dragging");
     pointer.style.transition = "";
@@ -6645,13 +6738,15 @@ function initEdpiSpectrumDrag() {
 
   const startDrag = (event) => {
     if (event.button != null && event.button !== 0) return;
+    if (setup === "b" && !isEdpiCompareMode()) return;
     if (!canDrag()) return;
     event.preventDefault();
     event.stopPropagation();
     const bounds = getEdpiSpectrumBounds(resolveEdpiGameInput());
     edpiSpectrumDrag.active = true;
     edpiSpectrumDrag.pointerId = event.pointerId;
-    edpiSpectrumDrag.lastEdpi = getCurrentEdpiValue(bounds);
+    edpiSpectrumDrag.setup = setup;
+    edpiSpectrumDrag.lastEdpi = getCurrentEdpiValue(bounds, setup);
     container.classList.add("is-dragging");
     pointer.classList.add("is-dragging");
     pointer.style.transition = "none";
@@ -6661,30 +6756,170 @@ function initEdpiSpectrumDrag() {
 
   pointer.addEventListener("pointerdown", startDrag);
   pointer.addEventListener("pointermove", (event) => {
-    if (!edpiSpectrumDrag.active || event.pointerId !== edpiSpectrumDrag.pointerId) return;
+    if (!edpiSpectrumDrag.active || edpiSpectrumDrag.setup !== setup || event.pointerId !== edpiSpectrumDrag.pointerId) return;
     event.preventDefault();
-    applyEdpiSpectrumPointerFromClientX(event.clientX);
+    applyEdpiSpectrumPointerFromClientX(event.clientX, setup);
   });
   pointer.addEventListener("pointerup", stopDrag);
   pointer.addEventListener("pointercancel", stopDrag);
 
   pointer.addEventListener("keydown", (event) => {
+    if (setup === "b" && !isEdpiCompareMode()) return;
     if (!canDrag()) return;
     const step = event.shiftKey ? 10 : 1;
     if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
       event.preventDefault();
-      nudgeEdpiSpectrum(-step);
+      nudgeEdpiSpectrum(-step, setup);
     } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
       event.preventDefault();
-      nudgeEdpiSpectrum(step);
+      nudgeEdpiSpectrum(step, setup);
     } else if (event.key === "Home") {
       event.preventDefault();
-      setEdpiFromSpectrumValue(0);
+      setEdpiFromSpectrumValue(0, setup);
     } else if (event.key === "End") {
       const bounds = getEdpiSpectrumBounds(resolveEdpiGameInput());
-      if (bounds) setEdpiFromSpectrumValue(bounds.maxEdpi);
+      if (bounds) setEdpiFromSpectrumValue(bounds.maxEdpi, setup);
     }
   });
+}
+
+function initEdpiSpectrumDrag() {
+  const container = document.querySelector("#edpi-calculator-tab .spectrum-container");
+  const pointerA = elements["spectrum-pointer"] || document.getElementById("spectrum-pointer");
+  const pointerB = elements["spectrum-pointer-b"] || document.getElementById("spectrum-pointer-b");
+  if (!container || !pointerA || initEdpiSpectrumDrag._init) return;
+  initEdpiSpectrumDrag._init = true;
+
+  pointerA.setAttribute("role", "slider");
+  pointerA.setAttribute("aria-label", "eDPI setup A");
+  pointerA.setAttribute("aria-valuemin", "0");
+  pointerA.tabIndex = 0;
+  bindEdpiSpectrumPointer(pointerA, "a");
+
+  if (pointerB) {
+    pointerB.setAttribute("role", "slider");
+    pointerB.setAttribute("aria-label", "eDPI setup B");
+    pointerB.setAttribute("aria-valuemin", "0");
+    bindEdpiSpectrumPointer(pointerB, "b");
+  }
+}
+
+function paintEdpiSpectrumPointer(pointer, edpi, bounds, color, { dragging = false, defaultColor = "white" } = {}) {
+  if (!pointer) return;
+  if (!bounds) {
+    if (!dragging) pointer.style.left = "0%";
+    pointer.style.backgroundColor = defaultColor;
+    pointer.style.boxShadow = "none";
+    pointer.setAttribute("aria-valuenow", "0");
+    pointer.setAttribute("aria-disabled", "true");
+    return;
+  }
+
+  const safeEdpi = Number.isFinite(edpi) ? edpi : 0;
+  const percent = edpiToSpectrumPercent(safeEdpi, bounds);
+  if (!dragging) pointer.style.left = `${percent}%`;
+  if (!Number.isFinite(edpi) || edpi <= 0) {
+    pointer.style.backgroundColor = defaultColor;
+    pointer.style.boxShadow = "none";
+  } else {
+    pointer.style.backgroundColor = color;
+    pointer.style.boxShadow = dragging ? "none" : `0 0 1rem ${color}`;
+  }
+  pointer.setAttribute("aria-valuenow", String(safeEdpi));
+  pointer.setAttribute("aria-valuetext", `${safeEdpi} eDPI`);
+  pointer.setAttribute("aria-valuemax", String(bounds.maxEdpi));
+  pointer.setAttribute("aria-disabled", "false");
+}
+
+function updateEdpiCompareSide(gameVal, bounds) {
+  const compare = isEdpiCompareMode();
+  const { dpi: dpiInput, sens: sensInput, pointer, rank, value } = getEdpiSetupElements("b");
+  const colB = document.querySelector('#edpi-calculator-tab .edpi-value-col[data-edpi-col="b"]');
+  const valuesSep = document.querySelector('#edpi-calculator-tab .edpi-value-col[data-edpi-col="sep"]');
+  const gap = elements["edpi-compare-gap"] || document.getElementById("edpi-compare-gap");
+  const defaultColor = "white";
+
+  if (!compare) {
+    if (pointer) {
+      pointer.hidden = true;
+      pointer.setAttribute("aria-hidden", "true");
+    }
+    if (colB) colB.hidden = true;
+    if (valuesSep) valuesSep.hidden = true;
+    if (rank) {
+      rank.style.opacity = "0";
+      rank.textContent = "";
+    }
+    if (value) {
+      value.textContent = "";
+    }
+    if (gap) {
+      gap.hidden = true;
+      toggleVisibility(gap, false);
+    }
+    return;
+  }
+
+  const dpiVal = dpiInput?.value || "";
+  const sensVal = sensInput?.value || "";
+  const rawEdpi = parseFloat(dpiVal) * parseFloat(String(sensVal).replace(",", "."));
+  const edpi = Math.round(rawEdpi);
+  const valid = Boolean(gameVal && bounds && Number.isFinite(edpi) && edpi > 0);
+  const draggingB = edpiSpectrumDrag.active && edpiSpectrumDrag.setup === "b";
+
+  if (pointer) {
+    pointer.hidden = false;
+    pointer.setAttribute("aria-hidden", "false");
+  }
+  if (colB) colB.hidden = false;
+  if (valuesSep) valuesSep.hidden = false;
+
+  if (!valid) {
+    if (value) {
+      value.textContent = "0";
+    }
+    if (rank) {
+      rank.style.opacity = "0";
+      rank.textContent = "";
+    }
+    paintEdpiSpectrumPointer(pointer, 0, bounds, defaultColor, { dragging: draggingB, defaultColor });
+    if (gap) {
+      gap.hidden = true;
+      gap.textContent = "";
+      toggleVisibility(gap, false);
+    }
+    return;
+  }
+
+  const spectrumStyle = getEdpiSpectrumTierStyle(edpi, bounds);
+  if (value) {
+    value.textContent = String(edpi);
+  }
+  if (rank) {
+    rank.innerText = spectrumStyle.label;
+    rank.style.color = spectrumStyle.color;
+    rank.style.opacity = "1";
+  }
+  paintEdpiSpectrumPointer(pointer, edpi, bounds, spectrumStyle.color, { dragging: draggingB, defaultColor });
+
+  const sensA = parseFloat(String(elements["edpi-sens"]?.value || "").replace(",", "."));
+  const dpiA = parseFloat(elements["edpi-dpi"]?.value);
+  const sensB = parseFloat(String(sensVal).replace(",", "."));
+  const dpiB = parseFloat(dpiVal);
+  const cmA = calculateCm360Value(sensA, dpiA, gameVal);
+  const cmB = calculateCm360Value(sensB, dpiB, gameVal);
+  if (gap && cmA != null && cmB != null && Number.isFinite(cmA) && Number.isFinite(cmB) && cmA > 0 && cmB > 0) {
+    const unit = getDistance360Unit();
+    const deltaCm = Math.abs(cmA - cmB);
+    const delta = unit === "in" ? deltaCm / CM360_INCH_TO_CM : deltaCm;
+    gap.textContent = `Δ ${delta.toFixed(3)} ${unit}/360`;
+    gap.hidden = false;
+    toggleVisibility(gap, true);
+  } else if (gap) {
+    gap.hidden = true;
+    gap.textContent = "";
+    toggleVisibility(gap, false);
+  }
 }
 
 function updateEDPI() {
@@ -6703,6 +6938,7 @@ function updateEDPI() {
 
   const rawEdpi = parseFloat(dpiVal) * parseFloat(sensVal.replace(",", "."));
   const edpi = Math.round(rawEdpi);
+  const draggingA = edpiSpectrumDrag.active && edpiSpectrumDrag.setup === "a";
 
   toggleEDPIResetButton();
 
@@ -6713,20 +6949,8 @@ function updateEDPI() {
     const dpiReady = Number.isFinite(parseFloat(dpiVal)) && parseFloat(dpiVal) > 0;
     const boundsReady = gameVal && dpiReady ? getEdpiSpectrumBounds(gameVal) : null;
     updateEdpiSpectrumRecommended(boundsReady);
-    if (pointer) {
-      if (!edpiSpectrumDrag.active) pointer.style.left = "0%";
-      pointer.style.backgroundColor = defaultColor;
-      pointer.style.boxShadow = "none";
-      if (boundsReady) {
-        pointer.setAttribute("aria-valuenow", "0");
-        pointer.setAttribute("aria-valuetext", "0 eDPI");
-        pointer.setAttribute("aria-valuemax", String(boundsReady.maxEdpi));
-        pointer.setAttribute("aria-disabled", "false");
-      } else {
-        pointer.setAttribute("aria-valuenow", "0");
-        pointer.setAttribute("aria-disabled", "true");
-      }
-    }
+    paintEdpiSpectrumPointer(pointer, 0, boundsReady, defaultColor, { dragging: draggingA, defaultColor });
+    updateEdpiCompareSide(gameVal, boundsReady);
     toggleVisibility(copyBtn, false);
     toggleVisibility(shareBtn, false);
     return;
@@ -6739,18 +6963,13 @@ function updateEDPI() {
   toggleVisibility(copyBtn, edpi !== 0);
   toggleVisibility(shareBtn, edpi !== 0);
 
-  let percent, color, label;
+  let color, label;
   const bounds = getEdpiSpectrumBounds(gameVal);
   if (!bounds) {
     updateEdpiSpectrumRecommended(null);
     if (rankLabel) rankLabel.style.opacity = "0";
-    if (pointer) {
-      pointer.style.left = "0%";
-      pointer.style.backgroundColor = defaultColor;
-      pointer.style.boxShadow = "none";
-      pointer.setAttribute("aria-valuenow", "0");
-      pointer.setAttribute("aria-disabled", "true");
-    }
+    paintEdpiSpectrumPointer(pointer, 0, null, defaultColor, { dragging: draggingA, defaultColor });
+    updateEdpiCompareSide(gameVal, null);
     toggleProfileSensConvButtons();
     updateGameInfoPanelVisibility();
     return;
@@ -6761,7 +6980,6 @@ function updateEDPI() {
   const spectrumStyle = getEdpiSpectrumTierStyle(edpi, bounds);
   label = spectrumStyle.label;
   color = spectrumStyle.color;
-  percent = edpiToSpectrumPercent(edpi, bounds);
 
   if (edpi > 0 && gameVal) {
     localStorage.setItem("lastEdpiCalc", edpi);
@@ -6792,22 +7010,13 @@ function updateEDPI() {
   toggleProfileSensConvButtons();
   updateGameInfoPanelVisibility();
 
-  if (pointer) {
-    if (!edpiSpectrumDrag.active) {
-      pointer.style.left = `${percent}%`;
-    }
-    pointer.style.backgroundColor = color;
-    pointer.style.boxShadow = edpiSpectrumDrag.active ? "none" : `0 0 1rem ${color}`;
-    pointer.setAttribute("aria-valuenow", String(edpi));
-    pointer.setAttribute("aria-valuetext", `${edpi} eDPI`);
-    pointer.setAttribute("aria-valuemax", String(bounds.maxEdpi));
-    pointer.setAttribute("aria-disabled", "false");
-  }
+  paintEdpiSpectrumPointer(pointer, edpi, bounds, color, { dragging: draggingA, defaultColor });
   if (rankLabel) {
     rankLabel.innerText = label;
     rankLabel.style.color = color;
     rankLabel.style.opacity = "1";
   }
+  updateEdpiCompareSide(gameVal, bounds);
 }
 
 function updateGameInfoPanelVisibility() {
@@ -8844,9 +9053,15 @@ function initLineupMapDropdown() {
       const label = opt.querySelector("span")?.textContent?.trim().toLowerCase() || "";
       opt.style.display = label.includes(filter) ? "" : "none";
     });
-    showLineupMapList();
-    activeIndex = 0;
-    syncHover(getVisible());
+    const visible = getVisible();
+    if (visible.length) {
+      showLineupMapList();
+      activeIndex = 0;
+      syncHover(visible);
+    } else {
+      hideLineupMapList();
+      activeIndex = -1;
+    }
   });
 
   input.addEventListener("keydown", (e) => {
@@ -9063,11 +9278,7 @@ function setLineupFilterEmptyState(grid, show, { favoritesOnly = false } = {}) {
       empty.className = "lineup-empty-state lineup-filter-empty-state";
       grid.appendChild(empty);
     }
-    empty.textContent = favoritesOnly
-      ? getLineupFavoriteIds().size
-        ? "No favorite lineups match your filters."
-        : "No favorite lineups yet."
-      : "No lineups match your filters.";
+    empty.textContent = favoritesOnly ? (getLineupFavoriteIds().size ? "No favorite lineups match your filters." : "No favorite lineups yet.") : "No lineups match your filters.";
     empty.hidden = false;
     empty.classList.remove("hidden");
     return;
@@ -10508,10 +10719,16 @@ function initLineupGameDropdown() {
     list.querySelectorAll("[data-lineup-game]").forEach((opt) => {
       opt.style.display = getOptionLabel(opt).toLowerCase().includes(filter) ? "" : "none";
     });
-    showLineupGameList();
+    const visible = getVisible();
+    if (visible.length) {
+      showLineupGameList();
+      activeIndex = 0;
+      syncHover(visible);
+    } else {
+      hideLineupGameList();
+      activeIndex = -1;
+    }
     syncGameClearButton("lineup-game-search", "lineup-game-clear");
-    activeIndex = 0;
-    syncHover(getVisible());
   });
 
   input.addEventListener("keydown", (e) => {
@@ -10731,7 +10948,14 @@ function toggleEDPIResetButton() {
   const sensVal = elements["edpi-sens"].value;
   const dpiVal = document.getElementById("edpi-dpi").value;
   const gameVal = elements["edpi-game-search"]?.value || "";
-  const isDefault = (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0" || dpiVal === "800") && gameVal === "";
+  const isDefaultA = (sensVal === "" || sensVal === "0") && (dpiVal === "" || dpiVal === "0" || dpiVal === "800") && gameVal === "";
+  let isDefault = isDefaultA;
+  if (isEdpiCompareMode()) {
+    const sensB = elements["edpi-sens-b"]?.value || "";
+    const dpiB = elements["edpi-dpi-b"]?.value || "";
+    const isDefaultB = (sensB === "" || sensB === "0") && (dpiB === "" || dpiB === "0" || dpiB === "800");
+    isDefault = isDefaultA && isDefaultB;
+  }
   toggleVisibility(resetBtn, !isDefault);
 }
 
@@ -10895,7 +11119,7 @@ window.addEventListener("storage", (e) => {
 
 function handleInputValidation(input, callback) {
   const isDpiField = input.id.includes("-dpi"),
-    isSensField = input.id === "base-sens" || input.id === "edpi-sens" || input.id === "canvas-sens";
+    isSensField = input.id === "base-sens" || input.id === "edpi-sens" || input.id === "edpi-sens-b" || input.id === "canvas-sens";
   input.addEventListener("input", () => {
     let val = input.value;
     const start = input.selectionStart;
@@ -12020,7 +12244,7 @@ function syncKeybindLabels() {
 
   const key7Label = document.getElementById("keybind-7-label");
   if (!key7Label) return;
-  key7Label.textContent = LINEUP_TAB_ENABLED ? "Open Lineups" : "Cycle More pages (Keybinds / Changelog / Privacy / Terms / Credit)";
+  key7Label.textContent = LINEUP_TAB_ENABLED ? "Open Lineups" : "Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)";
 }
 
 function initLogoMask() {
@@ -13780,6 +14004,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initChangelogDateFilter();
   cacheElements();
   initEdpiSpectrumDrag();
+  initEdpiCompareMode();
   initSearchDropdownFocusLossHandlers();
   initLogoMask();
   renderGameOptions(document.getElementById("from-list"), "data-game");
@@ -13826,7 +14051,7 @@ document.addEventListener("DOMContentLoaded", () => {
     tD = document.getElementById("to-dpi");
   if (fD) fD.value = "800";
   if (tD) tD.value = "800";
-  ["base-sens", "from-dpi", "to-dpi", "edpi-dpi", "edpi-sens", "canvas-sens", "canvas-dpi"].forEach((id) => {
+  ["base-sens", "from-dpi", "to-dpi", "edpi-dpi", "edpi-sens", "edpi-dpi-b", "edpi-sens-b", "canvas-sens", "canvas-dpi"].forEach((id) => {
     const el = document.getElementById(id);
     if (el) handleInputValidation(el, id.startsWith("edpi-") ? scheduleUpdateEDPI : id.startsWith("canvas-") ? () => {} : scheduleUpdateConversion);
   });
@@ -13834,6 +14059,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const sequences = [
     ["base-sens", "from-dpi", "to-dpi"],
     ["edpi-sens", "edpi-dpi"],
+    ["edpi-sens-b", "edpi-dpi-b"],
     ["canvas-sens", "canvas-dpi"],
   ];
 
@@ -13988,10 +14214,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const display = getGameDisplayName(getOptionLabel(o)).toLowerCase();
         o.style.display = display.includes(filter) ? "" : "none";
       });
-      showGameDropdownList(idPrefix);
+      const visible = getVisible();
+      if (visible.length) {
+        showGameDropdownList(idPrefix);
+        activeIndex = 0;
+        syncUI(visible);
+      } else {
+        hideGameDropdownList(idPrefix);
+        activeIndex = -1;
+      }
       syncClear();
-      activeIndex = 0;
-      syncUI(getVisible());
       if (idPrefix === "edpi-game") updateEDPI();
       else if (idPrefix !== "trainer-game" && idPrefix !== "profile-game") scheduleUpdateConversion();
       if (idPrefix !== "profile-game") syncGameTriggerIcon(idPrefix);
@@ -14060,7 +14292,6 @@ document.addEventListener("DOMContentLoaded", () => {
       isBlocked: isSiteAssistantPullBlocked,
     });
   }
-  initTopicIndicatorMagnetism();
   swapBtn?.addEventListener("click", () => {
     const el = {
       fG: document.getElementById("from-search"),
@@ -14185,8 +14416,14 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmBeforeReset("Reset the eDPI calculator fields?", () => {
       const eD = document.getElementById("edpi-dpi");
       const eS = document.getElementById("edpi-sens");
+      const eDb = document.getElementById("edpi-dpi-b");
+      const eSb = document.getElementById("edpi-sens-b");
       if (eD) eD.value = "800";
       if (eS) eS.value = "";
+      if (isEdpiCompareMode()) {
+        if (eDb) eDb.value = "800";
+        if (eSb) eSb.value = "";
+      }
       clearEdpiGameDropdown();
       updateEDPI();
     });
