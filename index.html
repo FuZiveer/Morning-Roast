@@ -102,7 +102,6 @@
         </div>
       </div>
       <div class="app-loading-stage" id="app-loading-stage">
-        <div class="app-loading-stars bg-stars" id="app-loading-stars" aria-hidden="true"></div>
         <div class="app-loading-screen-inner">
           <div class="app-loading-logo-shell">
             <span class="logo-stack app-loading-logo" aria-hidden="true">
@@ -116,6 +115,10 @@
     </div>
     <div id="bg-stars" class="bg-stars bg-stars--fixed" aria-hidden="true"></div>
     <canvas id="bg-particles-canvas" class="bg-particles-canvas" aria-hidden="true"></canvas>
+    <div class="app-chrome-tags" aria-label="App info">
+      <button type="button" class="app-chrome-tag app-chrome-tag--connection" id="app-chrome-connection" aria-label="Open app status">Online</button>
+      <button type="button" class="app-chrome-tag app-chrome-tag--version" id="app-chrome-version" aria-label="Open patch notes">v0.2.10</button>
+    </div>
     <aside class="app-sidebar" aria-label="Main navigation">
       <button type="button" class="app-sidebar-logo" aria-label="Morning Roast home" onclick="cycleTabFromLogo(event)">
         <span class="logo-stack" aria-hidden="true">
@@ -1051,9 +1054,10 @@
                 </div>
               </div>
               <div id="sens-game-info" class="profile-game-info">
-                <span id="profile-from-game"></span> <i class="ri-arrow-left-right-line" style="font-size: 0.6rem"></i> <span id="profile-to-game"></span>
-                <span style="opacity: 0.3">|</span>
+                <span id="profile-from-game">-</span> <i class="ri-arrow-left-right-line" style="font-size: 0.6rem"></i> <span id="profile-to-game">-</span>
+                <span class="profile-game-info-pipe" aria-hidden="true">|</span>
                 <span>Sens: <span id="profile-base-sens" style="color: #bbb">-</span></span>
+                <span class="profile-game-info-sep" aria-hidden="true">·</span>
                 <span>From DPI: <span id="profile-from-dpi" style="color: #bbb">-</span></span>
                 <span>To DPI: <span id="profile-to-dpi" style="color: #bbb">-</span></span>
               </div>
@@ -1098,10 +1102,12 @@
                 </div>
               </div>
               <div id="edpi-game-info" class="profile-game-info">
-                <span id="profile-edpi-game"></span>
+                <span id="profile-edpi-game">-</span>
+                <span class="profile-game-info-pipe" aria-hidden="true">|</span>
                 <span>Sens: <span id="profile-edpi-sens" style="color: #bbb">-</span></span>
+                <span class="profile-game-info-sep" aria-hidden="true">·</span>
                 <span>DPI: <span id="profile-edpi-dpi" style="color: #bbb">-</span></span>
-                <span style="opacity: 0.3">|</span>
+                <span class="profile-game-info-sep" aria-hidden="true">·</span>
                 <span>360°: <span id="profile-edpi-cm" style="color: #bbb">-</span></span>
                 <span id="profile-edpi-status-dot" style="height: 0.5rem; width: 0.5rem; border-radius: 50%; display: none; flex-shrink: 0; transform: translateY(-1px)"></span>
               </div>
@@ -1874,6 +1880,33 @@
                   <span class="changelog-badge">Latest</span>
                 </header>
                 <div class="changelog-versions">
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.10</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Status tags added (Online and version in the top-right)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Status tags improved (Version opens Patch Notes; Online opens App Status)</li>
+                          <li>Status tags improved (Hover pop without shifting text)</li>
+                          <li>Loading screen improved (Waits for images and assets before morph/split)</li>
+                          <li>Loading screen improved (Stars removed from loading veil)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>Stars background fixed (Pattern CSS restored)</li>
+                          <li>Loading screen fixed (App Status closes when leaving Settings)</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
                   <section class="changelog-version-block">
                     <h3 class="changelog-version">0.2.9</h3>
                     <div class="changelog-type-groups">

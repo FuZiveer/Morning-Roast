@@ -1,4 +1,4 @@
-const CACHE = "morning-roast-v115"; // Keep in sync with APP_CACHE_VERSION in script.js
+const CACHE = "morning-roast-v135"; // Keep in sync with APP_CACHE_VERSION in script.js
 const ASSETS = ["./index.html", "./style.css", "./games.js", "./tools/color-names.js", "./tools/site-assistant.js", "./script.js", "./assets/logo.png", "./manifest.webmanifest"];
 // PATH ROUTING: add "./404.html" to ASSETS when re-enabling GitHub Pages deep links.
 // tools/crosshair-converter.js + preview images load on demand when Misc tab is enabled.

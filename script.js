@@ -1828,10 +1828,9 @@ const appLoadingState = {
   accent: false,
   logo: false,
   entrance: false,
+  assets: false,
   dismissed: false,
 };
-
-let appLoadingStarsControllers = [];
 
 function markAppLoadingReady(key) {
   if (appLoadingState[key] !== false) return;
@@ -1839,9 +1838,63 @@ function markAppLoadingReady(key) {
   tryDismissAppLoadingScreen();
 }
 
-function destroyAppLoadingStars() {
-  appLoadingStarsControllers.forEach((controller) => controller?.destroy?.());
-  appLoadingStarsControllers = [];
+function waitForImageElement(img) {
+  if (!img) return Promise.resolve();
+  if (img.complete) return Promise.resolve();
+  return new Promise((resolve) => {
+    img.addEventListener("load", resolve, { once: true });
+    img.addEventListener("error", resolve, { once: true });
+  });
+}
+
+function waitForImageUrl(url) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+    img.src = url;
+  });
+}
+
+function collectAppLoadingImageWaiters() {
+  const waiters = [waitForImageUrl("./assets/logo.png")];
+
+  for (const img of document.images) {
+    // Don't block forever on lazy images that haven't started loading.
+    if (img.loading === "lazy" && !img.complete && !img.currentSrc) continue;
+    const src = img.currentSrc || img.getAttribute("src") || "";
+    if (!src) continue;
+    waiters.push(waitForImageElement(img));
+  }
+
+  return waiters;
+}
+
+function initAppLoadingAssetsReady() {
+  if (initAppLoadingAssetsReady._started) return;
+  initAppLoadingAssetsReady._started = true;
+
+  const settle = () => markAppLoadingReady("assets");
+  const loadPromise =
+    document.readyState === "complete"
+      ? Promise.resolve()
+      : new Promise((resolve) => window.addEventListener("load", resolve, { once: true }));
+
+  const decodeLoadedImages = () =>
+    Promise.all(
+      [...document.images]
+        .filter((img) => img.complete && typeof img.decode === "function")
+        .map((img) => img.decode().catch(() => {})),
+    );
+
+  loadPromise
+    .then(() => Promise.all([...collectAppLoadingImageWaiters(), decodeLoadedImages()]))
+    .then(settle)
+    .catch(settle);
+
+  // Failsafe so a stalled asset never traps the loading screen.
+  window.setTimeout(settle, 15000);
 }
 
 /** Unit cubic-bezier easing (matches CSS cubic-bezier). */
@@ -1968,7 +2021,7 @@ function prepareAppLoadingSplit(screen) {
     const clone = stage.cloneNode(true);
     clone.removeAttribute("id");
     clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
-    // Logo has already become the blade — keep stars/bg only in the split halves.
+    // Logo has already become the blade — keep stage bg only in the split halves.
     clone.querySelector(".app-loading-logo-shell")?.remove();
     clone.querySelector(".app-loading-label")?.remove();
     const edge = panel.querySelector(".app-loading-panel-edge");
@@ -1976,7 +2029,6 @@ function prepareAppLoadingSplit(screen) {
     if (edge) panel.appendChild(edge);
   });
 
-  destroyAppLoadingStars();
   return true;
 }
 
@@ -1990,7 +2042,7 @@ function liftAppLoadingBlade(screen) {
 
 function tryDismissAppLoadingScreen() {
   if (appLoadingState.dismissed) return;
-  if (!appLoadingState.fonts || !appLoadingState.accent || !appLoadingState.logo || !appLoadingState.entrance) return;
+  if (!appLoadingState.fonts || !appLoadingState.accent || !appLoadingState.logo || !appLoadingState.entrance || !appLoadingState.assets) return;
 
   const screen = document.getElementById("app-loading-screen");
   if (!screen) {
@@ -2004,7 +2056,6 @@ function tryDismissAppLoadingScreen() {
   retractAllMagneticPulls();
 
   const removeScreen = () => {
-    destroyAppLoadingStars();
     document.body.classList.remove("app-loading", "app-loading-splitting");
     if (screen.isConnected) screen.remove();
     retractAllMagneticPulls();
@@ -2053,14 +2104,6 @@ function tryDismissAppLoadingScreen() {
   setTimeout(removeScreen, splitFallbackMs);
 }
 
-function initAppLoadingShootingStars(screen) {
-  if (!screen || prefersReducedUiMotion()) return;
-  const root = screen.querySelector("#app-loading-stars");
-  if (!root) return;
-  const controller = mountBgStars(root, { count: BG_STAR_COUNT, animate: true });
-  if (controller) appLoadingStarsControllers = [controller];
-}
-
 function initAppLoadingScreen() {
   const screen = document.getElementById("app-loading-screen");
   if (!screen) {
@@ -2077,8 +2120,6 @@ function initAppLoadingScreen() {
     syncAppLoadingSliceAngle(screen);
   };
   window.addEventListener("resize", onSliceResize);
-
-  initAppLoadingShootingStars(screen);
 
   if (document.documentElement.classList.contains("accent-ready")) {
     markAppLoadingReady("accent");
@@ -2101,13 +2142,61 @@ function initAppLoadingScreen() {
     markAppLoadingReady("fonts");
   }
 
-  window.addEventListener(
-    "load",
-    () => {
-      markAppLoadingReady("fonts");
-    },
-    { once: true },
-  );
+  initAppLoadingAssetsReady();
+}
+
+function syncAppChromeTags() {
+  const versionTag = document.getElementById("app-chrome-version");
+  const connectionTag = document.getElementById("app-chrome-connection");
+  const latest = document.querySelector("#changelog-panel .changelog-date-group.is-latest .changelog-version");
+
+  if (versionTag && latest) {
+    const version = latest.textContent.trim();
+    if (version) {
+      versionTag.textContent = version.startsWith("v") ? version : `v${version}`;
+    }
+  }
+
+  if (connectionTag) {
+    const online = navigator.onLine;
+    connectionTag.textContent = online ? "Online" : "Offline";
+    connectionTag.classList.toggle("is-online", online);
+    connectionTag.classList.toggle("is-offline", !online);
+  }
+}
+
+function closeSettingsAppStatusPanel() {
+  const dropdown = document.querySelector("#settings-tab .app-status-dropdown");
+  if (!dropdown) return;
+  dropdown.classList.remove("is-open");
+  dropdown.querySelector(".app-status-trigger")?.setAttribute("aria-expanded", "false");
+}
+
+function openSettingsAppStatusPanel() {
+  const dropdown = document.querySelector("#settings-tab .app-status-dropdown");
+  const trigger = dropdown?.querySelector(".app-status-trigger");
+  if (!dropdown || !trigger) return;
+  if (!dropdown.classList.contains("is-open")) {
+    trigger.click();
+  }
+  trigger.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function initAppChromeTags() {
+  const root = document.querySelector(".app-chrome-tags");
+  if (!root) return;
+  syncAppChromeTags();
+  window.addEventListener("online", syncAppChromeTags);
+  window.addEventListener("offline", syncAppChromeTags);
+
+  root.querySelector("#app-chrome-version")?.addEventListener("click", () => {
+    switchTab(null, "updates-tab");
+  });
+
+  root.querySelector("#app-chrome-connection")?.addEventListener("click", () => {
+    switchTab(null, "settings-tab");
+    window.setTimeout(openSettingsAppStatusPanel, 40);
+  });
 }
 
 function initAppSidebar() {
@@ -2566,7 +2655,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v115";
+const APP_CACHE_VERSION = "morning-roast-v135";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -6577,7 +6666,13 @@ const debounceTimers = {
   edpi: 0,
   conversion: 0,
 };
+
+/** After profile stats reset, don't rewrite saved stats from current calculator inputs until the user edits them. */
+let profileSensStatsPaused = false;
+let profileEdpiStatsPaused = false;
+
 function scheduleUpdateEDPI() {
+  profileEdpiStatsPaused = false;
   clearTimeout(debounceTimers.edpi);
   debounceTimers.edpi = setTimeout(updateEDPI, 64);
 }
@@ -7186,7 +7281,7 @@ function updateEDPI() {
   label = spectrumStyle.label;
   color = spectrumStyle.color;
 
-  if (edpi > 0 && gameVal) {
+  if (edpi > 0 && gameVal && !profileEdpiStatsPaused) {
     localStorage.setItem("lastEdpiCalc", edpi);
     localStorage.setItem("lastEdpiSens", sensVal);
     localStorage.setItem("lastEdpiDpi", dpiVal);
@@ -7224,23 +7319,22 @@ function updateEDPI() {
   updateEdpiCompareSide(gameVal, bounds);
 }
 
+function hasProfileStatValue(el) {
+  const val = el?.innerText?.trim() ?? "";
+  return val !== "" && val !== "0.00" && val !== "0" && val !== "-";
+}
+
 function updateGameInfoPanelVisibility() {
   const sensInfo = document.getElementById("sens-game-info");
+  const sensVal = document.getElementById("last-sens-conv");
   if (sensInfo) {
-    const sFrom = localStorage.getItem("fromGame");
-    const sTo = localStorage.getItem("toGame");
-    const sVal = localStorage.getItem("lastSensConv");
-    const hasSens = sFrom && sTo && sVal && sVal !== "0.00" && sVal !== "0";
-    sensInfo.style.display = "";
-    sensInfo.classList.toggle("is-empty", !hasSens);
+    sensInfo.classList.toggle("is-empty", !hasProfileStatValue(sensVal));
   }
 
   const edpiInfo = document.getElementById("edpi-game-info");
+  const edpiVal = document.getElementById("last-edpi-calc");
   if (edpiInfo) {
-    const eVal = localStorage.getItem("lastEdpiCalc");
-    const hasEdpi = eVal && eVal !== "0";
-    edpiInfo.style.display = "";
-    edpiInfo.classList.toggle("is-empty", !hasEdpi);
+    edpiInfo.classList.toggle("is-empty", !hasProfileStatValue(edpiVal));
   }
 }
 
@@ -11091,6 +11185,7 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
   closeMobileNavMenu();
   setAppMoreMenuOpen(false);
   setAppMiscMenuOpen(false);
+  if (id !== "settings-tab") closeSettingsAppStatusPanel();
 
   if (id === "aim-training-tab") {
     setTimeout(() => {
@@ -11208,6 +11303,7 @@ function toggleProfileSensConvButtons() {
 }
 
 function scheduleUpdateConversion() {
+  profileSensStatsPaused = false;
   clearTimeout(debounceTimers.conversion);
   debounceTimers.conversion = setTimeout(updateConversion, 64);
 }
@@ -11235,23 +11331,15 @@ function updateConversion() {
 
   const sens = parseFloat(baseSens.replace(",", "."));
 
-  if (fromGame) {
+  if (fromGame && !profileSensStatsPaused) {
     localStorage.setItem("fromGame", fromGame);
     const pFrom = document.getElementById("profile-from-game");
     if (pFrom) pFrom.innerText = getGameDisplayName(fromGame);
-  } else {
-    localStorage.removeItem("fromGame");
-    const pFrom = document.getElementById("profile-from-game");
-    if (pFrom) pFrom.innerText = "";
   }
-  if (toGame) {
+  if (toGame && !profileSensStatsPaused) {
     localStorage.setItem("toGame", toGame);
     const pTo = document.getElementById("profile-to-game");
     if (pTo) pTo.innerText = getGameDisplayName(toGame);
-  } else {
-    localStorage.removeItem("toGame");
-    const pTo = document.getElementById("profile-to-game");
-    if (pTo) pTo.innerText = "";
   }
 
   const converted = MorningRoastGames.convertSensitivity(sens, fromGame, toGame, fDpi, tDpi);
@@ -11268,7 +11356,7 @@ function updateConversion() {
   const result = converted.toFixed(3);
   display.innerText = result;
 
-  if (parseFloat(result) > 0) {
+  if (parseFloat(result) > 0 && !profileSensStatsPaused) {
     localStorage.setItem("lastSensConv", result);
     localStorage.setItem("lastBaseSens", baseSens);
     localStorage.setItem("lastFromDpi", fDpi);
@@ -11283,8 +11371,6 @@ function updateConversion() {
     if (pBaseSens) pBaseSens.innerText = baseSens;
     if (pFromDpi) pFromDpi.innerText = fDpi;
     if (pToDpi) pToDpi.innerText = tDpi;
-  } else {
-    localStorage.removeItem("lastSensConv");
   }
 
   toggleProfileSensConvButtons();
@@ -14197,6 +14283,7 @@ function initChangelogDateFilter() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initAppLoadingScreen();
+  initAppChromeTags();
   initAppSidebar();
   initMobileNavMoreMenu();
   if (MISC_TAB_ENABLED) initMobileNavMiscMenu();
@@ -14429,7 +14516,7 @@ document.addEventListener("DOMContentLoaded", () => {
         activeIndex = -1;
       }
       syncClear();
-      if (idPrefix === "edpi-game") updateEDPI();
+      if (idPrefix === "edpi-game") scheduleUpdateEDPI();
       else if (idPrefix !== "trainer-game" && idPrefix !== "profile-game") scheduleUpdateConversion();
       if (idPrefix !== "profile-game") syncGameTriggerIcon(idPrefix);
     });
@@ -14453,8 +14540,10 @@ document.addEventListener("DOMContentLoaded", () => {
           localStorage.setItem(PROFILE_FILTER_GAME_KEY, modeVal);
           aimTrainer.displayResultsOnProfile();
         } else if (idPrefix === "edpi-game") {
+          profileEdpiStatsPaused = false;
           updateEDPI();
         } else {
+          profileSensStatsPaused = false;
           updateConversion();
         }
         syncGameTriggerIcon(idPrefix);
@@ -14541,6 +14630,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("profile-sens-conv-reset")?.addEventListener("click", () => {
     confirmBeforeReset("Clear saved sensitivity converter stats?", () => {
+      profileSensStatsPaused = true;
       localStorage.removeItem("lastSensConv");
       localStorage.removeItem("fromGame");
       localStorage.removeItem("toGame");
@@ -14556,8 +14646,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const pToDpi = document.getElementById("profile-to-dpi");
 
       if (profileDisplay) profileDisplay.innerText = "0.00";
-      if (pFrom) pFrom.innerText = "";
-      if (pTo) pTo.innerText = "";
+      if (pFrom) pFrom.innerText = "-";
+      if (pTo) pTo.innerText = "-";
       if (pBaseSens) pBaseSens.innerText = "-";
       if (pFromDpi) pFromDpi.innerText = "-";
       if (pToDpi) pToDpi.innerText = "-";
@@ -14568,6 +14658,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("profile-edpi-calc-reset")?.addEventListener("click", () => {
     confirmBeforeReset("Clear saved eDPI calculator stats?", () => {
+      profileEdpiStatsPaused = true;
       localStorage.removeItem("lastEdpiCalc");
       localStorage.removeItem("lastEdpiSens");
       localStorage.removeItem("lastEdpiDpi");
@@ -14583,19 +14674,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const pDot = document.getElementById("profile-edpi-status-dot");
 
       if (pEdpi) pEdpi.innerText = "0.00";
-      if (pGame) pGame.innerText = "";
+      if (pGame) pGame.innerText = "-";
       if (pSens) pSens.innerText = "-";
       if (pDpi) pDpi.innerText = "-";
       if (pCm) pCm.textContent = "-";
       if (pDot) pDot.style.display = "none";
-
-      // Clear live calculator fields so updateEDPI cannot immediately rewrite saved stats.
-      const eD = document.getElementById("edpi-dpi");
-      const eS = document.getElementById("edpi-sens");
-      if (eD) eD.value = "800";
-      if (eS) eS.value = "";
-      clearEdpiGameDropdown();
-      updateEDPI();
 
       toggleProfileSensConvButtons();
       updateGameInfoPanelVisibility();
@@ -14737,7 +14820,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const pEdpiDot = document.getElementById("profile-edpi-status-dot");
 
   if (savedFromGame && pFrom) pFrom.innerText = getGameDisplayName(savedFromGame);
+  else if (pFrom) pFrom.innerText = "-";
   if (savedToGame && pTo) pTo.innerText = getGameDisplayName(savedToGame);
+  else if (pTo) pTo.innerText = "-";
   if (savedSens && profileDisplay) profileDisplay.innerText = savedSens;
   if (savedBaseSens && pBaseSens) pBaseSens.innerText = savedBaseSens;
   if (savedFromDpi && pFromDpi) pFromDpi.innerText = savedFromDpi;

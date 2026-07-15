@@ -211,6 +211,79 @@ body:not(.app-ready) {
   inset: 0;
 }
 
+.bg-stars {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bg-stars--fixed {
+  position: fixed;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 300ms ease,
+    visibility 300ms ease;
+}
+
+html[data-bg-pattern="stars"] .bg-stars--fixed {
+  opacity: 1;
+  visibility: visible;
+}
+
+.bg-starfield {
+  position: absolute;
+  inset: 0;
+}
+
+.bg-starfield-dot {
+  --dot-x: 50%;
+  --dot-y: 50%;
+  --dot-size: 1.5px;
+  --dot-opacity: 0.55;
+  --dot-delay: 0s;
+  position: absolute;
+  top: var(--dot-y);
+  left: var(--dot-x);
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: 50%;
+  background: hsl(0 0% 100% / var(--dot-opacity));
+  box-shadow: 0 0 0.35rem hsl(0 0% 100% / 0.25);
+  transform: translate(-50%, -50%);
+  animation: bg-starfield-twinkle 4.5s ease-in-out infinite;
+  animation-delay: var(--dot-delay);
+}
+
+.bg-star {
+  --star-left: -15%;
+  --star-top: 10%;
+  --star-duration: 2.8s;
+  --star-length: 7rem;
+  --star-thickness: 0.125rem;
+  --star-opacity: 0.8;
+  --star-angle: 28deg;
+  --star-travel: 145vw;
+  position: absolute;
+  top: var(--star-top);
+  left: var(--star-left);
+  width: var(--star-length);
+  height: var(--star-thickness);
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent 0%, hsl(0 0% 100% / 0.15) 35%, hsl(0 0% 100% / 0.85) 72%, hsl(0 0% 100% / 0.95) 100%);
+  box-shadow: 0 0 0.55rem hsl(0 0% 100% / 0.35);
+  opacity: 0;
+  transform: rotate(var(--star-angle)) translate3d(0, 0, 0);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.bg-star.is-shooting {
+  animation: bg-shooting-star var(--star-duration) linear forwards;
+}
+
 .app-loading-screen-inner {
   position: relative;
   z-index: 2;
@@ -509,6 +582,101 @@ body:not(.app-ready) .app-sidebar {
 body.app-ready .app,
 body.app-ready .app-sidebar {
   visibility: visible;
+}
+
+.app-chrome-tags {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 220ms ease,
+    visibility 220ms ease;
+}
+
+body.app-ready .app-chrome-tags {
+  opacity: 1;
+  visibility: visible;
+}
+
+.app-chrome-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  border: var(--border-width) solid hsl(var(--border-subtle));
+  background: hsl(var(--black-sheep) / 0.92);
+  color: hsl(var(--text-muted));
+  font: inherit;
+  font-size: calc(0.62rem * var(--text-size-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  white-space: nowrap;
+  user-select: none;
+  backdrop-filter: blur(8px);
+  appearance: none;
+  -webkit-appearance: none;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: scale(1);
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.app-chrome-tag--version {
+  border-color: hsl(from var(--accent-color) h s l / 0.45);
+  background: hsl(from var(--accent-color) h s l / 0.14);
+  color: var(--accent-color);
+}
+
+.app-chrome-tag--version:hover {
+  transform: scale(1.12);
+  border-color: hsl(from var(--accent-color) h s l / 0.75);
+  background: hsl(from var(--accent-color) h s l / 0.22);
+  box-shadow: 0 0 0.65rem hsl(from var(--accent-color) h s l / 0.35);
+}
+
+.app-chrome-tag--connection.is-online {
+  border-color: hsl(152 45% 40% / 0.55);
+  background: hsl(152 45% 40% / 0.16);
+  color: hsl(152 55% 62%);
+}
+
+.app-chrome-tag--connection.is-offline {
+  border-color: hsl(0 0% 100% / 0.12);
+  background: hsl(0 0% 8% / 0.88);
+  color: hsl(var(--text-faint));
+}
+
+.app-chrome-tag--connection:hover {
+  transform: scale(1.12);
+}
+
+.app-chrome-tag--connection.is-online:hover {
+  border-color: hsl(152 45% 45% / 0.75);
+  background: hsl(152 45% 40% / 0.24);
+  box-shadow: 0 0 0.65rem hsl(152 45% 40% / 0.35);
+}
+
+.app-chrome-tag--connection.is-offline:hover {
+  border-color: hsl(0 0% 100% / 0.22);
+  background: hsl(0 0% 12% / 0.92);
+  box-shadow: 0 0 0.65rem hsl(0 0% 100% / 0.12);
 }
 
 /* Kill hover/pull targets under the veil until the split opens a path */
@@ -3022,9 +3190,16 @@ body.reduce-motion .swap-button svg {
   opacity: 1;
 }
 
+.profile-game-info-sep,
+.profile-game-info-pipe {
+  opacity: 0.35;
+  user-select: none;
+}
+
 .profile-game-info.is-empty {
   opacity: 0;
   pointer-events: none;
+  visibility: hidden;
 }
 
 .result-container:has(.profile-game-info) .result-display {
@@ -3069,7 +3244,7 @@ body.reduce-motion .sens-finder-hint {
 .result-label {
   color: var(--accent-color);
   text-align: left;
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .result-container > .result-label.settings-section-title,
