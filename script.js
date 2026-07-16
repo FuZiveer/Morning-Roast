@@ -1348,7 +1348,7 @@ function initTrainerAspectDropdown(savedRatio) {
   const open = () => {
     initTrainerModeDropdown.close?.();
     initTrainerTimerDropdown.close?.();
-    initBgPatternDropdown.close?.();
+    initBgBackdropControl.close?.();
     dropdown.classList.add("is-open");
     trigger.setAttribute("aria-expanded", "true");
     list.classList.remove("hidden");
@@ -1424,7 +1424,7 @@ function initTrainerTimerDropdown(savedTimer) {
   const open = () => {
     initTrainerModeDropdown.close?.();
     initTrainerAspectDropdown.close?.();
-    initBgPatternDropdown.close?.();
+    initBgBackdropControl.close?.();
     dropdown.classList.add("is-open");
     trigger.setAttribute("aria-expanded", "true");
     list.classList.remove("hidden");
@@ -2145,58 +2145,11 @@ function initAppLoadingScreen() {
   initAppLoadingAssetsReady();
 }
 
-function syncAppChromeTags() {
-  const versionTag = document.getElementById("app-chrome-version");
-  const connectionTag = document.getElementById("app-chrome-connection");
-  const latest = document.querySelector("#changelog-panel .changelog-date-group.is-latest .changelog-version");
-
-  if (versionTag && latest) {
-    const version = latest.textContent.trim();
-    if (version) {
-      versionTag.textContent = version.startsWith("v") ? version : `v${version}`;
-    }
-  }
-
-  if (connectionTag) {
-    const online = navigator.onLine;
-    connectionTag.textContent = online ? "Online" : "Offline";
-    connectionTag.classList.toggle("is-online", online);
-    connectionTag.classList.toggle("is-offline", !online);
-  }
-}
-
 function closeSettingsAppStatusPanel() {
   const dropdown = document.querySelector("#settings-tab .app-status-dropdown");
   if (!dropdown) return;
   dropdown.classList.remove("is-open");
   dropdown.querySelector(".app-status-trigger")?.setAttribute("aria-expanded", "false");
-}
-
-function openSettingsAppStatusPanel() {
-  const dropdown = document.querySelector("#settings-tab .app-status-dropdown");
-  const trigger = dropdown?.querySelector(".app-status-trigger");
-  if (!dropdown || !trigger) return;
-  if (!dropdown.classList.contains("is-open")) {
-    trigger.click();
-  }
-  trigger.scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-
-function initAppChromeTags() {
-  const root = document.querySelector(".app-chrome-tags");
-  if (!root) return;
-  syncAppChromeTags();
-  window.addEventListener("online", syncAppChromeTags);
-  window.addEventListener("offline", syncAppChromeTags);
-
-  root.querySelector("#app-chrome-version")?.addEventListener("click", () => {
-    switchTab(null, "updates-tab");
-  });
-
-  root.querySelector("#app-chrome-connection")?.addEventListener("click", () => {
-    switchTab(null, "settings-tab");
-    window.setTimeout(openSettingsAppStatusPanel, 40);
-  });
 }
 
 function initAppSidebar() {
@@ -2225,15 +2178,346 @@ function initAppSidebar() {
   sidebar.addEventListener("mouseenter", cancelAppMiscMenuClose);
 
   initAppMoreMenu();
+  syncMiscTabUi();
   if (MISC_TAB_ENABLED) initAppMiscMenu();
+}
+
+function syncMiscTabUi() {
+  const misc = document.getElementById("app-sidebar-misc");
+  const navMisc = document.getElementById("nav-misc-dropdown");
+  if (misc) misc.hidden = !MISC_TAB_ENABLED;
+  if (navMisc) navMisc.hidden = !MISC_TAB_ENABLED;
+}
+
+const sidebarMenuCloseCallbacks = {
+  more: null,
+  misc: null,
+};
+
+function getSidebarBorderMotionMs() {
+  if (document.body.classList.contains("reduce-motion")) return 0;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--button-motion-duration").trim();
+  if (!raw) return 300;
+  if (raw.endsWith("ms")) return Number.parseFloat(raw) || 300;
+  if (raw.endsWith("s")) return (Number.parseFloat(raw) || 0.3) * 1000;
+  return Number.parseFloat(raw) || 300;
+}
+
+function getBorderWidthPx() {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue("--border-width").trim();
+  if (!raw) return 2;
+  if (raw.endsWith("px")) return Number.parseFloat(raw) || 2;
+  return Number.parseFloat(raw) || 2;
+}
+
+function getMoreMenuBorderGapEnd(sidebarRect) {
+  return Math.round(sidebarRect.height + getBorderWidthPx());
+}
+
+function queueSidebarMenuCloseCallback(kind, callback) {
+  if (!callback) return;
+  const previous = sidebarMenuCloseCallbacks[kind];
+  sidebarMenuCloseCallbacks[kind] = previous
+    ? () => {
+        previous();
+        callback();
+      }
+    : callback;
+}
+
+function flushSidebarMenuCloseCallback(kind) {
+  const callback = sidebarMenuCloseCallbacks[kind];
+  sidebarMenuCloseCallbacks[kind] = null;
+  callback?.();
+}
+
+function isAppSidebarMenuActive(kind) {
+  const root = document.getElementById(kind === "more" ? "app-sidebar-more" : "app-sidebar-misc");
+  return Boolean(root?.classList.contains("is-open") || root?.classList.contains("is-closing"));
+}
+
+function clearSidebarMenuBorderGap(sidebar) {
+  if (!sidebar) return;
+  sidebar.style.removeProperty("--sidebar-menu-border-gap-start");
+  sidebar.style.removeProperty("--sidebar-menu-border-gap-end");
+}
+
+function closeSidebarMenuBorderGap(sidebar, gapStart, gapEnd, onComplete) {
+  if (!sidebar) {
+    onComplete?.();
+    return;
+  }
+
+  const borderRestoreMs = getSidebarBorderMotionMs();
+  if (document.body.classList.contains("reduce-motion") || !borderRestoreMs) {
+    clearSidebarMenuBorderGap(sidebar);
+    onComplete?.();
+    return;
+  }
+
+  sidebar.dataset.borderRestoring = "true";
+  const gapCenter = Math.round((gapStart + gapEnd) / 2);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      setSidebarMenuBorderGap(sidebar, gapCenter, gapCenter);
+      window.setTimeout(() => {
+        clearSidebarBorderRestoring(sidebar);
+        clearSidebarMenuBorderGap(sidebar);
+        onComplete?.();
+      }, borderRestoreMs);
+    });
+  });
+}
+
+function clearSidebarBorderRestoring(sidebar) {
+  if (!sidebar) return;
+  delete sidebar.dataset.borderRestoring;
+}
+
+function setSidebarMenuBorderGap(sidebar, gapStart, gapEnd) {
+  if (!sidebar) return;
+  sidebar.style.setProperty("--sidebar-menu-border-gap-start", `${gapStart}px`);
+  sidebar.style.setProperty("--sidebar-menu-border-gap-end", `${gapEnd}px`);
+}
+
+function computeMoreMenuBorderMetrics() {
+  const sidebar = document.querySelector(".app-sidebar");
+  const menu = document.getElementById("sidebar-more-menu");
+  const toggle = document.getElementById("sidebar-more-button");
+  if (!sidebar || !menu || !toggle) return null;
+
+  const sidebarRect = sidebar.getBoundingClientRect();
+  const toggleRect = toggle.getBoundingClientRect();
+  const { viewportHeight, viewportOffsetTop } = getViewportInsets(0);
+  const viewportBottom = viewportOffsetTop + viewportHeight;
+  let menuTop = Math.round(toggleRect.top);
+
+  const contentHeight = menu.scrollHeight;
+  const availableBelowToggle = viewportBottom - menuTop;
+  if (contentHeight > availableBelowToggle) {
+    menuTop = Math.max(viewportOffsetTop, viewportBottom - contentHeight);
+  }
+
+  const gapStart = Math.max(0, Math.round(menuTop - sidebarRect.top));
+  const gapEnd = getMoreMenuBorderGapEnd(sidebarRect);
+  return { menuTop, gapStart, gapEnd };
+}
+
+function computeMiscMenuBorderMetrics() {
+  const sidebar = document.querySelector(".app-sidebar");
+  const menu = document.getElementById("sidebar-misc-menu");
+  const toggle = document.getElementById("sidebar-misc-button");
+  if (!sidebar || !menu || !toggle) return null;
+
+  const sidebarRect = sidebar.getBoundingClientRect();
+  const toggleRect = toggle.getBoundingClientRect();
+  const { padding, viewportHeight, viewportOffsetTop } = getViewportInsets();
+  let viewportMenuTop = Math.round(toggleRect.top);
+
+  const menuHeight = menu.scrollHeight;
+  const maxTop = viewportOffsetTop + viewportHeight - padding - menuHeight;
+  viewportMenuTop = Math.min(viewportMenuTop, Math.max(viewportOffsetTop + padding, maxTop));
+  const maxHeight = Math.max(viewportOffsetTop + viewportHeight - viewportMenuTop - padding, 120);
+
+  const gapStart = Math.max(0, Math.round(viewportMenuTop - sidebarRect.top));
+  const gapEnd = Math.max(gapStart, Math.round(viewportMenuTop - sidebarRect.top + menu.offsetHeight));
+  return { viewportMenuTop, maxHeight, gapStart, gapEnd };
+}
+
+function openSidebarMenuBorderGap(sidebar, gapStart, gapEnd, { onComplete } = {}) {
+  if (!sidebar) {
+    onComplete?.();
+    return;
+  }
+
+  if (document.body.classList.contains("reduce-motion") || !getSidebarBorderMotionMs()) {
+    setSidebarMenuBorderGap(sidebar, gapStart, gapEnd);
+    onComplete?.();
+    return;
+  }
+
+  const gapCenter = Math.round((gapStart + gapEnd) / 2);
+  sidebar.classList.add("sidebar-border-gap-no-transition");
+  setSidebarMenuBorderGap(sidebar, gapCenter, gapCenter);
+  requestAnimationFrame(() => {
+    sidebar.classList.remove("sidebar-border-gap-no-transition");
+    requestAnimationFrame(() => {
+      setSidebarMenuBorderGap(sidebar, gapStart, gapEnd);
+      const borderRestoreMs = getSidebarBorderMotionMs();
+      window.setTimeout(() => onComplete?.(), borderRestoreMs);
+    });
+  });
+}
+
+function beginAppSidebarMenuClose(kind) {
+  const isMore = kind === "more";
+  const root = document.getElementById(isMore ? "app-sidebar-more" : "app-sidebar-misc");
+  const menu = document.getElementById(isMore ? "sidebar-more-menu" : "sidebar-misc-menu");
+  const toggle = document.getElementById(isMore ? "sidebar-more-button" : "sidebar-misc-button");
+  const sidebar = document.querySelector(".app-sidebar");
+  if (!root || !menu || !toggle) return;
+
+  toggle.setAttribute("aria-expanded", "false");
+  root.classList.remove("is-menu-revealed");
+  root.classList.add("is-closing");
+
+  const gapStart = parseFloat(sidebar?.style.getPropertyValue("--sidebar-menu-border-gap-start")) || 0;
+  const gapEnd = parseFloat(sidebar?.style.getPropertyValue("--sidebar-menu-border-gap-end")) || gapStart;
+
+  let finished = false;
+  let borderCloseStarted = false;
+  let closeFallback = 0;
+
+  const startBorderClose = () => {
+    if (borderCloseStarted) return;
+    borderCloseStarted = true;
+    clearTimeout(closeFallback);
+    menu.removeEventListener("transitionend", onMenuEnd);
+    closeSidebarMenuBorderGap(sidebar, gapStart, gapEnd, finish);
+  };
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(closeFallback);
+    menu.removeEventListener("transitionend", onMenuEnd);
+    menu.hidden = true;
+    menu.setAttribute("aria-hidden", "true");
+    root.classList.remove("is-open", "is-closing", "is-menu-revealed");
+    if (isMore) syncMoreMenuBorder();
+    else syncMiscMenuBorder();
+    flushSidebarMenuCloseCallback(kind);
+  };
+
+  const borderRestoreMs = getSidebarBorderMotionMs();
+  if (document.body.classList.contains("reduce-motion") || !borderRestoreMs) {
+    startBorderClose();
+    return;
+  }
+
+  const onMenuEnd = (event) => {
+    if (event.target !== menu || event.propertyName !== "clip-path") return;
+    startBorderClose();
+  };
+
+  menu.addEventListener("transitionend", onMenuEnd);
+  closeFallback = window.setTimeout(() => {
+    if (!borderCloseStarted) startBorderClose();
+  }, borderRestoreMs + 100);
+}
+
+function beginAppMoreMenuOpen() {
+  const more = document.getElementById("app-sidebar-more");
+  const toggle = document.getElementById("sidebar-more-button");
+  const menu = document.getElementById("sidebar-more-menu");
+  const sidebar = document.querySelector(".app-sidebar");
+  if (!more || !toggle || !menu) return;
+
+  more.classList.remove("is-closing", "is-menu-revealed");
+  menu.hidden = false;
+  menu.setAttribute("aria-hidden", "false");
+  toggle.setAttribute("aria-expanded", "true");
+
+  const metrics = computeMoreMenuBorderMetrics();
+  if (!sidebar || !metrics) return;
+
+  sidebar.style.setProperty("--more-menu-top", `${metrics.menuTop}px`);
+  more.classList.add("is-open");
+  openSidebarMenuBorderGap(sidebar, metrics.gapStart, metrics.gapEnd, {
+    onComplete: () => {
+      more.classList.add("is-menu-revealed");
+      syncMoreMenuBorder();
+    },
+  });
+}
+
+function beginAppMiscMenuOpen() {
+  const misc = document.getElementById("app-sidebar-misc");
+  const toggle = document.getElementById("sidebar-misc-button");
+  const menu = document.getElementById("sidebar-misc-menu");
+  const sidebar = document.querySelector(".app-sidebar");
+  if (!misc || !toggle || !menu) return;
+
+  misc.classList.remove("is-closing", "is-menu-revealed");
+  menu.hidden = false;
+  menu.setAttribute("aria-hidden", "false");
+  toggle.setAttribute("aria-expanded", "true");
+
+  const metrics = computeMiscMenuBorderMetrics();
+  if (!sidebar || !metrics) return;
+
+  sidebar.style.setProperty("--misc-menu-top", `${metrics.viewportMenuTop}px`);
+  sidebar.style.setProperty("--misc-menu-max-height", `${metrics.maxHeight}px`);
+  misc.classList.add("is-open");
+  openSidebarMenuBorderGap(sidebar, metrics.gapStart, metrics.gapEnd, {
+    onComplete: () => {
+      misc.classList.add("is-menu-revealed");
+      syncMiscMenuBorder();
+    },
+  });
+}
+
+const DROPDOWN_LIST_MAX_HEIGHT = 250;
+
+function getViewportInsets(padding = 8) {
+  return {
+    padding,
+    viewportHeight: window.visualViewport?.height ?? window.innerHeight,
+    viewportWidth: window.visualViewport?.width ?? window.innerWidth,
+    viewportOffsetTop: window.visualViewport?.offsetTop ?? 0,
+    viewportOffsetLeft: window.visualViewport?.offsetLeft ?? 0,
+  };
+}
+
+function positionFloatingPanel(panel, trigger, { gap = 6, panelWidth = null, matchTriggerWidth = true, maxPanelHeight = DROPDOWN_LIST_MAX_HEIGHT } = {}) {
+  if (!panel || !trigger || !trigger.isConnected) return;
+
+  const { padding, viewportHeight, viewportWidth, viewportOffsetTop, viewportOffsetLeft } = getViewportInsets();
+  const rect = trigger.getBoundingClientRect();
+  const resolvedWidth = panelWidth ?? (matchTriggerWidth ? Math.max(rect.width, 0) : panel.offsetWidth || rect.width);
+
+  panel.style.width = `${resolvedWidth}px`;
+  panel.style.maxHeight = "";
+
+  let left = rect.left;
+  if (left + resolvedWidth > viewportOffsetLeft + viewportWidth - padding) {
+    left = viewportOffsetLeft + viewportWidth - resolvedWidth - padding;
+  }
+  left = Math.max(viewportOffsetLeft + padding, left);
+  panel.style.left = `${left}px`;
+
+  const spaceBelow = viewportOffsetTop + viewportHeight - rect.bottom - gap - padding;
+  const spaceAbove = rect.top - viewportOffsetTop - gap - padding;
+  const naturalHeight = panel.scrollHeight;
+  const heightCap = maxPanelHeight == null ? naturalHeight : Math.min(naturalHeight, maxPanelHeight);
+  const openUp = heightCap > spaceBelow && spaceAbove > spaceBelow;
+  let available = Math.max(openUp ? spaceAbove : spaceBelow, 96);
+  if (maxPanelHeight != null) {
+    available = Math.min(available, maxPanelHeight);
+  }
+
+  panel.style.maxHeight = `${available}px`;
+  panel.classList.toggle("pref-dropdown-list-opens-up", openUp);
+
+  const panelHeight = Math.min(panel.scrollHeight, available);
+  let top = openUp ? rect.top - panelHeight - gap : rect.bottom + gap;
+  const minTop = viewportOffsetTop + padding;
+  const maxTop = viewportOffsetTop + viewportHeight - padding - panelHeight;
+  top = Math.max(minTop, Math.min(top, maxTop));
+
+  panel.style.top = `${top}px`;
 }
 
 function syncMoreMenuBorder() {
   const sidebar = document.querySelector(".app-sidebar");
   const menu = document.getElementById("sidebar-more-menu");
+  const toggle = document.getElementById("sidebar-more-button");
   const more = document.getElementById("app-sidebar-more");
   const misc = document.getElementById("app-sidebar-misc");
   if (!sidebar) return;
+
+  if (sidebar.dataset.borderRestoring === "true") return;
 
   if (misc?.classList.contains("is-open")) {
     syncMiscMenuBorder();
@@ -2246,16 +2530,34 @@ function syncMoreMenuBorder() {
       syncMiscMenuBorder();
       return;
     }
-    sidebar.style.removeProperty("--sidebar-border-cutoff");
-    sidebar.style.removeProperty("--sidebar-border-cutoff-end");
+    sidebar.style.removeProperty("--more-menu-top");
+    clearSidebarMenuBorderGap(sidebar);
     return;
   }
 
-  sidebar.style.removeProperty("--sidebar-border-cutoff-end");
+  if (more?.classList.contains("is-closing") && menu.hidden) return;
 
   const sidebarRect = sidebar.getBoundingClientRect();
-  const menuRect = menu.getBoundingClientRect();
-  sidebar.style.setProperty("--sidebar-border-cutoff", `${Math.max(0, menuRect.top - sidebarRect.top)}px`);
+  const toggleRect = toggle?.getBoundingClientRect();
+  if (!toggleRect) return;
+
+  const { viewportHeight, viewportOffsetTop } = getViewportInsets(0);
+  const viewportBottom = viewportOffsetTop + viewportHeight;
+  let menuTop = Math.round(toggleRect.top);
+
+  if (!menu.hidden) {
+    const contentHeight = menu.scrollHeight;
+    const availableBelowToggle = viewportBottom - menuTop;
+    if (contentHeight > availableBelowToggle) {
+      menuTop = Math.max(viewportOffsetTop, viewportBottom - contentHeight);
+    }
+  }
+
+  sidebar.style.setProperty("--more-menu-top", `${menuTop}px`);
+  const gapStart = Math.max(0, Math.round(menuTop - sidebarRect.top));
+  const gapEnd = getMoreMenuBorderGapEnd(sidebarRect);
+  sidebar.style.setProperty("--sidebar-menu-border-gap-start", `${gapStart}px`);
+  sidebar.style.setProperty("--sidebar-menu-border-gap-end", `${gapEnd}px`);
 }
 
 function syncMiscMenuBorder({ freezeTop = false } = {}) {
@@ -2265,6 +2567,8 @@ function syncMiscMenuBorder({ freezeTop = false } = {}) {
   const misc = document.getElementById("app-sidebar-misc");
   const more = document.getElementById("app-sidebar-more");
   if (!sidebar) return;
+
+  if (sidebar.dataset.borderRestoring === "true") return;
 
   if (more?.classList.contains("is-open")) {
     syncMoreMenuBorder();
@@ -2278,120 +2582,81 @@ function syncMiscMenuBorder({ freezeTop = false } = {}) {
       return;
     }
     sidebar.style.removeProperty("--misc-menu-top");
-    sidebar.style.removeProperty("--sidebar-border-cutoff");
-    sidebar.style.removeProperty("--sidebar-border-cutoff-end");
+    sidebar.style.removeProperty("--misc-menu-max-height");
+    clearSidebarMenuBorderGap(sidebar);
     return;
   }
 
+  if (misc?.classList.contains("is-closing") && menu.hidden) return;
+
   const sidebarRect = sidebar.getBoundingClientRect();
   const toggleRect = toggle?.getBoundingClientRect();
-  const menuRect = menu.getBoundingClientRect();
-  const topOffset = Math.round(toggleRect ? Math.max(0, toggleRect.top - sidebarRect.top) : Math.max(0, menuRect.top - sidebarRect.top));
+  if (!toggleRect) return;
+
+  const { padding, viewportHeight, viewportOffsetTop } = getViewportInsets();
+  let viewportMenuTop = Math.round(toggleRect.top);
   const currentTop = sidebar.style.getPropertyValue("--misc-menu-top");
 
   if (!freezeTop || !currentTop) {
-    sidebar.style.setProperty("--misc-menu-top", `${topOffset}px`);
-    sidebar.style.setProperty("--sidebar-border-cutoff", `${topOffset}px`);
+    sidebar.style.removeProperty("--misc-menu-max-height");
+    if (!menu.hidden) {
+      const menuHeight = menu.scrollHeight;
+      const maxTop = viewportOffsetTop + viewportHeight - padding - menuHeight;
+      viewportMenuTop = Math.min(viewportMenuTop, Math.max(viewportOffsetTop + padding, maxTop));
+      sidebar.style.setProperty(
+        "--misc-menu-max-height",
+        `${Math.max(viewportOffsetTop + viewportHeight - viewportMenuTop - padding, 120)}px`,
+      );
+    }
+    sidebar.style.setProperty("--misc-menu-top", `${viewportMenuTop}px`);
   }
 
-  const topPx = parseFloat(sidebar.style.getPropertyValue("--misc-menu-top")) || topOffset;
-  sidebar.style.setProperty("--sidebar-border-cutoff-end", `${Math.round(topPx + menu.offsetHeight)}px`);
+  const topPx = parseFloat(sidebar.style.getPropertyValue("--misc-menu-top")) || viewportMenuTop;
+  const gapStart = Math.max(0, Math.round(topPx - sidebarRect.top));
+  const gapEnd = Math.max(gapStart, Math.round(topPx - sidebarRect.top + menu.offsetHeight));
+  sidebar.style.setProperty("--sidebar-menu-border-gap-start", `${gapStart}px`);
+  sidebar.style.setProperty("--sidebar-menu-border-gap-end", `${gapEnd}px`);
 }
 
-function closeAppMoreMenuForHandoff() {
+function setAppMoreMenuOpen(open, { onComplete } = {}) {
   const more = document.getElementById("app-sidebar-more");
   const toggle = document.getElementById("sidebar-more-button");
   const menu = document.getElementById("sidebar-more-menu");
-  if (!more || !toggle || !menu) return;
-  if (!more.classList.contains("is-open") && !more.classList.contains("is-closing")) return;
-
-  clearTimeout(setAppMoreMenuOpen.closeTimer);
-  clearTimeout(setAppMoreMenuOpen.closeFallback);
-  toggle.setAttribute("aria-expanded", "false");
-  more.classList.remove("is-open", "is-closing");
-  menu.hidden = true;
-  menu.setAttribute("aria-hidden", "true");
-}
-
-function closeAppMiscMenuForHandoff() {
-  const misc = document.getElementById("app-sidebar-misc");
-  const toggle = document.getElementById("sidebar-misc-button");
-  const menu = document.getElementById("sidebar-misc-menu");
-  if (!misc || !toggle || !menu) return;
-  if (!misc.classList.contains("is-open") && !misc.classList.contains("is-closing")) return;
-
-  clearTimeout(setAppMiscMenuOpen.closeTimer);
-  clearTimeout(setAppMiscMenuOpen.closeFallback);
-  toggle.setAttribute("aria-expanded", "false");
-  misc.classList.remove("is-open", "is-closing");
-  menu.hidden = true;
-  menu.setAttribute("aria-hidden", "true");
-}
-
-function finishAppMoreMenuClose() {
-  const more = document.getElementById("app-sidebar-more");
-  const menu = document.getElementById("sidebar-more-menu");
-  if (!more || !menu || more.classList.contains("is-open")) return;
-
-  more.classList.remove("is-closing");
-  menu.hidden = true;
-  menu.setAttribute("aria-hidden", "true");
-  syncMoreMenuBorder();
-}
-
-function setAppMoreMenuOpen(open) {
-  const more = document.getElementById("app-sidebar-more");
-  const toggle = document.getElementById("sidebar-more-button");
-  const menu = document.getElementById("sidebar-more-menu");
-  const sidebar = document.querySelector(".app-sidebar");
   if (!more || !toggle || !menu) return;
 
   clearTimeout(setAppMoreMenuOpen.closeTimer);
   clearTimeout(setAppMoreMenuOpen.closeFallback);
 
   if (open) {
-    more.classList.remove("is-closing");
-    closeAppMiscMenuForHandoff();
-    menu.hidden = false;
-    menu.setAttribute("aria-hidden", "false");
-    toggle.setAttribute("aria-expanded", "true");
-    requestAnimationFrame(() => {
-      more.classList.add("is-open");
-      requestAnimationFrame(() => {
-        syncMoreMenuBorder();
-        requestAnimationFrame(syncMoreMenuBorder);
+    if (more.classList.contains("is-open")) {
+      onComplete?.();
+      return;
+    }
+
+    if (isAppSidebarMenuActive("misc")) {
+      setAppMiscMenuOpen(false, {
+        onComplete: () => setAppMoreMenuOpen(true, { onComplete }),
       });
-    });
+      return;
+    }
+
+    beginAppMoreMenuOpen();
+    onComplete?.();
     return;
   }
 
-  if (!more.classList.contains("is-open")) return;
-
-  toggle.setAttribute("aria-expanded", "false");
-  more.classList.remove("is-open");
-  more.classList.add("is-closing");
-
-  if (sidebar) {
-    sidebar.style.setProperty("--sidebar-border-cutoff", `${sidebar.getBoundingClientRect().height}px`);
-  }
-
-  if (document.body.classList.contains("reduce-motion")) {
-    finishAppMoreMenuClose();
+  if (more.classList.contains("is-closing")) {
+    queueSidebarMenuCloseCallback("more", onComplete);
     return;
   }
 
-  const onTransitionEnd = (event) => {
-    if (event.target !== menu || event.propertyName !== "clip-path") return;
-    menu.removeEventListener("transitionend", onTransitionEnd);
-    clearTimeout(setAppMoreMenuOpen.closeFallback);
-    finishAppMoreMenuClose();
-  };
+  if (!more.classList.contains("is-open")) {
+    onComplete?.();
+    return;
+  }
 
-  menu.addEventListener("transitionend", onTransitionEnd);
-  setAppMoreMenuOpen.closeFallback = window.setTimeout(() => {
-    menu.removeEventListener("transitionend", onTransitionEnd);
-    finishAppMoreMenuClose();
-  }, 350);
+  if (onComplete) queueSidebarMenuCloseCallback("more", onComplete);
+  beginAppSidebarMenuClose("more");
 }
 
 setAppMoreMenuOpen.closeTimer = 0;
@@ -2421,6 +2686,7 @@ function initAppMoreMenu() {
 
   toggle.addEventListener("click", (event) => {
     event.stopPropagation();
+    if (more.classList.contains("is-closing")) return;
     setAppMoreMenuOpen(!more.classList.contains("is-open"));
   });
 
@@ -2465,72 +2731,45 @@ function initAppMoreMenu() {
   });
 }
 
-function finishAppMiscMenuClose() {
-  const misc = document.getElementById("app-sidebar-misc");
-  const menu = document.getElementById("sidebar-misc-menu");
-  if (!misc || !menu || misc.classList.contains("is-open")) return;
-
-  misc.classList.remove("is-closing");
-  menu.hidden = true;
-  menu.setAttribute("aria-hidden", "true");
-  syncMiscMenuBorder();
-}
-
-function setAppMiscMenuOpen(open) {
+function setAppMiscMenuOpen(open, { onComplete } = {}) {
   const misc = document.getElementById("app-sidebar-misc");
   const toggle = document.getElementById("sidebar-misc-button");
   const menu = document.getElementById("sidebar-misc-menu");
-  const sidebar = document.querySelector(".app-sidebar");
   if (!misc || !toggle || !menu) return;
 
   clearTimeout(setAppMiscMenuOpen.closeTimer);
   clearTimeout(setAppMiscMenuOpen.closeFallback);
 
   if (open) {
-    misc.classList.remove("is-closing");
-    closeAppMoreMenuForHandoff();
-    menu.hidden = false;
-    menu.setAttribute("aria-hidden", "false");
-    toggle.setAttribute("aria-expanded", "true");
-    requestAnimationFrame(() => {
-      misc.classList.add("is-open");
-      requestAnimationFrame(() => {
-        syncMiscMenuBorder();
-        requestAnimationFrame(syncMiscMenuBorder);
+    if (misc.classList.contains("is-open")) {
+      onComplete?.();
+      return;
+    }
+
+    if (isAppSidebarMenuActive("more")) {
+      setAppMoreMenuOpen(false, {
+        onComplete: () => setAppMiscMenuOpen(true, { onComplete }),
       });
-    });
+      return;
+    }
+
+    beginAppMiscMenuOpen();
+    onComplete?.();
     return;
   }
 
-  if (!misc.classList.contains("is-open")) return;
-
-  toggle.setAttribute("aria-expanded", "false");
-  misc.classList.remove("is-open");
-  misc.classList.add("is-closing");
-
-  if (sidebar) {
-    const sidebarHeight = sidebar.getBoundingClientRect().height;
-    sidebar.style.setProperty("--sidebar-border-cutoff", `${sidebarHeight}px`);
-    sidebar.style.setProperty("--sidebar-border-cutoff-end", `${sidebarHeight}px`);
-  }
-
-  if (document.body.classList.contains("reduce-motion")) {
-    finishAppMiscMenuClose();
+  if (misc.classList.contains("is-closing")) {
+    queueSidebarMenuCloseCallback("misc", onComplete);
     return;
   }
 
-  const onTransitionEnd = (event) => {
-    if (event.target !== menu || event.propertyName !== "clip-path") return;
-    menu.removeEventListener("transitionend", onTransitionEnd);
-    clearTimeout(setAppMiscMenuOpen.closeFallback);
-    finishAppMiscMenuClose();
-  };
+  if (!misc.classList.contains("is-open")) {
+    onComplete?.();
+    return;
+  }
 
-  menu.addEventListener("transitionend", onTransitionEnd);
-  setAppMiscMenuOpen.closeFallback = window.setTimeout(() => {
-    menu.removeEventListener("transitionend", onTransitionEnd);
-    finishAppMiscMenuClose();
-  }, 350);
+  if (onComplete) queueSidebarMenuCloseCallback("misc", onComplete);
+  beginAppSidebarMenuClose("misc");
 }
 
 setAppMiscMenuOpen.closeTimer = 0;
@@ -2560,6 +2799,7 @@ function initAppMiscMenu() {
 
   toggle.addEventListener("click", (event) => {
     event.stopPropagation();
+    if (misc.classList.contains("is-closing")) return;
     setAppMiscMenuOpen(!misc.classList.contains("is-open"));
   });
 
@@ -2655,7 +2895,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v135";
+const APP_CACHE_VERSION = "morning-roast-v168";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -2791,7 +3031,7 @@ function resetTrainerSettingsDropdowns(overlayId) {
   initTrainerModeDropdown.close?.();
   initTrainerTimerDropdown.close?.();
   initTrainerAspectDropdown.close?.();
-  initBgPatternDropdown.close?.();
+  initBgBackdropControl.close?.();
   initFontFamilyDropdown.close?.();
 }
 
@@ -7286,6 +7526,7 @@ function updateEDPI() {
     localStorage.setItem("lastEdpiSens", sensVal);
     localStorage.setItem("lastEdpiDpi", dpiVal);
     localStorage.setItem("lastEdpiColor", color);
+    localStorage.setItem("lastEdpiGame", gameVal);
 
     const pEdpi = document.getElementById("last-edpi-calc");
     const pGame = document.getElementById("profile-edpi-game");
@@ -7371,7 +7612,7 @@ function syncAimTrainerForViewport() {
 }
 
 const LINEUP_TAB_ENABLED = true;
-const MISC_TAB_ENABLED = false;
+const MISC_TAB_ENABLED = true;
 
 const miscLoaderState = {
   crosshairConverterPromise: null,
@@ -9262,7 +9503,7 @@ function showLineupGameList() {
   initTrainerModeDropdown.close?.();
   initTrainerTimerDropdown.close?.();
   initTrainerAspectDropdown.close?.();
-  initBgPatternDropdown.close?.();
+  initBgBackdropControl.close?.();
 
   dropdown.classList.add("is-open");
   trigger.setAttribute("aria-expanded", "true");
@@ -9291,7 +9532,7 @@ function showLineupMapList() {
   initTrainerModeDropdown.close?.();
   initTrainerTimerDropdown.close?.();
   initTrainerAspectDropdown.close?.();
-  initBgPatternDropdown.close?.();
+  initBgBackdropControl.close?.();
 
   list.classList.remove("hidden");
   if (list.classList.contains("pref-dropdown-list-portal")) {
@@ -11395,6 +11636,11 @@ window.addEventListener("storage", (e) => {
     toggleProfileSensConvButtons();
     updateGameInfoPanelVisibility();
   }
+  if (e.key === "lastEdpiGame") {
+    const pGame = document.getElementById("profile-edpi-game");
+    if (pGame) pGame.innerText = e.newValue ? getGameDisplayName(e.newValue) : "-";
+    updateGameInfoPanelVisibility();
+  }
   if (e.key === "lastEdpiColor") {
     const pDot = document.getElementById("profile-edpi-status-dot");
     if (pDot) {
@@ -12501,11 +12747,10 @@ function initHotkeys() {
       if (MISC_TAB_ENABLED) switchTab(null, "crosshair-converter-tab");
       e.preventDefault();
     } else if (e.key === "7") {
-      if (LINEUP_TAB_ENABLED) {
-        switchTab(null, "lineup-tab");
-      } else {
-        cycleHotkeyTab(MORE_HOTKEY_TAB_ORDER);
-      }
+      if (LINEUP_TAB_ENABLED) switchTab(null, "lineup-tab");
+      e.preventDefault();
+    } else if (e.key === "8") {
+      cycleHotkeyTab(MORE_HOTKEY_TAB_ORDER);
       e.preventDefault();
     } else if (tabMap[e.key]) {
       switchTab(null, tabMap[e.key]);
@@ -12533,9 +12778,8 @@ function syncKeybindLabels() {
   const key3Row = document.getElementById("keybind-3-row");
   if (key3Row) key3Row.hidden = !MISC_TAB_ENABLED;
 
-  const key7Label = document.getElementById("keybind-7-label");
-  if (!key7Label) return;
-  key7Label.textContent = LINEUP_TAB_ENABLED ? "Open Lineups" : "Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)";
+  const key7Row = document.getElementById("keybind-7-row");
+  if (key7Row) key7Row.hidden = !LINEUP_TAB_ENABLED;
 }
 
 function initLogoMask() {
@@ -12606,6 +12850,123 @@ const BG_PATTERN_ICONS = {
   stars: "ri-meteor-line",
   none: "ri-prohibited-line",
 };
+
+const BG_IMAGE_IDS = [
+  "sunset-lake",
+  "synthwave-peaks",
+  "crimson-shards",
+  "prismatic-ridge",
+  "cosmic-burst",
+  "dark-wood",
+  "royal-damask",
+  "charcoal-slate",
+  "neon-flame-stream",
+  "magenta-paper-glow",
+  "aged-parchment",
+  "magenta-fluid-waves",
+  "crimson-wire-mesh",
+  "ember-low-poly",
+  "prismatic-low-poly",
+];
+
+const BG_IMAGE_LEGACY_MAP = {
+  midnight: "sunset-lake",
+  amber: "synthwave-peaks",
+  arctic: "sunset-lake",
+  "wallpaper-1": "sunset-lake",
+  "wallpaper-2": "synthwave-peaks",
+  "wallpaper-3": "sunset-lake",
+  "wallpaper-4": "crimson-shards",
+  "wallpaper-5": "prismatic-ridge",
+  "wallpaper-6": "cosmic-burst",
+  "wallpaper-7": "sunset-lake",
+  "wallpaper-8": "dark-wood",
+  "wallpaper-9": "royal-damask",
+  "magenta-plexus": "sunset-lake",
+};
+
+function normalizeBgImage(stored) {
+  if (BG_IMAGE_LEGACY_MAP[stored]) return BG_IMAGE_LEGACY_MAP[stored];
+  return BG_IMAGE_IDS.includes(stored) ? stored : "none";
+}
+
+const BG_IMAGE_LABELS = {
+  none: "None",
+  "sunset-lake": "Sunset Lake",
+  "synthwave-peaks": "Synthwave Peaks",
+  "crimson-shards": "Crimson Shards",
+  "prismatic-ridge": "Prismatic Ridge",
+  "cosmic-burst": "Cosmic Burst",
+  "dark-wood": "Dark Wood",
+  "royal-damask": "Royal Damask",
+  "charcoal-slate": "Charcoal Slate",
+  "neon-flame-stream": "Neon Flame Stream",
+  "magenta-paper-glow": "Magenta Paper Glow",
+  "aged-parchment": "Aged Parchment",
+  "magenta-fluid-waves": "Magenta Fluid Waves",
+  "crimson-wire-mesh": "Crimson Wire Mesh",
+  "ember-low-poly": "Ember Low Poly",
+  "prismatic-low-poly": "Prismatic Low Poly",
+};
+
+const BG_IMAGE_ICONS = {
+  none: "ri-prohibited-line",
+  "sunset-lake": "ri-landscape-line",
+  "synthwave-peaks": "ri-contrast-2-line",
+  "crimson-shards": "ri-fire-line",
+  "prismatic-ridge": "ri-sparkling-2-line",
+  "cosmic-burst": "ri-planet-line",
+  "dark-wood": "ri-layout-row-line",
+  "royal-damask": "ri-vip-crown-line",
+  "charcoal-slate": "ri-layout-row-line",
+  "neon-flame-stream": "ri-fire-line",
+  "magenta-paper-glow": "ri-artboard-line",
+  "aged-parchment": "ri-file-paper-2-line",
+  "magenta-fluid-waves": "ri-contrast-2-line",
+  "crimson-wire-mesh": "ri-grid-line",
+  "ember-low-poly": "ri-shape-line",
+  "prismatic-low-poly": "ri-shapes-line",
+};
+
+const BG_BACKDROP_PATTERN_ORDER = ["waves", "grid", "dots", "particles", "stars"];
+const BG_BACKDROP_IMAGE_ORDER = [...BG_IMAGE_IDS];
+
+function normalizeBgBackdropMode(stored, pattern, image) {
+  if (stored === "pattern" || stored === "image" || stored === "none") return stored;
+  const normPattern = normalizeBgPattern(pattern);
+  const normImage = normalizeBgImage(image);
+  if (normPattern === "none" && normImage === "none") return "none";
+  if (normImage !== "none") return "image";
+  return "pattern";
+}
+
+function getDefaultBgBackdropValue(mode) {
+  if (mode === "image") {
+    const saved = normalizeBgImage(localStorage.getItem("prefBgImage"));
+    return saved !== "none" ? saved : BG_IMAGE_IDS[0];
+  }
+  if (mode === "pattern") {
+    const saved = normalizeBgPattern(localStorage.getItem("prefBgPattern"));
+    return saved !== "none" ? saved : "waves";
+  }
+  return "none";
+}
+
+function getBgBackdropLabels(mode) {
+  return mode === "image" ? BG_IMAGE_LABELS : BG_PATTERN_LABELS;
+}
+
+function getBgBackdropIcons(mode) {
+  return mode === "image" ? BG_IMAGE_ICONS : BG_PATTERN_ICONS;
+}
+
+function normalizeBgBackdropValue(mode, value) {
+  return mode === "image" ? normalizeBgImage(value) : normalizeBgPattern(value);
+}
+
+function getBgBackdropOptionOrder(mode) {
+  return mode === "image" ? BG_BACKDROP_IMAGE_ORDER : BG_BACKDROP_PATTERN_ORDER;
+}
 
 function randomBgStarSpawn(edge) {
   const chosen = edge || BG_STAR_SPAWN_EDGES[Math.floor(Math.random() * BG_STAR_SPAWN_EDGES.length)];
@@ -13058,61 +13419,107 @@ function applyBgPattern(mode) {
   bgStars.sync();
 }
 
-function syncBgPatternDropdownUi(value) {
-  const normalized = normalizeBgPattern(value);
-  const label = document.getElementById("bg-pattern-label");
-  const icon = document.getElementById("bg-pattern-icon");
-  const list = document.getElementById("bg-pattern-list");
-  if (label) label.textContent = BG_PATTERN_LABELS[normalized] || normalized;
-  if (icon) icon.className = `${BG_PATTERN_ICONS[normalized] || "ri-palette-line"} pref-dropdown-icon`;
-  list?.querySelectorAll(".pref-dropdown-option").forEach((opt) => {
-    opt.classList.toggle("active", opt.getAttribute("data-bg-pattern") === normalized);
-  });
+function applyBgImage(mode) {
+  const normalized = normalizeBgImage(mode);
+  if (normalized === "none") {
+    delete document.documentElement.dataset.bgImage;
+  } else {
+    document.documentElement.dataset.bgImage = normalized;
+  }
+}
+
+function syncGlassThemeFromBackdrop(mode) {
+  const on = mode === "image";
+  document.documentElement.classList.toggle("glass-theme", on);
+  document.body.classList.toggle("glass-theme", on);
+}
+
+function applyBgBackdrop(mode, value) {
+  const normalizedMode = mode === "image" ? "image" : mode === "none" ? "none" : "pattern";
+  if (normalizedMode === "image") {
+    const image = normalizeBgImage(value);
+    const resolved = image === "none" ? BG_IMAGE_IDS[0] : image;
+    applyBgImage(resolved);
+    applyBgPattern("none");
+    localStorage.setItem("prefBgImage", resolved);
+  } else if (normalizedMode === "none") {
+    applyBgPattern("none");
+    applyBgImage("none");
+  } else {
+    const pattern = normalizeBgPattern(value);
+    const resolved = pattern === "none" ? "waves" : pattern;
+    applyBgPattern(resolved);
+    applyBgImage("none");
+    localStorage.setItem("prefBgPattern", resolved);
+  }
+  localStorage.setItem("prefBgBackdropMode", normalizedMode);
+  syncGlassThemeFromBackdrop(normalizedMode);
+}
+
+function renderBgBackdropList(mode, activeValue) {
+  const list = document.getElementById("bg-backdrop-list");
+  if (!list) return;
+
+  const labels = getBgBackdropLabels(mode);
+  const icons = getBgBackdropIcons(mode);
+  const normalizedValue = normalizeBgBackdropValue(mode, activeValue);
+
+  list.innerHTML = getBgBackdropOptionOrder(mode)
+    .map((value) => {
+      const activeClass = value === normalizedValue ? " active" : "";
+      return `<button type="button" class="pref-dropdown-option${activeClass}" data-bg-backdrop-value="${value}" role="option"><i class="${icons[value] || "ri-palette-line"} pref-dropdown-option-icon" aria-hidden="true"></i><span>${labels[value] || value}</span></button>`;
+    })
+    .join("");
+}
+
+function syncBgBackdropUi(mode, value) {
+  const normalizedMode = mode === "image" ? "image" : mode === "none" ? "none" : "pattern";
+  const normalizedValue =
+    normalizedMode === "none" ? "none" : normalizeBgBackdropValue(normalizedMode, value);
+  const labels = getBgBackdropLabels(normalizedMode);
+  const icons = getBgBackdropIcons(normalizedMode);
+  const label = document.getElementById("bg-backdrop-label");
+  const icon = document.getElementById("bg-backdrop-icon");
+  const modeSelector = document.getElementById("bg-backdrop-mode-selector");
+  const dropdown = document.getElementById("bg-backdrop-dropdown");
+  const control = document.querySelector(".bg-backdrop-control");
+
+  if (label) {
+    label.textContent =
+      normalizedMode === "none" ? "None" : labels[normalizedValue] || normalizedValue;
+  }
+  if (icon) {
+    icon.className =
+      normalizedMode === "none"
+        ? "ri-prohibited-line pref-dropdown-icon"
+        : `${icons[normalizedValue] || "ri-palette-line"} pref-dropdown-icon`;
+  }
+
+  if (dropdown) {
+    dropdown.hidden = normalizedMode === "none";
+  }
+  control?.classList.toggle("is-backdrop-none", normalizedMode === "none");
+
+  if (modeSelector) {
+    modeSelector.querySelectorAll(".toggle-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.getAttribute("data-bg-backdrop-mode") === normalizedMode);
+    });
+    positionToggleGlider(modeSelector);
+  }
+
+  if (normalizedMode !== "none") {
+    renderBgBackdropList(normalizedMode, normalizedValue);
+  }
 }
 
 const prefDropdownPortalTrackers = new Map();
 
 function positionPrefDropdownPortal(list, trigger) {
-  if (!list || !trigger || !trigger.isConnected) return;
-  const rect = trigger.getBoundingClientRect();
-  list.style.top = `${rect.bottom + 6}px`;
-  list.style.left = `${rect.left}px`;
-  list.style.width = `${Math.max(rect.width, 0)}px`;
+  positionFloatingPanel(list, trigger, { gap: 6, matchTriggerWidth: true });
 }
 
 function positionAccentCustomPanelPortal(panel, trigger) {
-  if (!panel || !trigger || !trigger.isConnected) return;
-
-  const rect = trigger.getBoundingClientRect();
-  const gap = 6;
-  const viewportPadding = 8;
-  const panelWidth = 232;
-  const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
-  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-  const viewportOffsetTop = window.visualViewport?.offsetTop ?? 0;
-  const viewportOffsetLeft = window.visualViewport?.offsetLeft ?? 0;
-
-  panel.style.width = `${panelWidth}px`;
-
-  let left = rect.left;
-  if (left + panelWidth > viewportOffsetLeft + viewportWidth - viewportPadding) {
-    left = viewportOffsetLeft + viewportWidth - panelWidth - viewportPadding;
-  }
-  left = Math.max(viewportOffsetLeft + viewportPadding, left);
-
-  const panelHeight = panel.offsetHeight || panel.getBoundingClientRect().height || 280;
-  const spaceBelow = viewportOffsetTop + viewportHeight - rect.bottom - gap;
-  const spaceAbove = rect.top - viewportOffsetTop - gap;
-  let top = rect.bottom + gap;
-
-  if (panelHeight > spaceBelow && spaceAbove > spaceBelow) {
-    top = rect.top - panelHeight - gap;
-  }
-
-  top = Math.max(viewportOffsetTop + viewportPadding, top);
-
-  panel.style.top = `${top}px`;
-  panel.style.left = `${left}px`;
+  positionFloatingPanel(panel, trigger, { gap: 6, panelWidth: 232, matchTriggerWidth: false, maxPanelHeight: null });
 }
 
 function syncPrefDropdownPortalPosition(list, trigger) {
@@ -13189,9 +13596,11 @@ function unmountPrefDropdownPortal(list) {
     delete list._portalAnchor;
   }
   list.classList.remove("pref-dropdown-list-portal");
+  list.classList.remove("pref-dropdown-list-opens-up");
   list.style.top = "";
   list.style.left = "";
   list.style.width = "";
+  list.style.maxHeight = "";
 }
 
 function mountGameDropdownPortal(list, trigger) {
@@ -13278,7 +13687,7 @@ function initTrainerModeDropdown(savedMode) {
   };
 
   const open = () => {
-    initBgPatternDropdown.close?.();
+    initBgBackdropControl.close?.();
     initTrainerTimerDropdown.close?.();
     initTrainerAspectDropdown.close?.();
     dropdown.classList.add("is-open");
@@ -13320,12 +13729,15 @@ function initTrainerModeDropdown(savedMode) {
   });
 }
 
-function initBgPatternDropdown(savedValue) {
-  const dropdown = document.getElementById("bg-pattern-dropdown");
-  const trigger = document.getElementById("bg-pattern-trigger");
-  const list = document.getElementById("bg-pattern-list");
-  if (!dropdown || !trigger || !list || initBgPatternDropdown._init) return;
-  initBgPatternDropdown._init = true;
+function initBgBackdropControl(savedMode, savedPattern, savedImage) {
+  const dropdown = document.getElementById("bg-backdrop-dropdown");
+  const trigger = document.getElementById("bg-backdrop-trigger");
+  const list = document.getElementById("bg-backdrop-list");
+  const modeSelector = document.getElementById("bg-backdrop-mode-selector");
+  if (!dropdown || !trigger || !list || !modeSelector || initBgBackdropControl._init) return;
+  initBgBackdropControl._init = true;
+
+  let currentMode = normalizeBgBackdropMode(savedMode, savedPattern, savedImage);
 
   const close = () => {
     dropdown.classList.remove("is-open");
@@ -13343,8 +13755,15 @@ function initBgPatternDropdown(savedValue) {
     mountPrefDropdownPortal(list, trigger);
   };
 
-  initBgPatternDropdown.close = close;
-  syncBgPatternDropdownUi(savedValue);
+  initBgBackdropControl.close = close;
+  syncBgBackdropUi(
+    currentMode,
+    currentMode === "image"
+      ? savedImage
+      : currentMode === "pattern"
+        ? savedPattern
+        : "none",
+  );
 
   trigger.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -13352,12 +13771,24 @@ function initBgPatternDropdown(savedValue) {
     else open();
   });
 
-  list.querySelectorAll(".pref-dropdown-option").forEach((opt) => {
-    opt.addEventListener("click", () => {
-      const value = normalizeBgPattern(opt.getAttribute("data-bg-pattern"));
-      applyBgPattern(value);
-      localStorage.setItem("prefBgPattern", value);
-      syncBgPatternDropdownUi(value);
+  list.addEventListener("click", (e) => {
+    const opt = e.target.closest(".pref-dropdown-option");
+    if (!opt || !list.contains(opt)) return;
+    const value = opt.getAttribute("data-bg-backdrop-value");
+    applyBgBackdrop(currentMode, value);
+    syncBgBackdropUi(currentMode, value);
+    close();
+  });
+
+  modeSelector.querySelectorAll(".toggle-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const rawMode = btn.getAttribute("data-bg-backdrop-mode");
+      const mode = rawMode === "image" ? "image" : rawMode === "none" ? "none" : "pattern";
+      currentMode = mode;
+      localStorage.setItem("prefBgBackdropMode", mode);
+      const value = getDefaultBgBackdropValue(mode);
+      applyBgBackdrop(mode, value);
+      syncBgBackdropUi(mode, value);
       close();
     });
   });
@@ -13393,7 +13824,7 @@ function initFontFamilyDropdown(savedValue) {
   const open = () => {
     preloadFontPickerFamilies();
     initTrainerModeDropdown.close?.();
-    initBgPatternDropdown.close?.();
+    initBgBackdropControl.close?.();
     dropdown.classList.add("is-open");
     trigger.setAttribute("aria-expanded", "true");
     list.classList.remove("hidden");
@@ -13579,7 +14010,7 @@ function initThemeSettingsMenu() {
 
   const close = () => {
     overlay.classList.remove("active");
-    initBgPatternDropdown.close?.();
+    initBgBackdropControl.close?.();
     initFontFamilyDropdown.close?.();
     resetSettingsModalSearch("theme-settings-overlay");
     resetTrainerSettingsDropdowns("theme-settings-overlay");
@@ -13689,6 +14120,7 @@ function initPreferences() {
     if (typeof renderTargetSpreadPreviewCanvas === "function") {
       renderTargetSpreadPreviewCanvas(spreadPreviewAnim.scale);
     }
+    requestAnimationFrame(() => updateAllToggleGliders());
   };
   const applyContrast = (on) => {
     root.classList.toggle("high-contrast", on);
@@ -13708,6 +14140,12 @@ function initPreferences() {
   const savedConfirmReset = localStorage.getItem("prefConfirmReset") !== "false";
   const savedDistance360Unit = getDistance360Unit();
   const savedBgPattern = normalizeBgPattern(localStorage.getItem("prefBgPattern"));
+  const savedBgImage = normalizeBgImage(localStorage.getItem("prefBgImage"));
+  const savedBgBackdropMode = normalizeBgBackdropMode(
+    localStorage.getItem("prefBgBackdropMode"),
+    savedBgPattern,
+    savedBgImage,
+  );
   const savedFontFamily = normalizeFontFamily(localStorage.getItem("prefFontFamily"));
 
   if (savedAccent) applyAccent(savedAccent, { instant: true });
@@ -13715,8 +14153,15 @@ function initPreferences() {
   applyFontFamily(savedFontFamily);
   applyContrast(savedContrast);
   applyMotion(savedMotion);
-  applyBgPattern(savedBgPattern);
-  initBgPatternDropdown(savedBgPattern);
+  applyBgBackdrop(
+    savedBgBackdropMode,
+    savedBgBackdropMode === "image"
+      ? savedBgImage
+      : savedBgBackdropMode === "pattern"
+        ? savedBgPattern
+        : "none",
+  );
+  initBgBackdropControl(savedBgBackdropMode, savedBgPattern, savedBgImage);
   initFontFamilyDropdown(savedFontFamily);
   bgParticles.init();
   setUiRefreshMode(savedRefresh);
@@ -13759,7 +14204,7 @@ function initPreferences() {
     }
 
     if (open) {
-      initBgPatternDropdown.close?.();
+      initBgBackdropControl.close?.();
       initFontFamilyDropdown.close?.();
       initTrainerModeDropdown.close?.();
       accentCustomPanel.classList.remove("hidden");
@@ -14025,13 +14470,33 @@ function initPreferences() {
     }
   });
 
+  const matchesToggleSavedValue = (val, saved) => {
+    if (saved == null) return false;
+    const valNum = parseFloat(val);
+    const savedNum = parseFloat(saved);
+    if (Number.isFinite(valNum) && Number.isFinite(savedNum)) {
+      return Math.abs(valNum - savedNum) < 0.001;
+    }
+    return val === saved;
+  };
+
+  const syncUiSizeSelectors = (value) => {
+    document.querySelectorAll(".ui-size-selector").forEach((sel) => {
+      const btns = sel.querySelectorAll(".toggle-btn");
+      btns.forEach((btn) => {
+        btn.classList.toggle("active", matchesToggleSavedValue(btn.getAttribute("data-fontsize"), value));
+      });
+      positionToggleGlider(sel);
+    });
+  };
+
   const wireToggle = (selectorId, attr, onChange, savedValue) => {
     const sel = document.getElementById(selectorId);
     if (!sel) return;
     const btns = sel.querySelectorAll(".toggle-btn");
     btns.forEach((btn) => {
       const val = btn.getAttribute(attr);
-      if (savedValue != null && val === savedValue) {
+      if (matchesToggleSavedValue(val, savedValue)) {
         btns.forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
       }
@@ -14045,6 +14510,20 @@ function initPreferences() {
     positionToggleGlider(sel);
   };
 
+  const initUiSizeSelectors = (savedValue) => {
+    document.querySelectorAll(".ui-size-selector").forEach((sel) => {
+      sel.querySelectorAll(".toggle-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const value = btn.getAttribute("data-fontsize");
+          applyFontSize(value);
+          localStorage.setItem("prefFontSize", value);
+          syncUiSizeSelectors(value);
+        });
+      });
+    });
+    syncUiSizeSelectors(savedValue || "1");
+  };
+
   wireToggle(
     "confirm-reset-selector",
     "data-confirm-reset",
@@ -14054,15 +14533,7 @@ function initPreferences() {
     savedConfirmReset ? "true" : "false",
   );
 
-  wireToggle(
-    "fontsize-selector",
-    "data-fontsize",
-    (v) => {
-      applyFontSize(v);
-      localStorage.setItem("prefFontSize", v);
-    },
-    savedFont,
-  );
+  initUiSizeSelectors(savedFont);
   wireToggle(
     "contrast-selector",
     "data-contrast",
@@ -14108,6 +14579,11 @@ function initPreferences() {
 const changelogUi = {
   calendarView: { year: new Date().getFullYear(), month: new Date().getMonth() },
 };
+
+function resetChangelogCalendarToToday() {
+  const now = new Date();
+  changelogUi.calendarView = { year: now.getFullYear(), month: now.getMonth() };
+}
 
 function getChangelogReleaseDates(panel) {
   const releaseDates = new Map();
@@ -14158,7 +14634,7 @@ function renderChangelogCalendarGrid(releaseDates, selected) {
 
 function getChangelogInitialReleaseKey(releaseDates) {
   for (const [date, label] of releaseDates) {
-    if (label.toLowerCase() === "initial release") return date;
+    if (label.toLowerCase() === "the date we first met") return date;
   }
   return [...releaseDates.keys()].sort()[0] || null;
 }
@@ -14203,6 +14679,7 @@ function initChangelogDateFilter() {
   };
 
   const openCalendar = () => {
+    if (selected === "all") resetChangelogCalendarToToday();
     picker.classList.add("is-open");
     trigger.setAttribute("aria-expanded", "true");
     calendar.classList.remove("hidden");
@@ -14232,6 +14709,7 @@ function initChangelogDateFilter() {
 
   allBtn.addEventListener("click", (e) => {
     e.stopPropagation();
+    resetChangelogCalendarToToday();
     setSelection("all");
   });
 
@@ -14283,9 +14761,9 @@ function initChangelogDateFilter() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initAppLoadingScreen();
-  initAppChromeTags();
   initAppSidebar();
   initMobileNavMoreMenu();
+  syncMiscTabUi();
   if (MISC_TAB_ENABLED) initMobileNavMiscMenu();
   if (LINEUP_TAB_ENABLED) initLineupTab();
   if (MISC_TAB_ENABLED) {
@@ -14803,8 +15281,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const savedEdpiDpi = localStorage.getItem("lastEdpiDpi");
   const savedEdpiColor = localStorage.getItem("lastEdpiColor");
   const savedEdpiCm = localStorage.getItem("lastEdpiCm");
+  const savedEdpiGame = localStorage.getItem("lastEdpiGame");
 
-  localStorage.removeItem("lastEdpiGame");
   localStorage.removeItem(LINEUP_GAME_STORAGE_KEY);
 
   const pFrom = document.getElementById("profile-from-game");
@@ -14814,6 +15292,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const pFromDpi = document.getElementById("profile-from-dpi");
   const pToDpi = document.getElementById("profile-to-dpi");
   const pEdpi = document.getElementById("last-edpi-calc");
+  const pEdpiGame = document.getElementById("profile-edpi-game");
   const pEdpiSens = document.getElementById("profile-edpi-sens");
   const pEdpiDpi = document.getElementById("profile-edpi-dpi");
   const pEdpiCm = document.getElementById("profile-edpi-cm");
@@ -14828,6 +15307,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (savedFromDpi && pFromDpi) pFromDpi.innerText = savedFromDpi;
   if (savedToDpi && pToDpi) pToDpi.innerText = savedToDpi;
   if (savedEdpi && pEdpi) pEdpi.innerText = savedEdpi;
+  if (savedEdpiGame && pEdpiGame) pEdpiGame.innerText = getGameDisplayName(savedEdpiGame);
+  else if (pEdpiGame) pEdpiGame.innerText = "-";
   if (savedEdpiSens && pEdpiSens) pEdpiSens.innerText = savedEdpiSens;
   if (savedEdpiDpi && pEdpiDpi) pEdpiDpi.innerText = savedEdpiDpi;
   if (savedEdpiCm && pEdpiCm) pEdpiCm.textContent = formatDistance360ShortFromCm(savedEdpiCm);

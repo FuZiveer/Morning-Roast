@@ -22,7 +22,55 @@
             root.style.setProperty("--accent-on-color", lightness > 62 ? "hsl(0, 0%, 5%)" : "hsl(0, 0%, 100%)");
           }
           var pattern = localStorage.getItem("prefBgPattern") || "waves";
-          if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "particles" || pattern === "stars") {
+          var bgImage = localStorage.getItem("prefBgImage") || "none";
+          var bgImageIds = [
+            "sunset-lake",
+            "synthwave-peaks",
+            "crimson-shards",
+            "prismatic-ridge",
+            "cosmic-burst",
+            "dark-wood",
+            "royal-damask",
+            "charcoal-slate",
+            "neon-flame-stream",
+            "magenta-paper-glow",
+            "aged-parchment",
+            "magenta-fluid-waves",
+            "crimson-wire-mesh",
+            "ember-low-poly",
+            "prismatic-low-poly",
+          ];
+          var legacyBgImages = {
+            midnight: "sunset-lake",
+            amber: "synthwave-peaks",
+            arctic: "sunset-lake",
+            "wallpaper-1": "sunset-lake",
+            "wallpaper-2": "synthwave-peaks",
+            "wallpaper-3": "sunset-lake",
+            "wallpaper-4": "crimson-shards",
+            "wallpaper-5": "prismatic-ridge",
+            "wallpaper-6": "cosmic-burst",
+            "wallpaper-7": "sunset-lake",
+            "wallpaper-8": "dark-wood",
+            "wallpaper-9": "royal-damask",
+            "magenta-plexus": "sunset-lake",
+          };
+          if (legacyBgImages[bgImage]) bgImage = legacyBgImages[bgImage];
+          if (bgImageIds.indexOf(bgImage) === -1 && bgImage !== "none") bgImage = "sunset-lake";
+          var backdropMode = localStorage.getItem("prefBgBackdropMode");
+          if (backdropMode !== "pattern" && backdropMode !== "image" && backdropMode !== "none") {
+            if (bgImage !== "none" && bgImageIds.indexOf(bgImage) !== -1) backdropMode = "image";
+            else if (pattern === "none") backdropMode = "none";
+            else backdropMode = "pattern";
+          }
+          if (backdropMode === "image") {
+            root.classList.add("glass-theme");
+            if (bgImageIds.indexOf(bgImage) !== -1) {
+              root.setAttribute("data-bg-image", bgImage);
+            }
+          } else if (backdropMode === "none") {
+            root.setAttribute("data-bg-pattern", "none");
+          } else if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "particles" || pattern === "stars") {
             root.setAttribute("data-bg-pattern", pattern);
           }
           var fontStacks = {
@@ -54,8 +102,9 @@
         root.classList.add("accent-instant");
       })();
     </script>
+    <link rel="icon" href="./favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" href="./assets/logo.png" />
-    <link rel="shortcut icon" href="./assets/logo.png" />
+    <link rel="apple-touch-icon" href="./assets/logo.png" />
     <link rel="manifest" href="manifest.webmanifest" />
     <meta name="theme-color" content="#0d0d0d" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -115,10 +164,6 @@
     </div>
     <div id="bg-stars" class="bg-stars bg-stars--fixed" aria-hidden="true"></div>
     <canvas id="bg-particles-canvas" class="bg-particles-canvas" aria-hidden="true"></canvas>
-    <div class="app-chrome-tags" aria-label="App info">
-      <button type="button" class="app-chrome-tag app-chrome-tag--connection" id="app-chrome-connection" aria-label="Open app status">Online</button>
-      <button type="button" class="app-chrome-tag app-chrome-tag--version" id="app-chrome-version" aria-label="Open patch notes">v0.2.10</button>
-    </div>
     <aside class="app-sidebar" aria-label="Main navigation">
       <button type="button" class="app-sidebar-logo" aria-label="Morning Roast home" onclick="cycleTabFromLogo(event)">
         <span class="logo-stack" aria-hidden="true">
@@ -814,7 +859,10 @@
             <div class="icon-container">
               <i class="ri-crosshair-2-line"></i>
             </div>
-            <span>Crosshair converter</span>
+            <div class="title-heading">
+              <span>Crosshair converter</span>
+              <span class="section-beta-badge">Beta</span>
+            </div>
           </div>
           <div class="description">Match your reticle across games. Play with confidence.</div>
         </div>
@@ -1820,7 +1868,8 @@
                 <div class="keybind-row"><kbd>4</kbd><span>Open Settings</span></div>
                 <div class="keybind-row"><kbd>5</kbd><span>Open Stats</span></div>
                 <div class="keybind-row"><kbd>6</kbd><span>Open Aim Trainer</span></div>
-                <div class="keybind-row"><kbd>7</kbd><span id="keybind-7-label">Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)</span></div>
+                <div class="keybind-row" id="keybind-7-row"><kbd>7</kbd><span>Open Lineups</span></div>
+                <div class="keybind-row"><kbd>8</kbd><span id="keybind-8-label">Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)</span></div>
               </div>
 
               <h4 class="settings-section-title keybinds-section-title"><i class="ri-flashlight-line" aria-hidden="true"></i> Actions</h4>
@@ -1860,7 +1909,7 @@
                       <i class="ri-arrow-down-s-line aim-progress-date-chevron" aria-hidden="true"></i>
                     </button>
                     <div class="aim-progress-calendar hidden" id="changelog-calendar" role="dialog" aria-labelledby="changelog-date-trigger">
-                      <button type="button" class="changelog-calendar-action" id="changelog-calendar-initial" aria-pressed="false">Initial release</button>
+                      <button type="button" class="changelog-calendar-action" id="changelog-calendar-initial" aria-pressed="false">The date we first met</button>
                       <button type="button" class="changelog-calendar-action active" id="changelog-calendar-all" aria-pressed="true">All dates</button>
                       <div class="aim-progress-calendar-header">
                         <button type="button" class="aim-progress-cal-nav" id="changelog-cal-prev" aria-label="Previous month">&lsaquo;</button>
@@ -2230,9 +2279,9 @@
                 </div>
               </article>
 
-              <article class="changelog-date-group" data-changelog-date="2026-01-01">
+              <article class="changelog-date-group" data-changelog-date="2026-06-30">
                 <header class="changelog-header">
-                  <time class="changelog-date" datetime="2026-01-01">Initial release</time>
+                  <time class="changelog-date" datetime="2026-06-30">The date we first met</time>
                 </header>
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
@@ -2278,26 +2327,6 @@
               <div class="policy-item item-blue">
                 <h3>FuZiveer</h3>
                 <p>Hello everyone, I hope you’re all having a fantastic day. I’m incredibly excited to share the sensitivity converter website I’ve been building. My goal was to create a tool that makes it easier for everyone to find their perfect settings, maintain consistency, and ultimately level up their gameplay. I truly hope it becomes a valuable resource for you on your journey to improvement. Thank you so much for all the support—it means the world to me. Much love to you all!</p>
-              </div>
-            </fieldset>
-          </div>
-
-          <div class="box-holder">
-            <fieldset class="fieldset-style">
-              <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(59, 54%, 82%)">Looking...</legend>
-
-              <div class="policy-item item-mint">
-                <h3>Front-end developer</h3>
-                <p>
-                  Looking for some front-end designers. 'Direct message', "FuZiveer" on discord or join server: <button class="in-text-button" onclick="document.getElementById('discord-button').click()">Discord <i class="ri-external-link-line"></i></button>
-                </p>
-              </div>
-
-              <div class="policy-item item-peach">
-                <h3>Back-end developer</h3>
-                <p>
-                  Looking for some back-end coders. 'Direct message', "FuZiveer" on discord or join server: <button class="in-text-button" onclick="document.getElementById('discord-button').click()">Discord <i class="ri-external-link-line"></i></button>
-                </p>
               </div>
             </fieldset>
           </div>
@@ -2860,28 +2889,29 @@
                         </div>
                       </div>
 
+                      <div class="settings-row-divider" aria-hidden="true"></div>
+
                       <div class="setting-block">
                         <div class="setting-text">
-                          <span>Background Pattern</span>
-                          <p>Choose a subtle backdrop texture for the app.</p>
+                          <span>Background</span>
+                          <p>Choose a pattern, wallpaper image with glass panels, or no backdrop.</p>
                         </div>
-                        <div class="control-group">
-                          <div class="pref-dropdown" id="bg-pattern-dropdown">
-                            <button type="button" class="pref-dropdown-trigger" id="bg-pattern-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="bg-pattern-list">
+                        <div class="control-group bg-backdrop-control">
+                          <div class="trainer-toggle-selector pref-toggle" id="bg-backdrop-mode-selector">
+                            <div class="glider"></div>
+                            <button type="button" class="toggle-btn" data-bg-backdrop-mode="none">NONE</button>
+                            <button type="button" class="toggle-btn active" data-bg-backdrop-mode="pattern">PATTERN</button>
+                            <button type="button" class="toggle-btn" data-bg-backdrop-mode="image">IMAGE</button>
+                          </div>
+                          <div class="pref-dropdown" id="bg-backdrop-dropdown">
+                            <button type="button" class="pref-dropdown-trigger" id="bg-backdrop-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="bg-backdrop-list">
                               <span class="pref-dropdown-value">
-                                <i class="ri-pulse-line pref-dropdown-icon" id="bg-pattern-icon" aria-hidden="true"></i>
-                                <span id="bg-pattern-label">Waves</span>
+                                <i class="ri-pulse-line pref-dropdown-icon" id="bg-backdrop-icon" aria-hidden="true"></i>
+                                <span id="bg-backdrop-label">Waves</span>
                               </span>
                               <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
                             </button>
-                            <div class="pref-dropdown-list hidden" id="bg-pattern-list" role="listbox" aria-labelledby="bg-pattern-trigger">
-                              <button type="button" class="pref-dropdown-option active" data-bg-pattern="waves" role="option"><i class="ri-pulse-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Waves</span></button>
-                              <button type="button" class="pref-dropdown-option" data-bg-pattern="grid" role="option"><i class="ri-layout-grid-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Grid</span></button>
-                              <button type="button" class="pref-dropdown-option" data-bg-pattern="dots" role="option"><i class="ri-more-2-fill pref-dropdown-option-icon" aria-hidden="true"></i><span>Dots</span></button>
-                              <button type="button" class="pref-dropdown-option" data-bg-pattern="particles" role="option"><i class="ri-sparkling-2-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Particles</span></button>
-                              <button type="button" class="pref-dropdown-option" data-bg-pattern="stars" role="option"><i class="ri-meteor-line pref-dropdown-option-icon" aria-hidden="true"></i><span>Stars</span></button>
-                              <button type="button" class="pref-dropdown-option" data-bg-pattern="none" role="option"><i class="ri-prohibited-line pref-dropdown-option-icon" aria-hidden="true"></i><span>None</span></button>
-                            </div>
+                            <div class="pref-dropdown-list hidden" id="bg-backdrop-list" role="listbox" aria-labelledby="bg-backdrop-trigger"></div>
                           </div>
                         </div>
                       </div>
@@ -2955,15 +2985,15 @@
                     <div class="toggles-row">
                       <div class="setting-block">
                         <div class="setting-text">
-                          <span>Text Size</span>
-                          <p>Scale the interface text for readability.</p>
+                          <span>UI Size</span>
+                          <p>Scale the interface for readability.</p>
                         </div>
                         <div class="control-group">
-                          <div class="trainer-toggle-selector pref-toggle" id="fontsize-selector">
+                          <div class="trainer-toggle-selector pref-toggle ui-size-selector" id="fontsize-selector">
                             <div class="glider"></div>
-                            <button class="toggle-btn" data-fontsize="0.9">SMALL</button>
-                            <button class="toggle-btn active" data-fontsize="1">NORMAL</button>
-                            <button class="toggle-btn" data-fontsize="1.12">LARGE</button>
+                            <button type="button" class="toggle-btn" data-fontsize="0.9">SMALL</button>
+                            <button type="button" class="toggle-btn active" data-fontsize="1">NORMAL</button>
+                            <button type="button" class="toggle-btn" data-fontsize="1.12">LARGE</button>
                           </div>
                         </div>
                       </div>

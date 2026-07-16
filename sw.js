@@ -1,5 +1,30 @@
-const CACHE = "morning-roast-v135"; // Keep in sync with APP_CACHE_VERSION in script.js
-const ASSETS = ["./index.html", "./style.css", "./games.js", "./tools/color-names.js", "./tools/site-assistant.js", "./script.js", "./assets/logo.png", "./manifest.webmanifest"];
+const CACHE = "morning-roast-v168"; // Keep in sync with APP_CACHE_VERSION in script.js
+const ASSETS = [
+  "./index.html",
+  "./style.css",
+  "./games.js",
+  "./tools/color-names.js",
+  "./tools/site-assistant.js",
+  "./script.js",
+  "./favicon.ico",
+  "./assets/logo.png",
+  "./assets/backgrounds/sunset-lake.jpg",
+  "./assets/backgrounds/synthwave-peaks.jpg",
+  "./assets/backgrounds/crimson-shards.jpg",
+  "./assets/backgrounds/prismatic-ridge.jpg",
+  "./assets/backgrounds/cosmic-burst.jpg",
+  "./assets/backgrounds/dark-wood.jpg",
+  "./assets/backgrounds/royal-damask.jpg",
+  "./assets/backgrounds/charcoal-slate.jpg",
+  "./assets/backgrounds/neon-flame-stream.jpg",
+  "./assets/backgrounds/magenta-paper-glow.jpg",
+  "./assets/backgrounds/aged-parchment.jpg",
+  "./assets/backgrounds/magenta-fluid-waves.jpg",
+  "./assets/backgrounds/crimson-wire-mesh.jpg",
+  "./assets/backgrounds/ember-low-poly.jpg",
+  "./assets/backgrounds/prismatic-low-poly.jpg",
+  "./manifest.webmanifest",
+];
 // PATH ROUTING: add "./404.html" to ASSETS when re-enabling GitHub Pages deep links.
 // tools/crosshair-converter.js + preview images load on demand when Misc tab is enabled.
 

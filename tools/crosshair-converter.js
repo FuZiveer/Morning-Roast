@@ -1,30 +1,123 @@
-/* CS2 ↔ Valorant crosshair converter — runs fully client-side */
+/* CS2 ↔ Valorant crosshair converter — logic aligned with cs2valcrosshair.com */
 (function () {
   const CS2_SHARECODE_PATTERN = /CSGO(-?[\w]{5}){5}$/i;
   const CS2_DICTIONARY = "ABCDEFGHJKLMNOPQRSTUVWXYZabcdefhijkmnopqrstuvwxyz23456789";
   const CS2_DICTIONARY_LEN = BigInt(CS2_DICTIONARY.length);
 
   const VAL_COLOR_PRESETS = ["#FFFFFF", "#00FF00", "#7FFF00", "#DFFF00", "#FFFF00", "#00FFFF", "#FF00FF", "#FF0000"];
+  const VAL_COLOR_BY_INDEX = {
+    0: "#FFFFFF",
+    1: "#00FF00",
+    2: "#7FFF00",
+    3: "#DFFF00",
+    4: "#FFFF00",
+    5: "#00FFFF",
+    6: "#FF00FF",
+    7: "#FF0000",
+  };
 
   const CS2_COLOR_RGB = {
     0: [255, 0, 0],
-    1: [50, 250, 50],
+    1: [0, 255, 0],
     2: [255, 255, 0],
     3: [0, 0, 255],
     4: [0, 255, 255],
-    5: null,
   };
+
+  const CS2_SETTINGS_DEFAULT = {
+    length: 5,
+    red: 0,
+    green: 255,
+    blue: 0,
+    gap: -2,
+    alphaEnabled: true,
+    alpha: 200,
+    outlineEnabled: false,
+    outline: 1,
+    color: 1,
+    thickness: 0.5,
+    centerDotEnabled: false,
+    splitDistance: 7,
+    followRecoil: false,
+    fixedCrosshairGap: 3,
+    innerSplitAlpha: 1,
+    outerSplitAlpha: 0.5,
+    splitSizeRatio: 1,
+    tStyleEnabled: false,
+    deployedWeaponGapEnabled: false,
+    style: 4,
+  };
+
+  const VAL_PRIMARY_DEFAULT = {
+    c: 0,
+    u: "FFFFFF",
+    h: true,
+    o: 0.5,
+    t: 1,
+    d: false,
+    a: 1,
+    z: 2,
+    m: false,
+    inner_lines: {
+      b: true,
+      a: 0.8,
+      l: 6,
+      v: 6,
+      g: false,
+      t: 2,
+      o: 3,
+      m: false,
+      s: 1,
+      f: true,
+      e: 1,
+    },
+    outer_lines: {
+      b: true,
+      a: 0.35,
+      l: 2,
+      v: 2,
+      g: false,
+      t: 2,
+      o: 10,
+      m: true,
+      s: 1,
+      f: true,
+      e: 1,
+    },
+  };
+
+  const CS2_BASELINE_GAP = 5;
+  const CS2_GAP_COLLAPSE = -6;
+  const VAL_TO_CS2_LENGTH = 0.5;
+  const VAL_TO_CS2_THICKNESS = 0.5;
+
+  function cloneProfile(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function createValorantProfile() {
+    return {
+      name: "Crosshair Profile",
+      fade_crosshair_with_firing_error: true,
+      use_advanced_options: false,
+      override_all_primary_crosshairs_with_my_primary_crosshair: false,
+      primary: cloneProfile(VAL_PRIMARY_DEFAULT),
+      ads: cloneProfile(VAL_PRIMARY_DEFAULT),
+      ads_copy_primary: true,
+      sniper: { d: true, t: "FF0000", c: 7, s: 1, o: 0.8 },
+    };
+  }
 
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
   }
 
-  function normalizeCs2ShareCodeInput(code) {
-    return code.trim().replace(/\s+/g, "").replace(/^csgo/i, "CSGO");
+  function round1(value) {
+    return Math.round(value * 10) / 10;
   }
 
-  function dec2bin(dec) {
-    return (dec >>> 0).toString(2).padStart(3, "0");
+  function normalizeCs2ShareCodeInput(code) {
+    return code.trim().replace(/\s+/g, "").replace(/^csgo/i, "CSGO");
   }
 
   function bytesToHex(bytes) {
@@ -41,76 +134,15 @@
     return `#${[r, g, b].map((n) => clamp(Math.round(n), 0, 255).toString(16).padStart(2, "0")).join("")}`;
   }
 
+  function rgbToCustomHex(r, g, b) {
+    return [r, g, b]
+      .map((n) => clamp(Math.round(n), 0, 255).toString(16).padStart(2, "0").toUpperCase())
+      .join("");
+  }
+
   function hexToRgb(hex) {
-    const clean = hex.replace("#", "");
-    if (clean.length < 6) return null;
+    const clean = hex.replace("#", "").slice(0, 6).padEnd(6, "0");
     return [parseInt(clean.slice(0, 2), 16), parseInt(clean.slice(2, 4), 16), parseInt(clean.slice(4, 6), 16)];
-  }
-
-  function nearestValorantColorIndex(hex) {
-    const rgb = hexToRgb(hex);
-    if (!rgb) return 8;
-    let best = 0;
-    let bestDist = Infinity;
-    VAL_COLOR_PRESETS.forEach((preset, idx) => {
-      const prgb = hexToRgb(preset);
-      const dist = (rgb[0] - prgb[0]) ** 2 + (rgb[1] - prgb[1]) ** 2 + (rgb[2] - prgb[2]) ** 2;
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = idx;
-      }
-    });
-    return bestDist < 900 ? best : 8;
-  }
-
-  const AIM_TRAINER_COLORS = ["#00ff00", "#ffffff", "#00e5ff", "#ff00d4", "#ffea00"];
-
-  function nearestAimTrainerColor(hex) {
-    const rgb = hexToRgb(hex);
-    if (!rgb) return AIM_TRAINER_COLORS[0];
-    let best = AIM_TRAINER_COLORS[0];
-    let bestDist = Infinity;
-    AIM_TRAINER_COLORS.forEach((preset) => {
-      const prgb = hexToRgb(preset);
-      const dist = (rgb[0] - prgb[0]) ** 2 + (rgb[1] - prgb[1]) ** 2 + (rgb[2] - prgb[2]) ** 2;
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = preset;
-      }
-    });
-    return best;
-  }
-
-  function previewToAimTrainerCrosshair(preview) {
-    if (!preview) return null;
-
-    if (preview.game === "cs2") {
-      const ch = preview.settings;
-      const hasLines = ch.size > 0;
-      return {
-        lines: hasLines,
-        size: hasLines ? clamp(Math.round(ch.size), 2, 30) : 10,
-        gap: clamp(Math.round(Math.max(0, -ch.gap)), 0, 20),
-        thickness: clamp(Math.max(1, Math.round(ch.thickness)), 1, 10),
-        outlineThickness: clamp(Math.max(1, Math.round(ch.outlineThickness)), 1, 10),
-        color: nearestAimTrainerColor(cs2ColorToHex(ch)),
-        dot: Boolean(ch.dot),
-        outline: Boolean(ch.outline),
-      };
-    }
-
-    const val = preview.settings;
-    const hasLines = val.innerEnabled !== false && (val.innerLength ?? 0) > 0;
-    return {
-      lines: hasLines,
-      size: hasLines ? clamp(Math.round(val.innerLength), 2, 30) : 10,
-      gap: clamp(Math.round(val.innerOffset), 0, 20),
-      thickness: clamp(Math.max(1, Math.round(val.innerThickness)), 1, 10),
-      outlineThickness: clamp(Math.max(1, Math.round(val.outlineThickness)), 1, 10),
-      color: nearestAimTrainerColor(valorantColorHex(val)),
-      dot: Boolean(val.dot),
-      outline: Boolean(val.outlines),
-    };
   }
 
   function uint8ToInt8(number) {
@@ -150,197 +182,172 @@
     return `CSGO-${chars.slice(0, 5)}-${chars.slice(5, 10)}-${chars.slice(10, 15)}-${chars.slice(15, 20)}-${chars.slice(20, 25)}`;
   }
 
-  function decodeCs2ShareCodeV4(bytes) {
+  function decodeCs2ShareCode(code) {
+    const bytes = shareCodeToBytes(code);
+    if (!bytes) return null;
+
     const checksum = sumArray(bytes.slice(1)) % 256;
     if (bytes[0] !== checksum) return null;
 
     return {
       gap: uint8ToInt8(bytes[2]) / 10,
-      outlineThickness: bytes[3] / 2,
-      r: bytes[4],
-      g: bytes[5],
-      b: bytes[6],
+      outline: bytes[3] / 2,
+      red: bytes[4],
+      green: bytes[5],
+      blue: bytes[6],
       alpha: bytes[7],
       splitDistance: bytes[8] & 7,
       followRecoil: ((bytes[8] >> 4) & 8) === 8,
       fixedCrosshairGap: uint8ToInt8(bytes[9]) / 10,
       color: bytes[10] & 7,
-      outline: (bytes[10] & 8) === 8,
+      outlineEnabled: (bytes[10] & 8) === 8,
       innerSplitAlpha: (bytes[10] >> 4) / 10,
       outerSplitAlpha: (bytes[11] & 15) / 10,
       splitSizeRatio: (bytes[11] >> 4) / 10,
       thickness: bytes[12] / 10,
-      dot: ((bytes[13] >> 4) & 1) === 1,
-      deployedWeaponGap: ((bytes[13] >> 4) & 2) === 2,
-      useAlpha: ((bytes[13] >> 4) & 4) === 4,
-      t: ((bytes[13] >> 4) & 8) === 8,
+      centerDotEnabled: ((bytes[13] >> 4) & 1) === 1,
+      deployedWeaponGapEnabled: ((bytes[13] >> 4) & 2) === 2,
+      alphaEnabled: ((bytes[13] >> 4) & 4) === 4,
+      tStyleEnabled: ((bytes[13] >> 4) & 8) === 8,
       style: (bytes[13] & 0xf) >> 1,
-      size: bytes[14] / 10,
+      length: bytes[14] / 10,
     };
-  }
-
-  function decodeCs2ShareCodeLegacy(bytes) {
-    if (bytes.length < 16) return null;
-
-    let byte2 = dec2bin(bytes[2]);
-    let gap;
-    if (byte2.length === 8 && byte2.startsWith("1")) {
-      byte2 = byte2.padStart(32, "1");
-      gap = Math.ceil(Number.parseInt(byte2, 2) / 10);
-    } else {
-      gap = Math.floor(bytes[2] / 10);
-    }
-
-    const byte10 = dec2bin(bytes[10]);
-    const byte13 = dec2bin(bytes[13]).padStart(8, "0");
-    const byte14 = dec2bin(bytes[14]).padStart(8, "0");
-    const byte15 = dec2bin(bytes[15]);
-
-    return {
-      gap: clamp(gap, -12, 12),
-      outlineThickness: clamp(bytes[3] / 2, 0, 3),
-      r: clamp(bytes[4], 0, 255),
-      g: clamp(bytes[5], 0, 255),
-      b: clamp(bytes[6], 0, 255),
-      alpha: clamp(bytes[7], 0, 255),
-      outline: parseInt(byte10.substring(4, 5), 2) === 1,
-      color: clamp(parseInt(byte10.substring(5, 8), 2), 1, 5),
-      thickness: clamp(bytes[12] / 10, 0, 6),
-      dot: parseInt(byte13.substring(3, 4), 2) === 1,
-      t: parseInt(byte13.substring(0, 1), 2) === 1,
-      useAlpha: parseInt(byte13.substring(1, 2), 2) === 1,
-      style: clamp(parseInt(byte13.substring(4, 7), 2), 0, 5),
-      size: clamp(Math.ceil(parseInt(byte15 + byte14, 2) / 10), 0, 100),
-    };
-  }
-
-  function decodeCs2ShareCode(code) {
-    try {
-      const bytes = shareCodeToBytes(code);
-      if (!bytes) return null;
-
-      return decodeCs2ShareCodeV4(bytes) || decodeCs2ShareCodeLegacy(bytes);
-    } catch {
-      return null;
-    }
   }
 
   function encodeCs2ShareCode(crosshair) {
-    const bytes = [0, 1, (crosshair.gap * 10) & 0xff, crosshair.outlineThickness * 2, crosshair.r, crosshair.g, crosshair.b, crosshair.alpha, ((crosshair.splitDistance || 0) & 7) | (Number(crosshair.followRecoil) << 7), ((crosshair.fixedCrosshairGap || 0) * 10) & 0xff, (crosshair.color & 7) | (Number(crosshair.outline) << 3) | (((crosshair.innerSplitAlpha ?? 1) * 10) << 4), ((crosshair.outerSplitAlpha ?? 0.5) * 10) | (((crosshair.splitSizeRatio ?? 1) * 10) << 4), crosshair.thickness * 10, (crosshair.style << 1) | (Number(crosshair.dot) << 4) | (Number(crosshair.deployedWeaponGap) << 5) | (Number(crosshair.useAlpha) << 6) | (Number(crosshair.t) << 7), crosshair.size * 10, 0, 0, 0];
+    const bytes = [
+      0,
+      1,
+      (crosshair.gap * 10) & 0xff,
+      crosshair.outline * 2,
+      crosshair.red,
+      crosshair.green,
+      crosshair.blue,
+      crosshair.alpha,
+      ((crosshair.splitDistance || 0) & 7) | (Number(crosshair.followRecoil) << 7),
+      ((crosshair.fixedCrosshairGap || 0) * 10) & 0xff,
+      (crosshair.color & 7) | (Number(crosshair.outlineEnabled) << 3) | (((crosshair.innerSplitAlpha ?? 1) * 10) << 4),
+      ((crosshair.outerSplitAlpha ?? 0.5) * 10) | (((crosshair.splitSizeRatio ?? 1) * 10) << 4),
+      crosshair.thickness * 10,
+      (crosshair.style << 1) |
+        (Number(crosshair.centerDotEnabled) << 4) |
+        (Number(crosshair.deployedWeaponGapEnabled) << 5) |
+        (Number(crosshair.alphaEnabled) << 6) |
+        (Number(crosshair.tStyleEnabled) << 7),
+      crosshair.length * 10,
+      0,
+      0,
+      0,
+    ];
     bytes[0] = sumArray(bytes) & 0xff;
     return bytesToShareCode(bytes);
   }
 
-  // Matches cs2valcrosshair.com conversion (visibility floor + CS2 baseline gap).
-  const CS2_BASELINE_GAP = 5;
-  const CS2_GAP_COLLAPSE = -6;
-  const VAL_TO_CS2_LENGTH = 0.5;
-  const VAL_TO_CS2_THICKNESS = 0.5;
-
-  function round1(value) {
-    return Math.round(value * 10) / 10;
+  function cs2ColorRgb(ch) {
+    return CS2_COLOR_RGB[ch.color] ?? [ch.red, ch.green, ch.blue];
   }
 
   function cs2ColorToHex(ch) {
-    const preset = CS2_COLOR_RGB[ch.color];
-    if (preset && !ch.r && !ch.g && !ch.b) return rgbToHex(preset[0], preset[1], preset[2]);
-    if (ch.r || ch.g || ch.b) return rgbToHex(ch.r, ch.g, ch.b);
-    return preset ? rgbToHex(preset[0], preset[1], preset[2]) : "#00ff00";
+    const normalized = {
+      color: ch.color,
+      red: ch.red ?? ch.r,
+      green: ch.green ?? ch.g,
+      blue: ch.blue ?? ch.b,
+    };
+    const [r, g, b] = cs2ColorRgb(normalized);
+    return rgbToHex(r, g, b);
+  }
+
+  function applyValorantSection(section, payload) {
+    const pairs = payload.split(";").filter(Boolean);
+    for (let i = 0; i < pairs.length - 1; i += 2) {
+      const key = pairs[i];
+      const raw = pairs[i + 1];
+      if (key.startsWith("0") || key.startsWith("1")) {
+        const lines = key.startsWith("0") ? section.inner_lines : section.outer_lines;
+        const lineKey = key.slice(1);
+        const current = lines[lineKey];
+        if (typeof current === "boolean") lines[lineKey] = Boolean(Number(raw));
+        else if (typeof current === "number") lines[lineKey] = Number(raw);
+        else lines[lineKey] = raw;
+      } else {
+        if (key === "c" && raw !== "8") {
+          const preset = VAL_COLOR_BY_INDEX[Number(raw)] ?? "#FFFFFF";
+          section.u = preset.replace("#", "").slice(0, 6);
+        }
+        const current = section[key];
+        if (typeof current === "boolean") section[key] = Boolean(Number(raw));
+        else if (typeof current === "number") section[key] = Number(raw);
+        else section[key] = raw;
+      }
+    }
   }
 
   function parseValorantCode(code) {
     const trimmed = code.trim();
-    if (!trimmed.includes(";")) return null;
+    if (!trimmed || !/^\d/.test(trimmed)) return null;
 
-    const parts = trimmed.split(";");
-    const pIndex = parts.indexOf("P");
-    if (pIndex === -1) return null;
+    const profile = createValorantProfile();
+    const parts = trimmed.split(/(P|A|S|NAME);/g);
+    const primaryIndex = parts.indexOf("P");
+    if (primaryIndex >= 0) applyValorantSection(profile.primary, parts[primaryIndex + 1] ?? "");
 
-    let end = parts.length;
-    ["A", "S", "NAME"].forEach((token) => {
-      const idx = parts.indexOf(token, pIndex + 1);
-      if (idx !== -1) end = Math.min(end, idx);
-    });
+    const adsIndex = parts.indexOf("A");
+    if (adsIndex >= 0) {
+      profile.use_advanced_options = true;
+      applyValorantSection(profile.ads, parts[adsIndex + 1] ?? "");
+    }
 
-    const settings = {
-      colorIndex: 0,
-      hexColor: "FFFFFF",
-      outlines: true,
-      outlineThickness: 1,
-      outlineOpacity: 0.5,
-      dot: false,
-      dotThickness: 2,
-      dotOpacity: 1,
-      innerEnabled: true,
-      innerLength: 6,
-      innerThickness: 2,
-      innerOffset: 3,
-      innerOpacity: 0.8,
-      outerEnabled: false,
-      firingError: true,
-      movementError: false,
-    };
-
-    for (let i = pIndex + 1; i < end; i += 2) {
-      const key = parts[i];
-      const raw = parts[i + 1];
-      if (raw === undefined) break;
-
-      switch (key) {
-        case "c":
-          settings.colorIndex = clamp(parseInt(raw, 10) || 0, 0, 8);
-          break;
-        case "u":
-          settings.hexColor = raw.replace(/[^0-9a-fA-F]/g, "").slice(0, 8);
-          break;
-        case "h":
-          settings.outlines = raw === "1";
-          break;
-        case "t":
-          settings.outlineThickness = clamp(parseFloat(raw) || 1, 0, 6);
-          break;
-        case "o":
-          settings.outlineOpacity = clamp(parseFloat(raw) || 0.5, 0, 1);
-          break;
-        case "d":
-          settings.dot = raw === "1";
-          break;
-        case "z":
-          settings.dotThickness = clamp(parseFloat(raw) || 2, 0, 6);
-          break;
-        case "a":
-          settings.dotOpacity = clamp(parseFloat(raw) || 1, 0, 1);
-          break;
-        case "0b":
-          settings.innerEnabled = raw === "1";
-          break;
-        case "0l":
-          settings.innerLength = clamp(parseFloat(raw) || 0, 0, 20);
-          break;
-        case "0t":
-          settings.innerThickness = clamp(parseFloat(raw) || 1, 0, 10);
-          break;
-        case "0o":
-          settings.innerOffset = clamp(parseFloat(raw) || 0, 0, 20);
-          break;
-        case "0a":
-          settings.innerOpacity = clamp(parseFloat(raw) || 1, 0, 1);
-          break;
-        case "0f":
-          settings.firingError = raw === "1";
-          break;
-        case "0m":
-          settings.movementError = raw === "1";
-          break;
-        case "1b":
-          settings.outerEnabled = raw === "1";
-          break;
-        default:
-          break;
+    const sniperIndex = parts.indexOf("S");
+    if (sniperIndex >= 0) {
+      profile.use_advanced_options = true;
+      const pairs = (parts[sniperIndex + 1] ?? "").split(";").filter(Boolean);
+      for (let i = 0; i < pairs.length - 1; i += 2) {
+        const key = pairs[i];
+        const raw = pairs[i + 1];
+        const current = profile.sniper[key];
+        if (typeof current === "boolean") profile.sniper[key] = Boolean(Number(raw));
+        else if (typeof current === "number") profile.sniper[key] = Number(raw);
+        else profile.sniper[key] = raw;
       }
     }
 
-    return settings;
+    const nameIndex = parts.indexOf("NAME");
+    if (nameIndex >= 0) profile.name = (parts[nameIndex + 1] ?? "").replace(/^"|"$/g, "");
+
+    return profile;
+  }
+
+  function valorantColorRgb(profile) {
+    const colorIndex = profile.primary.c;
+    if (colorIndex === 8) return hexToRgb(profile.primary.u ?? "FFFFFF");
+    return hexToRgb(VAL_COLOR_BY_INDEX[colorIndex] ?? "#FFFFFF");
+  }
+
+  function valorantProfileToPreviewSettings(profile) {
+    const primary = profile.primary;
+    const inner = primary.inner_lines;
+    const outer = primary.outer_lines;
+    return {
+      colorIndex: primary.c,
+      hexColor: primary.u,
+      outlines: primary.h,
+      outlineThickness: primary.t,
+      outlineOpacity: primary.o,
+      dot: primary.d,
+      dotThickness: primary.z,
+      dotOpacity: primary.a,
+      innerEnabled: inner.b && inner.l > 0,
+      innerLength: inner.l,
+      innerVertical: inner.g ? inner.v : inner.l,
+      lengthNotLinked: inner.g,
+      innerThickness: inner.t,
+      innerOffset: inner.o,
+      innerOpacity: inner.a,
+      outerEnabled: outer.b && outer.l > 0,
+      firingError: inner.f,
+      movementError: inner.m,
+    };
   }
 
   function valorantColorHex(settings) {
@@ -348,117 +355,247 @@
     return VAL_COLOR_PRESETS[settings.colorIndex] || "#FFFFFF";
   }
 
-  function buildValorantCode(settings) {
-    // Match cs2valcrosshair.com export shape (custom color + explicit geometry).
+  function buildValorantCode(profile) {
+    const inner = profile.primary.inner_lines;
     const chunks = ["0", "s;1", "P"];
-    const hex = (settings.hexColor || "FFFFFF").slice(0, 6).toUpperCase();
+    const hex = (profile.primary.u ?? "FFFFFF").slice(0, 6);
     chunks.push("c;8", `u;${hex}FF`);
 
-    if (!settings.outlines) {
-      chunks.push("h;0");
+    if (profile.primary.h) {
+      chunks.push(`t;${profile.primary.t}`);
+      chunks.push(`o;${profile.primary.o}`);
     } else {
-      chunks.push(`t;${settings.outlineThickness}`);
-      chunks.push(`o;${settings.outlineOpacity}`);
+      chunks.push("h;0");
     }
 
     chunks.push("b;1", "m;1");
 
-    if (settings.dot) {
+    if (profile.primary.d) {
       chunks.push("d;1");
-      chunks.push(`z;${settings.dotThickness}`);
-      chunks.push(`a;${settings.dotOpacity ?? 1}`);
+      chunks.push(`z;${profile.primary.z}`);
+      chunks.push(`a;${profile.primary.a}`);
     }
 
-    if (!settings.innerEnabled || settings.innerLength <= 0) {
-      chunks.push("0b;0");
-    } else {
-      if (settings.innerLength !== 6) chunks.push(`0l;${settings.innerLength}`);
-      chunks.push(`0o;${settings.innerOffset}`);
-      chunks.push(`0a;${settings.innerOpacity}`);
-      chunks.push(`0t;${settings.innerThickness}`);
-      chunks.push(`0f;${settings.firingError ? 1 : 0}`);
-      chunks.push(`0m;${settings.movementError ? 1 : 0}`);
-    }
+    const defaults = VAL_PRIMARY_DEFAULT.inner_lines;
+    if (inner.l !== defaults.l) chunks.push(`0l;${inner.l}`);
 
+    const verticalLength = inner.g ? inner.v : inner.l;
+    if (verticalLength !== defaults.v) chunks.push(`0v;${verticalLength}`);
+
+    chunks.push(`0o;${inner.o}`);
+    chunks.push(`0a;${inner.a}`);
+    chunks.push(`0f;${+inner.f}`);
     chunks.push("1b;0");
     chunks.push("S", "c;0", "s;0.9", "o;1");
     return chunks.join(";");
   }
 
-  function cs2ToValorantSettings(ch) {
-    const hex = cs2ColorToHex(ch).replace("#", "").toUpperCase();
-    const alpha = ch.useAlpha ? clamp(ch.alpha / 255, 0, 1) : 1;
-    // CS2 outline flag with thickness 0 is visually off.
-    const outlines = Boolean(ch.outline && ch.outlineThickness > 0);
+  function cs2ToValorantSettings(ch, { applyVisibilityFloor = true } = {}) {
+    const profile = createValorantProfile();
+    const notes = { lostFeatures: [], approximations: [] };
+    const [red, green, blue] = cs2ColorRgb(ch);
 
-    // Visibility floor: length/thickness ×2, minimum 2 (cs2valcrosshair.com).
-    let innerLength = ch.size > 0 ? clamp(Math.max(2, Math.round(ch.size * 2)), 0, 20) : 0;
-    if (ch.t) innerLength = Math.max(innerLength, 0);
+    profile.primary.c = 8;
+    profile.primary.u = rgbToCustomHex(red, green, blue);
 
-    const baselineOffset = Math.max(0, CS2_BASELINE_GAP + ch.gap);
-    let innerOffset;
-    if (ch.gap <= CS2_GAP_COLLAPSE) {
-      innerOffset = 0;
-    } else {
-      innerOffset = clamp(Math.max(1, Math.round(baselineOffset)), 0, 20);
+    const outlines = ch.outlineEnabled && ch.outline > 0;
+    profile.primary.h = outlines;
+    if (outlines) {
+      profile.primary.t = clamp(Math.round(ch.outline), 1, 6);
+      profile.primary.o = 1;
     }
 
-    let innerThickness = ch.thickness < 0.7 ? 1 : clamp(Math.max(2, Math.round(ch.thickness * 2)), 1, 10);
-    if (innerLength > 0 && innerThickness > innerLength) innerThickness = innerLength;
+    profile.primary.d = ch.centerDotEnabled;
+    if (ch.centerDotEnabled) {
+      profile.primary.z = applyVisibilityFloor
+        ? clamp(Math.round(ch.thickness * 2), 2, 6)
+        : clamp(ch.thickness, 0.5, 6);
+      profile.primary.a = round1(ch.alphaEnabled ? ch.alpha / 255 : 1);
+    }
+
+    const lengthScale = 2;
+    const minLength = 2;
+    const minThickness = 2;
+    const thicknessScale = 2;
+    const innerLength =
+      applyVisibilityFloor && ch.length > 0
+        ? clamp(Math.max(minLength, Math.round(ch.length * lengthScale)), 0, 20)
+        : clamp(ch.length, 0, 20);
+    const baselineOffset = Math.max(0, CS2_BASELINE_GAP + ch.gap);
+
+    let innerOffset;
+    if (applyVisibilityFloor) {
+      innerOffset = ch.gap <= CS2_GAP_COLLAPSE ? 0 : clamp(Math.max(1, Math.round(baselineOffset)), 0, 20);
+    } else {
+      innerOffset = clamp(round1(baselineOffset), 0, 20);
+    }
+
+    let innerThickness = applyVisibilityFloor
+      ? ch.thickness < 0.7
+        ? 1
+        : clamp(Math.max(minThickness, Math.round(ch.thickness * thicknessScale)), 1, 10)
+      : clamp(ch.thickness, 0.1, 10);
+    if (applyVisibilityFloor && innerLength > 0 && innerThickness > innerLength) innerThickness = innerLength;
+
+    const innerOpacity = round1(ch.alphaEnabled ? ch.alpha / 255 : 1);
+    const inner = profile.primary.inner_lines;
+    inner.b = innerLength > 0;
+    inner.l = innerLength;
+    inner.v = innerLength;
+    inner.t = innerThickness;
+    inner.o = innerOffset;
+    inner.a = innerOpacity;
 
     const classicStatic = ch.style === 4;
+    inner.f = !classicStatic;
+    inner.m = !classicStatic;
+    profile.primary.outer_lines.b = false;
+
+    if (ch.tStyleEnabled) notes.lostFeatures.push("T-style (no top line) — Valorant has no equivalent.");
+    if (ch.followRecoil) notes.lostFeatures.push("Follow recoil — Valorant does not support recoil-following crosshairs.");
+    if (ch.deployedWeaponGapEnabled) notes.lostFeatures.push("Per-weapon gap — Valorant has no per-weapon gap control.");
+    if (ch.style === 5) notes.approximations.push("Legacy style approximated as dynamic Classic.");
+    if (ch.gap < 0 && innerOffset === 0) {
+      notes.approximations.push(
+        `Negative gap (${ch.gap}) closes CS2's natural ~4px baseline gap — converted Valorant offset clamped to 0 (lines touch center).`,
+      );
+    }
+    if (ch.length % 1 !== 0 || ch.thickness % 1 !== 0 || ch.outline % 1 !== 0 || ch.gap % 1 !== 0) {
+      notes.approximations.push("CS2 sub-pixel sizes rounded to integers (Valorant uses integer pixels).");
+    }
 
     return {
-      colorIndex: 8,
-      hexColor: hex.slice(0, 6),
-      outlines,
-      outlineThickness: outlines ? clamp(Math.round(ch.outlineThickness) || 1, 1, 6) : 1,
-      outlineOpacity: outlines ? 1 : 0.5,
-      dot: Boolean(ch.dot),
-      dotThickness: ch.dot ? clamp(Math.max(2, Math.round(ch.thickness * 2)), 2, 6) : 2,
-      dotOpacity: alpha,
-      // Valorant has no T-style; keep full cross and note the loss.
-      innerEnabled: innerLength > 0,
-      innerLength,
-      innerThickness,
-      innerOffset,
-      innerOpacity: alpha,
-      outerEnabled: false,
-      firingError: !classicStatic,
-      movementError: !classicStatic,
+      profile,
+      code: buildValorantCode(profile),
+      notes,
     };
   }
 
-  function valorantToCs2Settings(val) {
-    const hex = valorantColorHex(val);
-    const rgb = hexToRgb(hex) || [0, 255, 0];
-    // Outline on with opacity 0 is visually off (e.g. TenZ codes).
-    const outlines = Boolean(val.outlines && (val.outlineOpacity ?? 0.5) > 0);
-    const innerEnabled = val.innerEnabled !== false && (val.innerLength ?? 0) > 0;
-    const dynamic = Boolean(val.firingError || val.movementError);
+  function valorantToCs2Settings(profile) {
+    const cs2 = { ...CS2_SETTINGS_DEFAULT };
+    const notes = { lostFeatures: [], approximations: [] };
+    const [red, green, blue] = valorantColorRgb(profile);
+
+    cs2.color = 5;
+    cs2.red = red;
+    cs2.green = green;
+    cs2.blue = blue;
+
+    const inner = profile.primary.inner_lines;
+    cs2.length = inner.b ? clamp(round1(inner.l * VAL_TO_CS2_LENGTH), 0, 10) : 0;
+    cs2.thickness = clamp(round1(inner.t * VAL_TO_CS2_THICKNESS), 0.1, 6);
+    cs2.gap = clamp(round1(inner.o - CS2_BASELINE_GAP), -10, 10);
+    cs2.alphaEnabled = true;
+    cs2.alpha = clamp(Math.round(inner.a * 255), 0, 255);
+
+    const dynamic = inner.f || inner.m;
+    cs2.style = dynamic ? 0 : 4;
+
+    const outlineOpacity = profile.primary.o;
+    cs2.outlineEnabled = profile.primary.h && outlineOpacity > 0;
+    cs2.outline = cs2.outlineEnabled ? clamp(profile.primary.t / 2, 0, 3) : 1;
+    cs2.centerDotEnabled = profile.primary.d;
+    cs2.followRecoil = false;
+    cs2.tStyleEnabled = false;
+    cs2.deployedWeaponGapEnabled = false;
+    cs2.fixedCrosshairGap = cs2.gap;
+
+    const outer = profile.primary.outer_lines;
+    if (outer.b && outer.l > 0) {
+      notes.lostFeatures.push(
+        `Valorant outer lines (length ${outer.l}, offset ${outer.o}) discarded — CS2 has only one line set.`,
+      );
+    }
+    if (profile.use_advanced_options && !profile.ads_copy_primary) {
+      notes.lostFeatures.push("Separate ADS crosshair settings discarded — CS2 uses one crosshair for everything.");
+    }
+    if (profile.use_advanced_options) {
+      notes.lostFeatures.push("Sniper-scope dot settings discarded — CS2 has no per-scope crosshair.");
+    }
+    if (cs2.outlineEnabled && outlineOpacity !== 1) {
+      notes.approximations.push(`Valorant outline opacity (${outlineOpacity}) ignored — CS2 outlines have no separate opacity.`);
+    }
+    if (inner.g) {
+      notes.lostFeatures.push("Asymmetric inner-line lengths (vertical ≠ horizontal) discarded — CS2 lines must be symmetric.");
+    }
 
     return {
-      gap: clamp(round1((val.innerOffset ?? 0) - CS2_BASELINE_GAP), -10, 10),
-      outlineThickness: outlines ? clamp(val.outlineThickness || 1, 0, 3) : 1,
-      r: rgb[0],
-      g: rgb[1],
-      b: rgb[2],
-      alpha: clamp(Math.round((val.innerOpacity ?? 1) * 255), 0, 255),
-      outline: outlines,
-      color: 5,
-      thickness: clamp(round1((val.innerThickness ?? 2) * VAL_TO_CS2_THICKNESS), 0.1, 6),
-      t: false,
-      useAlpha: true,
+      cs2,
+      code: encodeCs2ShareCode(cs2),
+      notes,
+    };
+  }
+
+  function cs2DecodedToPreviewSettings(ch) {
+    return {
+      gap: ch.gap,
+      outlineThickness: ch.outline,
+      r: ch.red,
+      g: ch.green,
+      b: ch.blue,
+      alpha: ch.alpha,
+      outline: ch.outlineEnabled,
+      color: ch.color,
+      thickness: ch.thickness,
+      dot: ch.centerDotEnabled,
+      t: ch.tStyleEnabled,
+      useAlpha: ch.alphaEnabled,
+      style: ch.style,
+      size: ch.length,
+    };
+  }
+
+  function formatConversionNotes(notes) {
+    return [...(notes?.lostFeatures ?? []), ...(notes?.approximations ?? [])];
+  }
+
+  const AIM_TRAINER_COLORS = ["#00ff00", "#ffffff", "#00e5ff", "#ff00d4", "#ffea00"];
+
+  function nearestAimTrainerColor(hex) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return AIM_TRAINER_COLORS[0];
+    let best = AIM_TRAINER_COLORS[0];
+    let bestDist = Infinity;
+    AIM_TRAINER_COLORS.forEach((preset) => {
+      const prgb = hexToRgb(preset);
+      const dist = (rgb[0] - prgb[0]) ** 2 + (rgb[1] - prgb[1]) ** 2 + (rgb[2] - prgb[2]) ** 2;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = preset;
+      }
+    });
+    return best;
+  }
+
+  function previewToAimTrainerCrosshair(preview) {
+    if (!preview) return null;
+
+    if (preview.game === "cs2") {
+      const ch = preview.settings;
+      const hasLines = ch.size > 0;
+      return {
+        lines: hasLines,
+        size: hasLines ? clamp(Math.round(ch.size), 2, 30) : 10,
+        gap: clamp(Math.round(Math.max(0, -ch.gap)), 0, 20),
+        thickness: clamp(Math.max(1, Math.round(ch.thickness)), 1, 10),
+        outlineThickness: clamp(Math.max(1, Math.round(ch.outlineThickness)), 1, 10),
+        color: nearestAimTrainerColor(rgbToHex(ch.r, ch.g, ch.b)),
+        dot: Boolean(ch.dot),
+        outline: Boolean(ch.outline),
+      };
+    }
+
+    const val = preview.settings;
+    const hasLines = val.innerEnabled !== false && (val.innerLength ?? 0) > 0;
+    return {
+      lines: hasLines,
+      size: hasLines ? clamp(Math.round(val.innerLength), 2, 30) : 10,
+      gap: clamp(Math.round(val.innerOffset), 0, 20),
+      thickness: clamp(Math.max(1, Math.round(val.innerThickness)), 1, 10),
+      outlineThickness: clamp(Math.max(1, Math.round(val.outlineThickness)), 1, 10),
+      color: nearestAimTrainerColor(valorantColorHex(val)),
       dot: Boolean(val.dot),
-      style: dynamic ? 0 : 4,
-      size: innerEnabled ? clamp(round1((val.innerLength ?? 0) * VAL_TO_CS2_LENGTH), 0, 10) : 0,
-      splitDistance: 7,
-      followRecoil: false,
-      fixedCrosshairGap: 3,
-      innerSplitAlpha: 1,
-      outerSplitAlpha: 0.5,
-      splitSizeRatio: 1,
-      deployedWeaponGap: false,
+      outline: Boolean(val.outlines),
     };
   }
 
@@ -467,61 +604,65 @@
   }
 
   function isValorantCode(input) {
-    return input.trim().includes(";") && (input.includes("P;") || input.startsWith("0;"));
+    const trimmed = input.trim();
+    return trimmed.includes(";") && (trimmed.includes("P;") || /^0;/.test(trimmed));
   }
 
   function convertCrosshair(input, direction) {
     const trimmed = input.trim().replace(/\s+/g, direction === "cs2-to-val" ? "" : " ");
     if (!trimmed) return { ok: false, error: "Paste a crosshair code to convert." };
 
-    if (direction === "cs2-to-val") {
-      if (!isCs2ShareCode(trimmed) && !isValorantCode(trimmed)) {
-        return { ok: false, error: "That doesn't look like a CS2 share code (CSGO-XXXXX-…)." };
+    try {
+      if (direction === "cs2-to-val") {
+        if (!isCs2ShareCode(trimmed) && !isValorantCode(trimmed)) {
+          return { ok: false, error: "That doesn't look like a CS2 share code (CSGO-XXXXX-…)." };
+        }
+        if (isValorantCode(trimmed) && !isCs2ShareCode(trimmed)) {
+          return { ok: false, error: "Switch to Valorant → CS2 or paste a CSGO share code." };
+        }
+
+        const decoded = decodeCs2ShareCode(trimmed);
+        if (!decoded) return { ok: false, error: "Could not decode that CS2 share code." };
+
+        const conversion = cs2ToValorantSettings(decoded, { applyVisibilityFloor: true });
+        return {
+          ok: true,
+          output: conversion.code,
+          preview: { game: "valorant", settings: valorantProfileToPreviewSettings(conversion.profile) },
+          warnings: formatConversionNotes(conversion.notes),
+        };
       }
-      if (isValorantCode(trimmed) && !isCs2ShareCode(trimmed)) {
-        return { ok: false, error: "Switch to Valorant → CS2 or paste a CSGO share code." };
+
+      if (!isValorantCode(trimmed)) {
+        return { ok: false, error: "That doesn't look like a Valorant crosshair code (0;P;…)." };
       }
-      const decoded = decodeCs2ShareCode(trimmed);
-      if (!decoded) return { ok: false, error: "Could not decode that CS2 share code." };
-      const valSettings = cs2ToValorantSettings(decoded);
-      const warnings = [];
-      if (decoded.t) warnings.push("T-style (no top line) — Valorant has no equivalent.");
-      if (decoded.followRecoil) warnings.push("Follow recoil — Valorant does not support recoil-following crosshairs.");
-      if (decoded.deployedWeaponGap) warnings.push("Per-weapon gap — Valorant has no per-weapon gap control.");
-      if (decoded.gap < 0 && valSettings.innerOffset === 0) {
-        warnings.push(`Negative gap (${decoded.gap}) closes CS2's natural baseline — Valorant offset clamped to 0.`);
+      if (isCs2ShareCode(trimmed)) {
+        return { ok: false, error: "Switch to CS2 → Valorant or paste a Valorant import code." };
       }
+
+      const profile = parseValorantCode(trimmed);
+      if (!profile) return { ok: false, error: "Could not parse that Valorant crosshair code." };
+
+      const conversion = valorantToCs2Settings(profile);
       return {
         ok: true,
-        output: buildValorantCode(valSettings),
-        preview: { game: "valorant", settings: valSettings },
-        warnings,
+        output: conversion.code,
+        preview: { game: "cs2", settings: cs2DecodedToPreviewSettings(conversion.cs2) },
+        warnings: formatConversionNotes(conversion.notes),
       };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : "Could not convert that crosshair code." };
     }
-
-    if (!isValorantCode(trimmed)) {
-      return { ok: false, error: "That doesn't look like a Valorant crosshair code (0;P;…)." };
-    }
-    if (isCs2ShareCode(trimmed)) {
-      return { ok: false, error: "Switch to CS2 → Valorant or paste a Valorant import code." };
-    }
-    const parsed = parseValorantCode(trimmed);
-    if (!parsed) return { ok: false, error: "Could not parse that Valorant crosshair code." };
-    const cs2 = valorantToCs2Settings(parsed);
-    return {
-      ok: true,
-      output: encodeCs2ShareCode(cs2),
-      preview: { game: "cs2", settings: cs2 },
-      warnings: parsed.outerEnabled ? ["Valorant outer lines are ignored — CS2 uses a single cross layer."] : [],
-    };
   }
 
   function drawValorantCrosshair(ctx, cx, cy, settings, scale) {
     const color = valorantColorHex(settings);
     const thickness = Math.max(1, settings.innerThickness * scale);
-    const length = settings.innerLength * scale;
+    const horizontalLength = settings.innerLength * scale;
+    const verticalLength = (settings.lengthNotLinked ? settings.innerVertical : settings.innerLength) * scale;
     const offset = settings.innerOffset * scale;
     const outlineW = settings.outlines ? Math.max(1, settings.outlineThickness * scale) : 0;
+    const outlineAlpha = settings.outlineOpacity ?? 0.5;
     const alpha = settings.innerOpacity ?? 1;
 
     const snap = (v, w) => (w % 2 === 0 ? Math.round(v) : Math.round(v - 0.5) + 0.5);
@@ -530,7 +671,7 @@
 
     const drawArm = (x1, y1, x2, y2) => {
       if (outlineW > 0) {
-        ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+        ctx.strokeStyle = `rgba(0,0,0,${outlineAlpha})`;
         ctx.lineWidth = thickness + outlineW * 2;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -551,11 +692,11 @@
       ctx.stroke();
     };
 
-    if (settings.innerEnabled && length > 0) {
-      drawArm(x, y - offset - length, x, y - offset);
-      drawArm(x, y + offset, x, y + offset + length);
-      drawArm(x - offset - length, y, x - offset, y);
-      drawArm(x + offset, y, x + offset + length, y);
+    if (settings.innerEnabled && (horizontalLength > 0 || verticalLength > 0)) {
+      drawArm(x, y - offset - verticalLength, x, y - offset);
+      drawArm(x, y + offset, x, y + offset + verticalLength);
+      drawArm(x - offset - horizontalLength, y, x - offset, y);
+      drawArm(x + offset, y, x + offset + horizontalLength, y);
     }
 
     if (settings.dot) {
@@ -568,7 +709,7 @@
         const outlineSize = dotSize + outlineW * 2;
         const outlineLeft = Math.round(cx - outlineSize / 2);
         const outlineTop = Math.round(cy - outlineSize / 2);
-        ctx.fillStyle = `rgba(0,0,0,${dotAlpha})`;
+        ctx.fillStyle = `rgba(0,0,0,${outlineAlpha})`;
         ctx.fillRect(outlineLeft, outlineTop, outlineSize, outlineSize);
       }
 
@@ -958,12 +1099,17 @@
       dropdown.classList.remove("is-open");
       trigger.setAttribute("aria-expanded", "false");
       list.classList.add("hidden");
+      if (typeof unmountPrefDropdownPortal === "function") unmountPrefDropdownPortal(list);
     };
 
     const open = () => {
+      if (typeof hideAllGameDropdownLists === "function") hideAllGameDropdownLists();
+      initProfileModeDropdown?.close?.();
+      initProfileTimerDropdown?.close?.();
       dropdown.classList.add("is-open");
       trigger.setAttribute("aria-expanded", "true");
       list.classList.remove("hidden");
+      if (typeof mountPrefDropdownPortal === "function") mountPrefDropdownPortal(list, trigger);
     };
 
     trigger.addEventListener("click", (e) => {
@@ -1077,7 +1223,8 @@
 
   function initCrosshairConverterTab() {
     const section = document.getElementById("crosshair-converter-tab");
-    if (!section) return;
+    if (!section || initCrosshairConverterTab._init) return;
+    initCrosshairConverterTab._init = true;
 
     const input = document.getElementById("crosshair-converter-input");
     const copyBtn = document.getElementById("crosshair-converter-copy");
@@ -1140,7 +1287,7 @@
       const mapped = previewToAimTrainerCrosshair(state.lastPreview);
       if (!mapped || typeof aimTrainer?.applyCrosshair !== "function") return;
       aimTrainer.applyCrosshair(mapped);
-      copyText?.("Crosshair applied to aim trainer.", "Crosshair applied to aim trainer.");
+      window.Toast?.notify?.({ message: "Crosshair applied to aim trainer.", type: "success" });
     });
 
     resetBtn?.addEventListener("click", () => {
