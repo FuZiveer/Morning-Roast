@@ -1,12 +1,12 @@
-const CACHE = "morning-roast-v168"; // Keep in sync with APP_CACHE_VERSION in script.js
+const CACHE = "morning-roast-v172"; // Keep in sync with APP_CACHE_VERSION in script.js
 const ASSETS = [
   "./index.html",
   "./style.css",
-  "./games.js",
+  "./tools/games.js",
   "./tools/color-names.js",
   "./tools/site-assistant.js",
   "./script.js",
-  "./favicon.ico",
+  "./assets/favicon.ico",
   "./assets/logo.png",
   "./assets/backgrounds/sunset-lake.jpg",
   "./assets/backgrounds/synthwave-peaks.jpg",
@@ -103,9 +103,9 @@ self.addEventListener("fetch", (e) => {
 
   if (url.pathname.endsWith("/favicon.ico")) {
     e.respondWith(
-      caches.match("./assets/logo.png").then((cached) => {
+      caches.match("./assets/favicon.ico").then((cached) => {
         if (cached) return cached;
-        return fetch(req).catch(() => Response.error());
+        return caches.match("./assets/logo.png").then((logo) => logo || fetch(req).catch(() => Response.error()));
       }),
     );
     return;

@@ -451,13 +451,7 @@ html[data-bg-pattern="stars"] .bg-stars--fixed {
   top: 50%;
   transform: translate(-50%, -50%);
   --loading-border-sweep: 90deg;
-  background: conic-gradient(
-    from 0deg,
-    var(--accent-color) 0deg,
-    var(--accent-color) var(--loading-border-sweep),
-    hsl(var(--border-subtle)) var(--loading-border-sweep),
-    hsl(var(--border-subtle)) 360deg
-  );
+  background: conic-gradient(from 0deg, var(--accent-color) 0deg, var(--accent-color) var(--loading-border-sweep), hsl(var(--border-subtle)) var(--loading-border-sweep), hsl(var(--border-subtle)) 360deg);
   animation: app-loading-border-spin 1.1s linear infinite;
   transition:
     --loading-border-sweep var(--app-loading-border-fill-duration) var(--app-loading-border-fill-ease),
@@ -1222,15 +1216,7 @@ input[type="number"] {
     right: 0;
     width: var(--border-width);
     height: 100%;
-    background: linear-gradient(
-      to bottom,
-      hsl(var(--border-subtle)) 0,
-      hsl(var(--border-subtle)) calc(var(--sidebar-menu-border-gap-start, 100%) + var(--border-width)),
-      transparent calc(var(--sidebar-menu-border-gap-start, 100%) + var(--border-width) + 0.01px),
-      transparent calc(var(--sidebar-menu-border-gap-end, 100%) - var(--border-width)),
-      hsl(var(--border-subtle)) calc(var(--sidebar-menu-border-gap-end, 100%) - var(--border-width) + 0.01px),
-      hsl(var(--border-subtle)) 100%
-    );
+    background: linear-gradient(to bottom, hsl(var(--border-subtle)) 0, hsl(var(--border-subtle)) calc(var(--sidebar-menu-border-gap-start, 100%) + var(--border-width)), transparent calc(var(--sidebar-menu-border-gap-start, 100%) + var(--border-width) + 0.01px), transparent calc(var(--sidebar-menu-border-gap-end, 100%) - var(--border-width)), hsl(var(--border-subtle)) calc(var(--sidebar-menu-border-gap-end, 100%) - var(--border-width) + 0.01px), hsl(var(--border-subtle)) 100%);
     pointer-events: none;
     z-index: 2;
   }
@@ -7376,9 +7362,7 @@ html.glass-theme {
   --glass-surface-raised: hsl(0 0% 0% / 0.55);
   --glass-surface-strong: hsl(0 0% 0% / 0.68);
   --glass-border: hsl(0 0% 100% / 0.08);
-  --glass-shadow:
-    0 0.75rem 2rem hsl(0 0% 0% / 0.45),
-    inset 0 1px 0 hsl(0 0% 100% / 0.05);
+  --glass-shadow: 0 0.75rem 2rem hsl(0 0% 0% / 0.45), inset 0 1px 0 hsl(0 0% 100% / 0.05);
   --border-subtle: 0 0% 100% / 0.1;
   --overlay-bg: 0 0% 0% / 0.65;
 }
@@ -7387,54 +7371,55 @@ html.glass-theme body.reduce-motion {
   --glass-blur: blur(10px);
 }
 
-html.glass-theme :is(
-  .section .box-container-holder .box-container .box-holder,
-  .result-container,
-  .section .box-container-holder .box-container .box-holder.result-container,
-  .section .box-container-holder .box-container .box-holder .selected-view,
-  .section .box-container-holder .box-container .box-holder .dropdown-list,
-  .section .box-container-holder .box-container .box-holder .game-option,
-  .input-container-inner,
-  .pref-dropdown-trigger,
-  .pref-dropdown-list,
-  .trainer-timer-selector,
-  .trainer-toggle-selector,
-  .trainer-mode-trigger,
-  .trainer-spread-selector,
-  .profile-mode-selector,
-  .profile-timer-selector,
-  .crosshair-converter-zoom-selector,
-  .crosshair-converter-input,
-  #crosshair-converter-direction-trigger,
-  .keybind-row,
-  .changelog-date-group,
-  .aim-progress-date-trigger,
-  .trainer-settings-overlay .setting-block,
-  .scrollToTop,
-  .health-bar-settings-panel,
-  .settings-search-wrap,
-  .lineup-search-wrap,
-  .site-assistant-toggle,
-  .site-assistant-input,
-  .site-assistant-edit-input,
-  .settings-general-option,
-  .trainer-option,
-  .in-text-button,
-  .preset-btn,
-  .swap-button,
-  .finder-reset-icon,
-  .copy-button,
-  .reset-button,
-  .share-button,
-  .use-button,
-  .crosshair-preset-btn,
-  .lineup-difficulty-tag,
-  .lineup-favorites-filter,
-  .nav-bar .button-container .button,
-  .nav-menu-container .button-container .button,
-  .nav-menu-container .nav-more-menu .button,
-  .section .title-description-container .title .icon-container
-) {
+html.glass-theme
+  :is(
+    .section .box-container-holder .box-container .box-holder,
+    .result-container,
+    .section .box-container-holder .box-container .box-holder.result-container,
+    .section .box-container-holder .box-container .box-holder .selected-view,
+    .section .box-container-holder .box-container .box-holder .dropdown-list,
+    .section .box-container-holder .box-container .box-holder .game-option,
+    .input-container-inner,
+    .pref-dropdown-trigger,
+    .pref-dropdown-list,
+    .trainer-timer-selector,
+    .trainer-toggle-selector,
+    .trainer-mode-trigger,
+    .trainer-spread-selector,
+    .profile-mode-selector,
+    .profile-timer-selector,
+    .crosshair-converter-zoom-selector,
+    .crosshair-converter-input,
+    #crosshair-converter-direction-trigger,
+    .keybind-row,
+    .changelog-date-group,
+    .aim-progress-date-trigger,
+    .trainer-settings-overlay .setting-block,
+    .scrollToTop,
+    .health-bar-settings-panel,
+    .settings-search-wrap,
+    .lineup-search-wrap,
+    .site-assistant-toggle,
+    .site-assistant-input,
+    .site-assistant-edit-input,
+    .settings-general-option,
+    .trainer-option,
+    .in-text-button,
+    .preset-btn,
+    .swap-button,
+    .finder-reset-icon,
+    .copy-button,
+    .reset-button,
+    .share-button,
+    .use-button,
+    .crosshair-preset-btn,
+    .lineup-difficulty-tag,
+    .lineup-favorites-filter,
+    .nav-bar .button-container .button,
+    .nav-menu-container .button-container .button,
+    .nav-menu-container .nav-more-menu .button,
+    .section .title-description-container .title .icon-container
+  ) {
   background-color: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -7594,12 +7579,7 @@ html.glass-theme .fieldset-style .policy-item {
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-html.glass-theme :is(
-  .trainer-settings-overlay .modal-content,
-  .lineup-video-overlay .lineup-video-modal,
-  .site-assistant-panel,
-  .site-assistant-header
-) {
+html.glass-theme :is(.trainer-settings-overlay .modal-content, .lineup-video-overlay .lineup-video-modal, .site-assistant-panel, .site-assistant-header) {
   background-color: var(--glass-surface-raised);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -7610,32 +7590,21 @@ html.glass-theme .lineup-video-overlay .lineup-video-modal {
   border-color: var(--glass-border);
 }
 
-html.glass-theme :is(
-  .lineup-video-modal-head,
-  .lineup-video-controls
-) {
+html.glass-theme :is(.lineup-video-modal-head, .lineup-video-controls) {
   background-color: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-color: var(--glass-border);
 }
 
-html.glass-theme :is(
-  .lineup-video-modal-close,
-  .lineup-video-ctrl-btn
-) {
+html.glass-theme :is(.lineup-video-modal-close, .lineup-video-ctrl-btn) {
   background-color: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border-color: var(--glass-border);
 }
 
-html.glass-theme :is(
-  .lineup-video-modal-close:hover,
-  .lineup-video-modal-close:focus-visible,
-  .lineup-video-ctrl-btn:hover,
-  .lineup-video-ctrl-btn:focus-visible
-) {
+html.glass-theme :is(.lineup-video-modal-close:hover, .lineup-video-modal-close:focus-visible, .lineup-video-ctrl-btn:hover, .lineup-video-ctrl-btn:focus-visible) {
   background-color: var(--glass-surface-strong);
 }
 
@@ -7678,30 +7647,18 @@ html.glass-theme .lineup-video-favorite-btn:hover {
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-html.glass-theme :is(
-  .app-sidebar-more-menu:not([hidden]),
-  .app-sidebar-misc-menu:not([hidden])
-) {
+html.glass-theme :is(.app-sidebar-more-menu:not([hidden]), .app-sidebar-misc-menu:not([hidden])) {
   border-color: hsl(var(--border-subtle));
   box-shadow: var(--glass-shadow);
 }
 
-html.glass-theme :is(
-  .nav-bar,
-  .app-sidebar,
-  .app-sidebar-logo,
-  .app-sidebar-more-menu:not([hidden]),
-  .app-sidebar-misc-menu:not([hidden])
-) {
+html.glass-theme :is(.nav-bar, .app-sidebar, .app-sidebar-logo, .app-sidebar-more-menu:not([hidden]), .app-sidebar-misc-menu:not([hidden])) {
   background-color: var(--glass-surface-raised);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-html.glass-theme :is(
-  .nav-bar .logo-container,
-  .nav-bar .button-container .button
-) {
+html.glass-theme :is(.nav-bar .logo-container, .nav-bar .button-container .button) {
   background-color: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -7711,31 +7668,7 @@ html.glass-theme .nav-bar .logo-container:hover {
   background-color: var(--glass-surface-strong);
 }
 
-html.glass-theme :is(
-  .scrollToTop.is-visible:hover,
-  .scrollToTop.is-visible:focus-visible,
-  .site-assistant-toggle:hover,
-  .site-assistant-toggle:focus-visible,
-  .site-assistant.is-open .site-assistant-toggle:hover,
-  .site-assistant.is-open .site-assistant-toggle:focus-visible,
-  .settings-general-option:hover,
-  .settings-general-option:focus-visible,
-  .trainer-option:hover,
-  .in-text-button:hover,
-  .preset-btn:hover,
-  .copy-button:hover,
-  .reset-button:hover,
-  .share-button:hover,
-  .use-button:hover,
-  .crosshair-preset-btn:hover,
-  .lineup-favorites-filter:hover,
-  .game-option:hover,
-  .game-option.hover,
-  .nav-bar .button-container .button:hover,
-  .nav-menu-container .button-container .button:hover,
-  .nav-menu-container .nav-more-menu .button:hover,
-  .finder-reset-icon:hover:not(:disabled)
-) {
+html.glass-theme :is(.scrollToTop.is-visible:hover, .scrollToTop.is-visible:focus-visible, .site-assistant-toggle:hover, .site-assistant-toggle:focus-visible, .site-assistant.is-open .site-assistant-toggle:hover, .site-assistant.is-open .site-assistant-toggle:focus-visible, .settings-general-option:hover, .settings-general-option:focus-visible, .trainer-option:hover, .in-text-button:hover, .preset-btn:hover, .copy-button:hover, .reset-button:hover, .share-button:hover, .use-button:hover, .crosshair-preset-btn:hover, .lineup-favorites-filter:hover, .game-option:hover, .game-option.hover, .nav-bar .button-container .button:hover, .nav-menu-container .button-container .button:hover, .nav-menu-container .nav-more-menu .button:hover, .finder-reset-icon:hover:not(:disabled)) {
   background-color: var(--glass-surface-strong);
 }
 

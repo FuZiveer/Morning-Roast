@@ -102,7 +102,7 @@
         root.classList.add("accent-instant");
       })();
     </script>
-    <link rel="icon" href="./favicon.ico" sizes="any" />
+    <link rel="icon" href="./assets/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" href="./assets/logo.png" />
     <link rel="apple-touch-icon" href="./assets/logo.png" />
     <link rel="manifest" href="manifest.webmanifest" />
@@ -135,7 +135,7 @@
       }
     </script>
 
-    <script defer src="games.js"></script>
+    <script defer src="tools/games.js"></script>
     <script defer src="tools/color-names.js"></script>
     <script defer src="tools/site-assistant.js"></script>
     <script defer src="script.js"></script>
@@ -1909,7 +1909,7 @@
                       <i class="ri-arrow-down-s-line aim-progress-date-chevron" aria-hidden="true"></i>
                     </button>
                     <div class="aim-progress-calendar hidden" id="changelog-calendar" role="dialog" aria-labelledby="changelog-date-trigger">
-                      <button type="button" class="changelog-calendar-action" id="changelog-calendar-initial" aria-pressed="false">The date we first met</button>
+                      <button type="button" class="changelog-calendar-action" id="changelog-calendar-initial" aria-pressed="false">Release date</button>
                       <button type="button" class="changelog-calendar-action active" id="changelog-calendar-all" aria-pressed="true">All dates</button>
                       <div class="aim-progress-calendar-header">
                         <button type="button" class="aim-progress-cal-nav" id="changelog-cal-prev" aria-label="Previous month">&lsaquo;</button>
@@ -1923,10 +1923,55 @@
                 </div>
               </div>
 
-              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-15">
+              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-17">
+                <header class="changelog-header">
+                  <time class="changelog-date" datetime="2026-07-17">July 17, 2026</time>
+                  <span class="changelog-badge">Latest</span>
+                </header>
+                <div class="changelog-versions">
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.11</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Wallpaper backgrounds added (14 full-screen images)</li>
+                          <li>Background setting added (None, Pattern, or Image mode)</li>
+                          <li>Crosshair converter Beta badge added</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Crosshair converter improved (Rewritten to match cs2valcrosshair.com)</li>
+                          <li>Crosshair converter improved (Direction dropdown uses blurred portal menu)</li>
+                          <li>Glass panels improved (Frosted styling when wallpaper mode is active)</li>
+                          <li>Glass panels improved (Sidebar, fieldsets, keybinds, changelog, and calendar)</li>
+                          <li>Sidebar improved (Misc and More menus animate border gap on open)</li>
+                          <li>Fonts improved (Expanded picker with Montserrat, Lato, Nunito, and more)</li>
+                          <li>Patch notes improved (Release date filter replaces Initial release)</li>
+                          <li>Patch notes improved (Calendar resets to current month on All dates)</li>
+                          <li>Project layout improved (games.js and favicon moved into tools/ and assets/)</li>
+                          <li>Top bar cleaned up (Online and version pills removed)</li>
+                          <li>Credit page cleaned up (Looking... recruiting section removed)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>Crosshair converter fixed (Use button showed duplicate notifications)</li>
+                          <li>Favicon fixed (Browser 404 on /favicon.ico)</li>
+                          <li>Site helper fixed (Icon hover accent and scale)</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
+                </div>
+              </article>
+
+              <article class="changelog-date-group" data-changelog-date="2026-07-15">
                 <header class="changelog-header">
                   <time class="changelog-date" datetime="2026-07-15">July 15, 2026</time>
-                  <span class="changelog-badge">Latest</span>
                 </header>
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
@@ -2279,9 +2324,9 @@
                 </div>
               </article>
 
-              <article class="changelog-date-group" data-changelog-date="2026-06-30">
+              <article class="changelog-date-group" data-changelog-date="2026-02-02" data-changelog-release="true">
                 <header class="changelog-header">
-                  <time class="changelog-date" datetime="2026-06-30">The date we first met</time>
+                  <time class="changelog-date" datetime="2026-02-02">February 2, 2026</time>
                 </header>
                 <div class="changelog-versions">
                   <section class="changelog-version-block">

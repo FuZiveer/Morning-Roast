@@ -2895,7 +2895,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v168";
+const APP_CACHE_VERSION = "morning-roast-v172";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -14632,11 +14632,10 @@ function renderChangelogCalendarGrid(releaseDates, selected) {
   if (nextBtn) nextBtn.disabled = nextMonthStart > todayStart;
 }
 
-function getChangelogInitialReleaseKey(releaseDates) {
-  for (const [date, label] of releaseDates) {
-    if (label.toLowerCase() === "the date we first met") return date;
-  }
-  return [...releaseDates.keys()].sort()[0] || null;
+function getChangelogInitialReleaseKey(panel) {
+  const releaseGroup = panel.querySelector('.changelog-date-group[data-changelog-release="true"]');
+  if (releaseGroup?.dataset.changelogDate) return releaseGroup.dataset.changelogDate;
+  return [...getChangelogReleaseDates(panel).keys()].sort()[0] || null;
 }
 
 function initChangelogDateFilter() {
@@ -14655,7 +14654,7 @@ function initChangelogDateFilter() {
 
   const groups = [...panel.querySelectorAll(".changelog-date-group")];
   const releaseDates = getChangelogReleaseDates(panel);
-  const initialReleaseKey = getChangelogInitialReleaseKey(releaseDates);
+  const initialReleaseKey = getChangelogInitialReleaseKey(panel);
   let selected = "all";
 
   const syncCalendarUi = () => {
