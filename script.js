@@ -79,7 +79,7 @@ function prefersReducedUiMotion() {
 }
 
 function isSiteAssistantPullBlocked() {
-  return document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active");
+  return Boolean(document.pointerLockElement) || document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active");
 }
 
 /** True while the loading veil still covers this point (full screen, or a split half). */
@@ -107,21 +107,44 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
   let hovered = false;
   let animating = false;
   let lastTs = 0;
+  let restCenterX = 0;
+  let restCenterY = 0;
+  let restButtonSize = buttonSizeFallback;
+  let measureQueued = false;
 
   const applyOffset = () => {
     element.style.setProperty(pullXVar, `${offsetX}px`);
     element.style.setProperty(pullYVar, `${offsetY}px`);
   };
 
-  const getRestCenter = () => {
+  const measureRestCenter = () => {
+    const prevX = offsetX;
+    const prevY = offsetY;
+    offsetX = 0;
+    offsetY = 0;
+    applyOffset();
     const rect = element.getBoundingClientRect();
-    return {
-      x: rect.left + rect.width / 2 - offsetX,
-      y: rect.top + rect.height / 2 - offsetY,
-    };
+    restCenterX = rect.left + rect.width / 2;
+    restCenterY = rect.top + rect.height / 2;
+    restButtonSize = rect.width || element.offsetWidth || buttonSizeFallback;
+    offsetX = prevX;
+    offsetY = prevY;
+    applyOffset();
   };
 
+  const queueMeasureRestCenter = () => {
+    if (measureQueued) return;
+    measureQueued = true;
+    requestAnimationFrame(() => {
+      measureQueued = false;
+      measureRestCenter();
+    });
+  };
+
+  const getRestCenter = () => ({ x: restCenterX, y: restCenterY });
+
   const pullBlocked = () => {
+    if (document.pointerLockElement) return true;
     if (isBlocked()) return true;
     if (isAppLoadingCoveringPoint(mouseX, mouseY)) return true;
     const center = getRestCenter();
@@ -133,7 +156,7 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
     lastTs = ts;
     const dtScale = Math.min(2.5, dt * 60);
     const reduced = prefersReducedUiMotion();
-    const buttonSize = element.offsetWidth || buttonSizeFallback;
+    const buttonSize = restButtonSize || element.offsetWidth || buttonSizeFallback;
     let active = false;
 
     if (isLocked()) {
@@ -165,6 +188,7 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
         velY = 0;
         applyOffset();
         animating = false;
+        queueMeasureRestCenter();
       }
       return;
     }
@@ -274,6 +298,17 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
   document.addEventListener("pointerleave", onPointerLeave);
   hoverTarget.addEventListener("pointerenter", onElementEnter);
   hoverTarget.addEventListener("pointerleave", onElementLeave);
+  window.addEventListener("resize", queueMeasureRestCenter, { passive: true });
+  window.addEventListener("scroll", queueMeasureRestCenter, { passive: true });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", queueMeasureRestCenter, { passive: true });
+    window.visualViewport.addEventListener("scroll", queueMeasureRestCenter, { passive: true });
+  }
+  if (typeof ResizeObserver !== "undefined") {
+    const layoutObserver = new ResizeObserver(queueMeasureRestCenter);
+    layoutObserver.observe(element);
+  }
+  queueMeasureRestCenter();
 
   registerMagneticPullRetractor(retract);
 
@@ -3139,7 +3174,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v187";
+const APP_CACHE_VERSION = "morning-roast-v188";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -5310,6 +5345,7 @@ const aimTrainer = {
     this.totalTimeTaken = 0;
     this.lastHitTime = performance.now();
     this.lastFrameTime = performance.now();
+    this.fpsDisplay = 0;
     this.trackingFrames = 0;
     this.isFlickingToNewTarget = true;
     this.totalTrackingFrames = 0;
@@ -6078,9 +6114,13 @@ const aimTrainer = {
     const now = performance.now();
     const dt = Math.min(0.05, (now - this.lastFrameTime) / 1000);
     this.lastFrameTime = now;
-    if (dt > 0) {
-      const instantFps = 1 / dt;
-      this.fpsDisplay = this.fpsDisplay > 0 ? this.fpsDisplay * 0.88 + instantFps * 0.12 : instantFps;
+    if (this.active && !this.showResults && !this.isCountingDown) {
+      if (dt > 0) {
+        const instantFps = 1 / dt;
+        this.fpsDisplay = this.fpsDisplay > 0 ? this.fpsDisplay * 0.88 + instantFps * 0.12 : instantFps;
+      }
+    } else if (this.fpsDisplay !== 0) {
+      this.fpsDisplay = 0;
     }
 
     if (this.isStandbyScreen()) {
@@ -6505,6 +6545,7 @@ const aimTrainer = {
 
   endGame() {
     this.active = false;
+    this.fpsDisplay = 0;
     this.showResults = true;
     this.showShareMenu = false;
     this.shareScoreCanvas = null;
@@ -6844,24 +6885,61 @@ const aimTrainer = {
     this.ctx.fillText(`${value}${unit}`, x + w, y - 8);
   },
 
+  drawSessionFpsPill(pad, topY) {
+    const label = `${Math.round(this.fpsDisplay || 0)} FPS`;
+    const fontSize = 11;
+    const pillPadX = 8;
+    const pillPadY = 4;
+    const pillH = fontSize + pillPadY * 2;
+
+    this.ctx.font = canvasFont(`bold ${fontSize}px`);
+    const textW = this.ctx.measureText(label).width;
+    const pillW = textW + pillPadX * 2;
+
+    this.ctx.fillStyle = "hsla(214, 41%, 3%, 0.78)";
+    this.ctx.beginPath();
+    this.ctx.roundRect(pad, topY, pillW, pillH, 999);
+    this.ctx.fill();
+
+    this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.9)";
+    this.ctx.textAlign = "left";
+    this.ctx.textBaseline = "middle";
+    this.ctx.fillText(label, pad + pillPadX, topY + pillH / 2);
+
+    return { height: pillH, width: pillW };
+  },
+
   drawSessionHud(cx) {
     const pad = 24;
-    const topY = 26;
+    const fpsTopY = 14;
+    const showFps = this.active && !this.showResults && !this.isCountingDown && this.fpsDisplay > 0;
 
     this.ctx.save();
     this.ctx.textBaseline = "top";
 
-    this.ctx.textAlign = "left";
-    this.ctx.font = canvasFont("bold 14px");
-    this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.88)";
-    this.ctx.fillText(`${Math.round(this.fpsDisplay || 0)} FPS`, pad, topY);
+    let fpsRowH = 0;
+    let fpsPillRight = pad;
+    if (showFps) {
+      const fpsPill = this.drawSessionFpsPill(pad, fpsTopY);
+      fpsRowH = fpsPill.height + 10;
+      fpsPillRight = pad + fpsPill.width;
+    }
 
     const timerId = this.getSessionTimerId();
     const timerSeconds = isInfiniteTrainerTimer(timerId) ? this.getSessionElapsedSeconds() : this.timeLeft;
     const timerText = `${timerSeconds}s`;
-    const timerX = cx;
-    const timerY = topY + 2;
     const timerFontSize = 24;
+    let timerX = cx;
+    const timerY = showFps ? fpsTopY + fpsRowH : 26;
+
+    if (showFps) {
+      this.ctx.font = canvasFont(`bold ${timerFontSize}px`);
+      const timerW = this.ctx.measureText(timerText).width;
+      const timerLeft = timerX - timerW / 2;
+      if (timerLeft < fpsPillRight + 8) {
+        timerX = fpsPillRight + 8 + timerW / 2;
+      }
+    }
     const timerCenterY = timerY + timerFontSize * 0.45;
     const pulseScale = 1 + 0.1 * this.timerPulseAlpha;
 
