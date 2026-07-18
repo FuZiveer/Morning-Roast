@@ -727,6 +727,120 @@ body.app-ready .app-sidebar {
   visibility: visible;
 }
 
+.app-chrome-tags {
+  position: fixed;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--button-motion-duration) var(--button-motion-ease),
+    visibility var(--button-motion-duration) var(--button-motion-ease);
+}
+
+body.app-ready .app-chrome-tags {
+  opacity: 1;
+  visibility: visible;
+}
+
+.app-chrome-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  border: var(--border-width) solid hsl(var(--border-subtle));
+  background: hsl(var(--black-sheep) / 0.92);
+  color: hsl(var(--text-muted));
+  font: inherit;
+  font-size: calc(0.62rem * var(--text-size-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  white-space: nowrap;
+  user-select: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  appearance: none;
+  -webkit-appearance: none;
+  pointer-events: auto;
+  cursor: default;
+  transform: scale(1);
+  transition:
+    transform var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease),
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    color var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.app-chrome-tag--visitors.is-live {
+  border-color: hsl(152 45% 40% / 0.55);
+  background: hsl(152 45% 40% / 0.16);
+  color: hsl(152 55% 62%);
+}
+
+.app-chrome-tag--visitors.is-connecting {
+  border-color: hsl(45 90% 50% / 0.45);
+  background: hsl(45 90% 50% / 0.12);
+  color: hsl(45 90% 62%);
+}
+
+.app-chrome-tag--visitors.is-offline,
+.app-chrome-tag--visitors.is-disabled {
+  border-color: hsl(0 0% 100% / 0.12);
+  background: hsl(0 0% 8% / 0.88);
+  color: hsl(var(--text-faint));
+}
+
+.app-chrome-tag-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0.45rem currentColor;
+  flex-shrink: 0;
+}
+
+.app-chrome-tag--visitors.is-connecting .app-chrome-tag-dot {
+  animation: app-chrome-dot-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes app-chrome-dot-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.85);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+html.glass-theme .app-chrome-tag {
+  background-color: var(--glass-surface-raised);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-border);
+}
+
+html.glass-theme .app-chrome-tag--visitors.is-live {
+  border-color: hsl(152 45% 40% / 0.55);
+  background: hsl(152 45% 40% / 0.16);
+  color: hsl(152 55% 62%);
+}
+
 /* Kill hover/pull targets under the veil until the split opens a path */
 body.app-loading:not(.app-loading-splitting) .app,
 body.app-loading:not(.app-loading-splitting) .app-sidebar,

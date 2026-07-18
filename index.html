@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="morning-roast-presence-ws" content="" />
     <title>Morning Roast</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -136,6 +137,7 @@
     <script defer src="tools/games.js"></script>
     <script defer src="tools/color-names.js"></script>
     <script defer src="tools/site-assistant.js"></script>
+    <script defer src="tools/online-presence.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
@@ -168,6 +170,12 @@
     </div>
     <div id="bg-stars" class="bg-stars bg-stars--fixed" aria-hidden="true"></div>
     <canvas id="bg-particles-canvas" class="bg-particles-canvas" aria-hidden="true"></canvas>
+    <div class="app-chrome-tags" aria-label="App info">
+      <span class="app-chrome-tag app-chrome-tag--visitors" id="app-chrome-visitors" aria-live="polite">
+        <span class="app-chrome-tag-dot" aria-hidden="true"></span>
+        <span id="app-chrome-visitors-label">— online</span>
+      </span>
+    </div>
     <aside class="app-sidebar" aria-label="Main navigation">
       <div class="app-sidebar-logo" role="img" aria-label="Morning Roast">
         <span class="logo-stack" aria-hidden="true">
@@ -3260,7 +3268,7 @@
                       <div class="setting-block">
                         <div class="setting-text">
                           <span>UI Refresh Rate</span>
-                          <p>Limit how often the site refreshes each second. Use a lower cap on weaker PCs, or Max for no limit.</p>
+                          <p>Limit how often the site refreshes each second. Use a lower cap on weaker PCs, or Max for no limit. The aim trainer always runs uncapped while its canvas is active.</p>
                         </div>
                         <div class="control-group">
                           <div class="trainer-toggle-selector pref-toggle" id="refresh-selector">

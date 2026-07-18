@@ -2313,6 +2313,53 @@ function closeSettingsAppStatusPanel() {
   dropdown.querySelector(".app-status-trigger")?.setAttribute("aria-expanded", "false");
 }
 
+function syncAppChromeVisitors(count, state = "live") {
+  const root = document.getElementById("app-chrome-visitors");
+  const label = document.getElementById("app-chrome-visitors-label");
+  if (!root || !label) return;
+
+  root.classList.remove("is-live", "is-connecting", "is-offline", "is-disabled");
+  root.classList.add(`is-${state}`);
+
+  if (state === "live" && Number.isFinite(count)) {
+    const visitors = Math.max(0, Math.round(count));
+    label.textContent = `${visitors.toLocaleString()} online`;
+    root.setAttribute("aria-label", `${visitors} people online`);
+    return;
+  }
+
+  if (state === "connecting") {
+    label.textContent = "Connecting…";
+    root.setAttribute("aria-label", "Connecting to live visitor count");
+    return;
+  }
+
+  if (state === "disabled") {
+    label.textContent = "— online";
+    root.setAttribute("aria-label", "Live visitor count unavailable");
+    return;
+  }
+
+  label.textContent = "— online";
+  root.setAttribute("aria-label", "Live visitor count offline");
+}
+
+function initAppChromeTags() {
+  if (!document.querySelector(".app-chrome-tags")) return;
+
+  if (typeof window.MorningRoastPresence?.initOnlinePresence === "function") {
+    window.MorningRoastPresence.initOnlinePresence({
+      onCount: (count) => syncAppChromeVisitors(count, "live"),
+      onState: (state, count) => {
+        if (state === "live" && Number.isFinite(count)) syncAppChromeVisitors(count, "live");
+        else syncAppChromeVisitors(null, state);
+      },
+    });
+  } else {
+    syncAppChromeVisitors(null, "disabled");
+  }
+}
+
 function initAppSidebar() {
   const sidebar = document.querySelector(".app-sidebar");
   if (!sidebar) return;
@@ -3092,7 +3139,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v182";
+const APP_CACHE_VERSION = "morning-roast-v186";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -3697,6 +3744,7 @@ function normalizeUiRefreshMode(stored) {
 
 const UiFpsCap = (() => {
   let mode = "max";
+  let suspendDepth = 0;
   let intervalId = null;
   let queue = [];
   let nextId = 1;
@@ -3765,7 +3813,20 @@ const UiFpsCap = (() => {
   return {
     setMode(nextMode) {
       mode = normalizeUiRefreshMode(nextMode);
+      if (suspendDepth > 0) return;
       applyMode();
+    },
+    suspend() {
+      suspendDepth += 1;
+      if (suspendDepth === 1) {
+        stopInterval();
+        unpatchRaf();
+      }
+    },
+    resume() {
+      if (suspendDepth <= 0) return;
+      suspendDepth -= 1;
+      if (suspendDepth === 0) applyMode();
     },
   };
 })();
@@ -3821,6 +3882,7 @@ const aimTrainer = {
   totalTrackingFrames: 0,
   isFlickingToNewTarget: false,
   lastFrameTime: 0,
+  fpsDisplay: 0,
   restartButton: { w: 180, h: 46, radius: 8 },
   shareButton: { w: 180, h: 46, radius: 8 },
   buttonDisabledUntil: 0,
@@ -4627,7 +4689,7 @@ const aimTrainer = {
   init() {
     this.canvas = document.getElementById("aimCanvas");
     if (!this.canvas) return;
-    this.ctx = this.canvas.getContext("2d");
+    this.ctx = this.canvas.getContext("2d", { alpha: false, desynchronized: true }) || this.canvas.getContext("2d");
     this.canvas.style.cursor = "default";
 
     const sensInput = document.getElementById("canvas-sens");
@@ -4955,11 +5017,18 @@ const aimTrainer = {
       }
     });
 
-    document.addEventListener("mousemove", (e) => {
-      if (document.pointerLockElement === this.canvas) {
-        this.handleCamera(e);
+    const handlePointerLook = (e) => {
+      if (document.pointerLockElement !== this.canvas) return;
+      const events = typeof e.getCoalescedEvents === "function" ? e.getCoalescedEvents() : [e];
+      for (const ev of events) {
+        if (!ev.movementX && !ev.movementY) continue;
+        this.applyPointerLook(ev.movementX, ev.movementY);
       }
-    });
+    };
+
+    document.addEventListener("mousemove", handlePointerLook);
+    document.addEventListener("pointermove", handlePointerLook);
+    document.addEventListener("pointerrawupdate", handlePointerLook);
 
     window.addEventListener("resize", () => this.handleResize());
     this.handleResize();
@@ -5112,7 +5181,7 @@ const aimTrainer = {
     this.render();
   },
 
-  handleCamera(e) {
+  applyPointerLook(movementX, movementY) {
     const sensInput = elements["canvas-sens"];
     const sens = parseFloat(sensInput?.value?.replace(",", ".")) || 0;
 
@@ -5120,10 +5189,15 @@ const aimTrainer = {
     const jitter = this.randomizerEnabled ? this.randomScale : 1.0;
     const rawMultiplier = sens * config.constant * (Math.PI / 180) * jitter;
 
-    const deltaYaw = e.movementX * rawMultiplier;
-    const deltaPitch = -e.movementY * rawMultiplier;
+    const deltaYaw = movementX * rawMultiplier;
+    const deltaPitch = -movementY * rawMultiplier;
     this.recordCameraMovement(deltaYaw, deltaPitch);
     this.camera.pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, this.camera.pitch));
+  },
+
+  handleCamera(e) {
+    if (!e.movementX && !e.movementY) return;
+    this.applyPointerLook(e.movementX, e.movementY);
   },
 
   recordCameraMovement(deltaYaw, deltaPitch) {
@@ -5564,10 +5638,12 @@ const aimTrainer = {
       nativeCancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
+    UiFpsCap.resume();
   },
 
   resumeLoop() {
     if (this.animationId || !this.shouldRunLoop()) return;
+    UiFpsCap.suspend();
     this.lastFrameTime = performance.now();
     this.loop();
   },
@@ -5995,13 +6071,17 @@ const aimTrainer = {
 
   loop() {
     if (!this.shouldRunLoop()) {
-      this.animationId = null;
+      this.stopLoop();
       return;
     }
 
     const now = performance.now();
-    const dt = (now - this.lastFrameTime) / 1000;
+    const dt = Math.min(0.05, (now - this.lastFrameTime) / 1000);
     this.lastFrameTime = now;
+    if (dt > 0) {
+      const instantFps = 1 / dt;
+      this.fpsDisplay = this.fpsDisplay > 0 ? this.fpsDisplay * 0.88 + instantFps * 0.12 : instantFps;
+    }
 
     if (this.isStandbyScreen()) {
       const targetFill = this.standbyCanvasHover ? 1 : 0;
@@ -6767,30 +6847,14 @@ const aimTrainer = {
   drawSessionHud(cx) {
     const pad = 24;
     const topY = 26;
-    let acc;
-    if (isTrainerAccuracyMode(this.mode)) {
-      acc = this.totalTrackingFrames === 0 ? 0 : Math.round((this.trackingFrames / this.totalTrackingFrames) * 100);
-    } else {
-      acc = this.totalClicks === 0 ? 0 : Math.ceil((this.hits / this.totalClicks) * 100);
-    }
 
     this.ctx.save();
     this.ctx.textBaseline = "top";
+
     this.ctx.textAlign = "left";
     this.ctx.font = canvasFont("bold 14px");
     this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.88)";
-    this.ctx.fillText(`HITS: ${this.hits}`, pad, topY);
-    this.ctx.fillText(`ACC: ${acc}%`, pad, topY + 22);
-
-    if (!isTrainerAccuracyMode(this.mode) && this.missFlashAlpha > 0) {
-      this.ctx.save();
-      this.ctx.globalAlpha = this.missFlashAlpha;
-      this.ctx.fillStyle = "hsl(0, 100%, 55%)";
-      this.ctx.shadowBlur = 10;
-      this.ctx.shadowColor = "red";
-      this.ctx.fillText(`ACC: ${acc}%`, pad, topY + 22);
-      this.ctx.restore();
-    }
+    this.ctx.fillText(`${Math.round(this.fpsDisplay || 0)} FPS`, pad, topY);
 
     const timerId = this.getSessionTimerId();
     const timerSeconds = isInfiniteTrainerTimer(timerId) ? this.getSessionElapsedSeconds() : this.timeLeft;
@@ -14409,10 +14473,7 @@ function initPreferences() {
   const savedBgImageRaw = localStorage.getItem("prefBgImage");
   const savedBgImage = savedBgImageRaw == null ? DEFAULT_BG_IMAGE : normalizeBgImage(savedBgImageRaw);
   const savedBgBackdropModeRaw = localStorage.getItem("prefBgBackdropMode");
-  const savedBgBackdropMode =
-    savedBgBackdropModeRaw == null
-      ? DEFAULT_BG_BACKDROP_MODE
-      : normalizeBgBackdropMode(savedBgBackdropModeRaw, savedBgPattern, savedBgImage);
+  const savedBgBackdropMode = savedBgBackdropModeRaw == null ? DEFAULT_BG_BACKDROP_MODE : normalizeBgBackdropMode(savedBgBackdropModeRaw, savedBgPattern, savedBgImage);
   const savedFontFamily = normalizeFontFamily(localStorage.getItem("prefFontFamily"));
 
   applyAccent(savedAccent || DEFAULT_ACCENT, { instant: true });
@@ -15032,6 +15093,7 @@ function initChangelogDateFilter() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initAppLoadingScreen();
+  initAppChromeTags();
   initAppSidebar();
   initHomeFeatureCardTilt();
   initMobileNavMoreMenu();
