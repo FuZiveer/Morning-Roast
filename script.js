@@ -1625,7 +1625,7 @@ function toggleVisibility(element, isVisible) {
   }
 }
 
-const DEFAULT_ACCENT = "344 99% 47%";
+const DEFAULT_ACCENT = "330 99% 46%";
 
 function hslComponentsToHex(h, s, l) {
   const hue = ((h % 360) + 360) % 360;
@@ -3092,7 +3092,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v181";
+const APP_CACHE_VERSION = "morning-roast-v182";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -8004,7 +8004,7 @@ const MISC_TAB_IDS = new Set(["crosshair-converter-tab", "settings-tab", "lineup
 
 const MORE_HOTKEY_TAB_ORDER = ["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
-const MISC_HOTKEY_TAB_ORDER = ["crosshair-converter-tab", "settings-tab", "lineup-tab"];
+const MISC_HOTKEY_TAB_ORDER = ["crosshair-converter-tab", "lineup-tab", "settings-tab"];
 
 const MAIN_TAB_HOTKEYS = {
   1: "home-tab",
@@ -13144,6 +13144,9 @@ const BG_PATTERN_ICONS = {
 
 const BG_IMAGE_IDS = ["sunset-lake", "synthwave-peaks", "crimson-shards", "prismatic-ridge", "cosmic-burst", "dark-wood", "royal-damask", "charcoal-slate", "neon-flame-stream", "magenta-paper-glow", "aged-parchment", "magenta-fluid-waves", "crimson-wire-mesh", "ember-low-poly", "prismatic-low-poly"];
 
+const DEFAULT_BG_IMAGE = "magenta-fluid-waves";
+const DEFAULT_BG_BACKDROP_MODE = "image";
+
 const BG_IMAGE_LEGACY_MAP = {
   midnight: "sunset-lake",
   amber: "synthwave-peaks",
@@ -13218,7 +13221,7 @@ function normalizeBgBackdropMode(stored, pattern, image) {
 function getDefaultBgBackdropValue(mode) {
   if (mode === "image") {
     const saved = normalizeBgImage(localStorage.getItem("prefBgImage"));
-    return saved !== "none" ? saved : BG_IMAGE_IDS[0];
+    return saved !== "none" ? saved : DEFAULT_BG_IMAGE;
   }
   if (mode === "pattern") {
     const saved = normalizeBgPattern(localStorage.getItem("prefBgPattern"));
@@ -13713,7 +13716,7 @@ function applyBgBackdrop(mode, value) {
   const normalizedMode = mode === "image" ? "image" : mode === "none" ? "none" : "pattern";
   if (normalizedMode === "image") {
     const image = normalizeBgImage(value);
-    const resolved = image === "none" ? BG_IMAGE_IDS[0] : image;
+    const resolved = image === "none" ? DEFAULT_BG_IMAGE : image;
     applyBgImage(resolved);
     applyBgPattern("none");
     localStorage.setItem("prefBgImage", resolved);
@@ -14403,11 +14406,16 @@ function initPreferences() {
   const savedConfirmReset = localStorage.getItem("prefConfirmReset") !== "false";
   const savedDistance360Unit = getDistance360Unit();
   const savedBgPattern = normalizeBgPattern(localStorage.getItem("prefBgPattern"));
-  const savedBgImage = normalizeBgImage(localStorage.getItem("prefBgImage"));
-  const savedBgBackdropMode = normalizeBgBackdropMode(localStorage.getItem("prefBgBackdropMode"), savedBgPattern, savedBgImage);
+  const savedBgImageRaw = localStorage.getItem("prefBgImage");
+  const savedBgImage = savedBgImageRaw == null ? DEFAULT_BG_IMAGE : normalizeBgImage(savedBgImageRaw);
+  const savedBgBackdropModeRaw = localStorage.getItem("prefBgBackdropMode");
+  const savedBgBackdropMode =
+    savedBgBackdropModeRaw == null
+      ? DEFAULT_BG_BACKDROP_MODE
+      : normalizeBgBackdropMode(savedBgBackdropModeRaw, savedBgPattern, savedBgImage);
   const savedFontFamily = normalizeFontFamily(localStorage.getItem("prefFontFamily"));
 
-  if (savedAccent) applyAccent(savedAccent, { instant: true });
+  applyAccent(savedAccent || DEFAULT_ACCENT, { instant: true });
   applyFontSize(savedFont || "1");
   applyFontFamily(savedFontFamily);
   applyContrast(savedContrast);
@@ -14446,7 +14454,7 @@ function initPreferences() {
 
   const clampAccentChannel = (value, min, max) => Math.min(max, Math.max(min, value));
 
-  const customAccentState = { h: 344, s: 99, l: 47, sv: 99, vv: 47, open: false };
+  const customAccentState = { h: 330, s: 99, l: 46, sv: 99, vv: 46, open: false };
 
   const syncCustomAccentHslFromSpectrum = () => {
     Object.assign(customAccentState, hsvToHsl(customAccentState.h, customAccentState.sv, customAccentState.vv));

@@ -14,7 +14,7 @@
       (function () {
         var root = document.documentElement;
         try {
-          var accent = localStorage.getItem("prefAccent") || "344 99% 47%";
+          var accent = localStorage.getItem("prefAccent") || "330 99% 46%";
           var parts = accent.trim().split(/\s+/);
           if (parts.length >= 3) {
             root.style.setProperty("--accent-color", "hsl(" + parts[0] + " " + parts[1] + " " + parts[2] + ")");
@@ -22,7 +22,7 @@
             root.style.setProperty("--accent-on-color", lightness > 62 ? "hsl(0, 0%, 5%)" : "hsl(0, 0%, 100%)");
           }
           var pattern = localStorage.getItem("prefBgPattern") || "waves";
-          var bgImage = localStorage.getItem("prefBgImage") || "none";
+          var bgImage = localStorage.getItem("prefBgImage") || "magenta-fluid-waves";
           var bgImageIds = [
             "sunset-lake",
             "synthwave-peaks",
@@ -56,12 +56,10 @@
             "magenta-plexus": "sunset-lake",
           };
           if (legacyBgImages[bgImage]) bgImage = legacyBgImages[bgImage];
-          if (bgImageIds.indexOf(bgImage) === -1 && bgImage !== "none") bgImage = "sunset-lake";
+          if (bgImageIds.indexOf(bgImage) === -1 && bgImage !== "none") bgImage = "magenta-fluid-waves";
           var backdropMode = localStorage.getItem("prefBgBackdropMode");
           if (backdropMode !== "pattern" && backdropMode !== "image" && backdropMode !== "none") {
-            if (bgImage !== "none" && bgImageIds.indexOf(bgImage) !== -1) backdropMode = "image";
-            else if (pattern === "none") backdropMode = "none";
-            else backdropMode = "pattern";
+            backdropMode = "image";
           }
           if (backdropMode === "image") {
             root.classList.add("glass-theme");
@@ -217,15 +215,15 @@
             <div class="app-sidebar-misc-menu" id="sidebar-misc-menu" role="menu" aria-labelledby="sidebar-misc-button" hidden>
               <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-crosshair-button" data-sidebar-tab="crosshair-converter-tab" onclick="switchTab(event, 'crosshair-converter-tab')">
                 <i class="ri-crosshair-2-line" aria-hidden="true"></i>
-                <span>Crosshair Converter</span>
-              </button>
-              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-settings-button" data-sidebar-tab="settings-tab" onclick="switchTab(event, 'settings-tab')">
-                <i class="ri-tools-line" aria-hidden="true"></i>
-                <span>Settings</span>
+                <span>Crosshair</span>
               </button>
               <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-lineup-button" data-sidebar-tab="lineup-tab" onclick="switchTab(event, 'lineup-tab')">
                 <i class="ri-video-line" aria-hidden="true"></i>
                 <span>Lineups</span>
+              </button>
+              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-settings-button" data-sidebar-tab="settings-tab" onclick="switchTab(event, 'settings-tab')">
+                <i class="ri-tools-line" aria-hidden="true"></i>
+                <span>Settings</span>
               </button>
             </div>
           </div>
@@ -384,19 +382,19 @@
                     <div class="icon-container">
                       <i class="ri-crosshair-2-line" aria-hidden="true"></i>
                     </div>
-                    <span>Crosshair Converter</span>
-                  </button>
-                  <button type="button" class="button nav-misc-button" data-nav-tab="settings-tab" onclick="switchTab(event, 'settings-tab')">
-                    <div class="icon-container">
-                      <i class="ri-tools-line" aria-hidden="true"></i>
-                    </div>
-                    <span>Settings</span>
+                    <span>Crosshair</span>
                   </button>
                   <button type="button" class="button nav-misc-button" data-nav-tab="lineup-tab" onclick="switchTab(event, 'lineup-tab')">
                     <div class="icon-container">
                       <i class="ri-video-line" aria-hidden="true"></i>
                     </div>
                     <span>Lineups</span>
+                  </button>
+                  <button type="button" class="button nav-misc-button" data-nav-tab="settings-tab" onclick="switchTab(event, 'settings-tab')">
+                    <div class="icon-container">
+                      <i class="ri-tools-line" aria-hidden="true"></i>
+                    </div>
+                    <span>Settings</span>
                   </button>
                 </div>
               </div>
@@ -1054,7 +1052,7 @@
               <i class="ri-crosshair-2-line"></i>
             </div>
             <div class="title-heading">
-              <span>Crosshair converter</span>
+              <span>Crosshair</span>
               <span class="section-beta-badge">Beta</span>
             </div>
           </div>
@@ -2058,7 +2056,7 @@
                 <div class="keybind-row"><kbd>3</kbd><span>Open eDPI Calculator</span></div>
                 <div class="keybind-row"><kbd>4</kbd><span>Open Aim Trainer</span></div>
                 <div class="keybind-row"><kbd>5</kbd><span>Open Stats</span></div>
-                <div class="keybind-row" id="keybind-6-row"><kbd>6</kbd><span id="keybind-6-label">Cycle Misc pages (Crosshair Converter / Settings / Lineups)</span></div>
+                <div class="keybind-row" id="keybind-6-row"><kbd>6</kbd><span id="keybind-6-label">Cycle Misc pages (Crosshair / Lineups / Settings)</span></div>
                 <div class="keybind-row"><kbd>7</kbd><span id="keybind-7-label">Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)</span></div>
               </div>
 
@@ -2119,6 +2117,21 @@
                 </header>
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.13</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Misc menu improved (Order is Crosshair, Lineups, then Settings)</li>
+                          <li>Crosshair tab renamed (Sidebar, mobile nav, and tab title now say Crosshair)</li>
+                          <li>Default theme updated (Magenta Fluid Waves background and custom #ea0177 accent for new visitors)</li>
+                          <li>Stats topic indicators improved (Frosted blur background; hover accent border matches Copy button)</li>
+                          <li>Sidebar logo improved (Morning Roast label uppercase when expanded)</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
+                  <section class="changelog-version-block">
                     <h3 class="changelog-version">0.2.12</h3>
                     <div class="changelog-type-groups">
                       <fieldset class="fieldset-style changelog-fieldset">
@@ -2127,7 +2140,7 @@
                           <li>Home page added (About cards, toolkit shortcuts, how-it-works steps, and keyboard tips)</li>
                           <li>Home route added (/home deep link; root redirects to Home)</li>
                           <li>About cards added (Background image cards with 3D tilt on hover)</li>
-                          <li>Misc sidebar menu added (Crosshair Converter, Settings, and Lineups)</li>
+                          <li>Misc sidebar menu added (Crosshair, Lineups, and Settings)</li>
                           <li>Loading screen progress bar added (Percentage and accent fill below the title)</li>
                           <li>Wallpapers added (Ten new images for home About and toolkit cards)</li>
                         </ul>
@@ -3097,7 +3110,7 @@
                         <div class="control-group">
                           <div class="accent-picker" id="accent-picker">
                             <div class="trainer-toggle-selector pref-toggle accent-selector" id="accent-grid" role="radiogroup" aria-label="Accent theme">
-                              <button type="button" class="accent-swatch active" data-accent="344 99% 47%" style="--swatch: hsl(344 99% 47%)" aria-label="Red" role="radio" aria-checked="true"></button>
+                              <button type="button" class="accent-swatch" data-accent="344 99% 47%" style="--swatch: hsl(344 99% 47%)" aria-label="Red" role="radio" aria-checked="false"></button>
                               <button type="button" class="accent-swatch" data-accent="25 95% 53%" style="--swatch: hsl(25 95% 53%)" aria-label="Orange" role="radio" aria-checked="false"></button>
                               <button type="button" class="accent-swatch" data-accent="45 93% 53%" style="--swatch: hsl(45 93% 53%)" aria-label="Yellow" role="radio" aria-checked="false"></button>
                               <button type="button" class="accent-swatch" data-accent="142 71% 45%" style="--swatch: hsl(142 71% 45%)" aria-label="Green" role="radio" aria-checked="false"></button>
@@ -3105,23 +3118,23 @@
                               <button type="button" class="accent-swatch" data-accent="217 91% 60%" style="--swatch: hsl(217 91% 60%)" aria-label="Blue" role="radio" aria-checked="false"></button>
                               <button type="button" class="accent-swatch" data-accent="265 84% 64%" style="--swatch: hsl(265 84% 64%)" aria-label="Purple" role="radio" aria-checked="false"></button>
                               <button type="button" class="accent-swatch" data-accent="330 81% 60%" style="--swatch: hsl(330 81% 60%)" aria-label="Pink" role="radio" aria-checked="false"></button>
-                              <button type="button" class="accent-swatch accent-custom-swatch" id="accent-custom-color" style="--swatch: #ef0141; --swatch-on-color: hsl(0, 0%, 100%)" aria-label="Custom color" role="radio" aria-checked="false" aria-expanded="false" aria-controls="accent-custom-panel">
+                              <button type="button" class="accent-swatch accent-custom-swatch active" id="accent-custom-color" style="--swatch: #ea0177; --swatch-on-color: hsl(0, 0%, 100%)" aria-label="Custom color" role="radio" aria-checked="true" aria-expanded="false" aria-controls="accent-custom-panel">
                                 <span class="accent-custom-swatch-preview" aria-hidden="true"></span>
                                 <i class="ri-palette-line accent-custom-swatch-icon" aria-hidden="true"></i>
                               </button>
                             </div>
-                            <input type="color" id="accent-color-input" class="accent-color-input-native" value="#ef0141" tabindex="-1" aria-hidden="true" />
+                            <input type="color" id="accent-color-input" class="accent-color-input-native" value="#ea0177" tabindex="-1" aria-hidden="true" />
                             <div class="accent-custom-panel pref-dropdown-list hidden" id="accent-custom-panel" hidden>
                               <div class="accent-custom-spectrum" id="accent-custom-spectrum" role="slider" aria-label="Saturation and brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="47" tabindex="0">
                                 <div class="accent-custom-spectrum-cursor" id="accent-custom-spectrum-cursor"></div>
                               </div>
                               <label class="accent-custom-hue-label" for="accent-custom-hue">
                                 <span class="accent-custom-hue-text">Hue</span>
-                                <input type="range" class="accent-custom-hue" id="accent-custom-hue" min="0" max="360" value="344" />
+                                <input type="range" class="accent-custom-hue" id="accent-custom-hue" min="0" max="360" value="330" />
                               </label>
                               <div class="accent-custom-hex-row">
                                 <span class="accent-custom-hex-swatch" id="accent-custom-hex-swatch" aria-hidden="true"></span>
-                                <input type="text" class="accent-custom-hex" id="accent-custom-hex" value="#EF0141" spellcheck="false" autocapitalize="characters" autocomplete="off" maxlength="7" aria-label="Hex color" />
+                                <input type="text" class="accent-custom-hex" id="accent-custom-hex" value="#EA0177" spellcheck="false" autocapitalize="characters" autocomplete="off" maxlength="7" aria-label="Hex color" />
                               </div>
                             </div>
                             <div class="accent-picker-nav">
