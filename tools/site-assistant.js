@@ -696,6 +696,16 @@
       root.classList.toggle("is-busy", busy);
     };
 
+    const focusComposerInput = () => {
+      if (!open || offline) return;
+      const run = () => {
+        if (!open || offline || input.disabled) return;
+        if (document.activeElement === toggle) toggle.blur();
+        input.focus({ preventScroll: true });
+      };
+      requestAnimationFrame(() => requestAnimationFrame(run));
+    };
+
     const setConnectionOnline = (online) => {
       offline = !online;
       root.classList.toggle("is-offline", offline);
@@ -743,7 +753,7 @@
       clearActiveReply();
       stopping = false;
       setBusy(false);
-      input.focus({ preventScroll: true });
+      focusComposerInput();
     };
 
     const clearChat = async () => {
@@ -767,7 +777,7 @@
       conversation.length = 0;
       setBusy(false);
       syncComposerControls();
-      input.focus({ preventScroll: true });
+      focusComposerInput();
     };
 
     const setOpen = (next) => {
@@ -802,8 +812,8 @@
           if (document.activeElement === toggle) toggle.blur();
         });
       }
-      if (open) {
-        if (!offline) requestAnimationFrame(() => input.focus({ preventScroll: true }));
+      if (open && !wasOpen) {
+        focusComposerInput();
       }
     };
 
@@ -949,6 +959,7 @@
           clearActiveReply();
           setBusy(false);
           scrollMessages();
+          focusComposerInput();
         }
       }
     };
@@ -1033,6 +1044,33 @@
     });
 
     input.addEventListener("input", syncComposerControls);
+
+    panel.addEventListener(
+      "wheel",
+      (event) => {
+        if (!open) return;
+
+        const scrollEl = messages;
+        const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
+        if (maxScroll <= 0) {
+          event.preventDefault();
+          return;
+        }
+
+        if (scrollEl.contains(event.target)) {
+          const atTop = scrollEl.scrollTop <= 0;
+          const atBottom = scrollEl.scrollTop >= maxScroll;
+          if ((atTop && event.deltaY < 0) || (atBottom && event.deltaY > 0)) {
+            event.preventDefault();
+          }
+          return;
+        }
+
+        event.preventDefault();
+        scrollEl.scrollTop = Math.max(0, Math.min(maxScroll, scrollEl.scrollTop + event.deltaY));
+      },
+      { passive: false },
+    );
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && open) {

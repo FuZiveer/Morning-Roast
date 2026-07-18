@@ -152,37 +152,63 @@
       </div>
       <div class="app-loading-stage" id="app-loading-stage">
         <div class="app-loading-screen-inner">
+          <span class="app-loading-label">Morning Roast</span>
           <div class="app-loading-logo-shell">
             <span class="logo-stack app-loading-logo" aria-hidden="true">
               <span class="logo-glow"></span>
               <span class="logo-mark"></span>
             </span>
           </div>
-          <span class="app-loading-label">Morning Roast</span>
+          <div class="app-loading-progress" id="app-loading-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Loading progress">
+            <div class="app-loading-progress-track">
+              <div class="app-loading-progress-bar" id="app-loading-progress-bar"></div>
+            </div>
+            <span class="app-loading-progress-label" id="app-loading-progress-label">0%</span>
+          </div>
         </div>
       </div>
     </div>
     <div id="bg-stars" class="bg-stars bg-stars--fixed" aria-hidden="true"></div>
     <canvas id="bg-particles-canvas" class="bg-particles-canvas" aria-hidden="true"></canvas>
     <aside class="app-sidebar" aria-label="Main navigation">
-      <button type="button" class="app-sidebar-logo" aria-label="Morning Roast home" onclick="cycleTabFromLogo(event)">
+      <div class="app-sidebar-logo" role="img" aria-label="Morning Roast">
         <span class="logo-stack" aria-hidden="true">
           <span class="logo-glow" aria-hidden="true"></span>
           <span class="logo-mark" aria-hidden="true"></span>
         </span>
         <span class="app-sidebar-label app-sidebar-logo-label">Morning Roast</span>
-      </button>
-      <div class="app-sidebar-divider" aria-hidden="true"></div>
+      </div>
       <nav class="app-sidebar-nav" aria-label="Tools">
         <div class="app-sidebar-group">
-          <button type="button" class="app-sidebar-item active" data-sidebar-tab="sensitivity-converter-tab" onclick="switchTab(event, 'sensitivity-converter-tab')" id="sidebar-sensitivity-converter-button">
+          <button type="button" class="app-sidebar-item active" data-sidebar-tab="home-tab" onclick="switchTab(event, 'home-tab')" id="sidebar-home-button">
+            <i class="ri-home-4-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Home</span>
+          </button>
+        </div>
+
+        <div class="app-sidebar-group">
+          <button type="button" class="app-sidebar-item" data-sidebar-tab="sensitivity-converter-tab" onclick="switchTab(event, 'sensitivity-converter-tab')" id="sidebar-sensitivity-converter-button">
             <i class="ri-swap-2-line" aria-hidden="true"></i>
-            <span class="app-sidebar-label">Converter</span>
+            <span class="app-sidebar-label">Sensitivity</span>
           </button>
           <button type="button" class="app-sidebar-item" data-sidebar-tab="edpi-calculator-tab" onclick="switchTab(event, 'edpi-calculator-tab')" id="sidebar-edpi-calculator-button">
             <i class="ri-pencil-ruler-2-line" aria-hidden="true"></i>
             <span class="app-sidebar-label">eDPI</span>
           </button>
+        </div>
+
+        <div class="app-sidebar-group">
+          <button type="button" class="app-sidebar-item app-sidebar-item-aim" data-sidebar-tab="aim-training-tab" onclick="switchTab(event, 'aim-training-tab')" id="sidebar-aim-training-button">
+            <i class="ri-focus-3-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Aim Trainer</span>
+          </button>
+          <button type="button" class="app-sidebar-item" data-sidebar-tab="stats-tab" onclick="switchTab(event, 'stats-tab')" id="sidebar-stats-button">
+            <i class="ri-equalizer-2-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Stats</span>
+          </button>
+        </div>
+
+        <div class="app-sidebar-group">
           <div class="app-sidebar-misc" id="app-sidebar-misc" hidden>
             <button type="button" class="app-sidebar-item app-sidebar-misc-toggle" id="sidebar-misc-button" aria-expanded="false" aria-haspopup="menu" aria-controls="sidebar-misc-menu">
               <i class="ri-apps-2-line" aria-hidden="true"></i>
@@ -193,34 +219,16 @@
                 <i class="ri-crosshair-2-line" aria-hidden="true"></i>
                 <span>Crosshair Converter</span>
               </button>
+              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-settings-button" data-sidebar-tab="settings-tab" onclick="switchTab(event, 'settings-tab')">
+                <i class="ri-tools-line" aria-hidden="true"></i>
+                <span>Settings</span>
+              </button>
+              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-lineup-button" data-sidebar-tab="lineup-tab" onclick="switchTab(event, 'lineup-tab')">
+                <i class="ri-video-line" aria-hidden="true"></i>
+                <span>Lineups</span>
+              </button>
             </div>
           </div>
-          <button type="button" class="app-sidebar-item" data-sidebar-tab="settings-tab" onclick="switchTab(event, 'settings-tab')" id="sidebar-settings-button">
-            <i class="ri-tools-line" aria-hidden="true"></i>
-            <span class="app-sidebar-label">Settings</span>
-          </button>
-        </div>
-
-        <div class="app-sidebar-divider" aria-hidden="true"></div>
-
-        <div class="app-sidebar-group">
-          <button type="button" class="app-sidebar-item" data-sidebar-tab="stats-tab" onclick="switchTab(event, 'stats-tab')" id="sidebar-stats-button">
-            <i class="ri-equalizer-2-line" aria-hidden="true"></i>
-            <span class="app-sidebar-label">Stats</span>
-          </button>
-          <button type="button" class="app-sidebar-item app-sidebar-item-aim" data-sidebar-tab="aim-training-tab" onclick="switchTab(event, 'aim-training-tab')" id="sidebar-aim-training-button">
-            <i class="ri-focus-3-line" aria-hidden="true"></i>
-            <span class="app-sidebar-label">Aim Trainer</span>
-          </button>
-        </div>
-
-        <div class="app-sidebar-divider" aria-hidden="true"></div>
-
-        <div class="app-sidebar-group">
-          <button type="button" class="app-sidebar-item" data-sidebar-tab="lineup-tab" id="sidebar-lineup-button" onclick="switchTab(event, 'lineup-tab')">
-            <i class="ri-video-line" aria-hidden="true"></i>
-            <span class="app-sidebar-label">Lineups</span>
-          </button>
         </div>
       </nav>
       <div class="app-sidebar-more" id="app-sidebar-more">
@@ -236,7 +244,6 @@
             id="keybinds-button"
             onclick="
               switchTab(event, 'keybinds-tab');
-              scrollToTop(350);
             "
           >
             <i class="ri-keyboard-box-line" aria-hidden="true"></i>
@@ -249,7 +256,6 @@
             id="updates-button"
             onclick="
               switchTab(event, 'updates-tab');
-              scrollToTop(350);
             "
           >
             <i class="ri-history-line" aria-hidden="true"></i>
@@ -262,7 +268,6 @@
             id="privacy-policy-button"
             onclick="
               switchTab(event, 'privacy-policy-tab');
-              scrollToTop(350);
             "
           >
             <i class="ri-lock-2-line" aria-hidden="true"></i>
@@ -275,7 +280,6 @@
             id="terms-of-service-button"
             onclick="
               switchTab(event, 'terms-of-service-tab');
-              scrollToTop(350);
             "
           >
             <i class="ri-customer-service-line" aria-hidden="true"></i>
@@ -288,7 +292,6 @@
             id="credit-button"
             onclick="
               switchTab(event, 'credit-tab');
-              scrollToTop(350);
             "
           >
             <i class="ri-user-3-line" aria-hidden="true"></i>
@@ -308,7 +311,7 @@
     <div class="app">
       <div>
         <nav class="nav-bar">
-          <button type="button" class="logo-container" aria-label="Morning Roast home" onclick="document.getElementById('sensitivity-converter-button').click()">
+          <button type="button" class="logo-container" aria-label="Morning Roast home" onclick="document.getElementById('home-button').click()">
             <span class="logo-stack">
               <span class="logo-glow" aria-hidden="true"></span>
               <span class="logo-mark" aria-hidden="true"></span>
@@ -320,8 +323,19 @@
           </button>
 
           <div class="nav-menu-container" id="nav-menu-container">
+            <div class="button-container nav-group" data-group="Home">
+              <button type="button" class="button active" onclick="switchTab(event, 'home-tab')" id="home-button">
+                <div class="icon-container">
+                  <i class="ri-home-4-line" aria-hidden="true"></i>
+                </div>
+                <span>Home</span>
+              </button>
+            </div>
+
+            <div class="nav-group-divider" aria-hidden="true"></div>
+
             <div class="button-container nav-group" data-group="Tools">
-              <button type="button" class="button active" onclick="switchTab(event, 'sensitivity-converter-tab')" id="sensitivity-converter-button">
+              <button type="button" class="button" onclick="switchTab(event, 'sensitivity-converter-tab')" id="sensitivity-converter-button">
                 <div class="icon-container">
                   <i class="ri-swap-2-line" aria-hidden="true"></i>
                 </div>
@@ -334,7 +348,29 @@
                 </div>
                 <span>Edpi Calculator</span>
               </button>
+            </div>
 
+            <div class="nav-group-divider" aria-hidden="true"></div>
+
+            <div class="button-container nav-group" data-group="Training">
+              <button type="button" class="button" onclick="switchTab(event, 'aim-training-tab')" id="aim-training-button">
+                <div class="icon-container">
+                  <i class="ri-focus-3-line" aria-hidden="true"></i>
+                </div>
+                <span>Aim Trainer</span>
+              </button>
+
+              <button type="button" class="button" onclick="switchTab(event, 'stats-tab')" id="stats-button">
+                <div class="icon-container">
+                  <i class="ri-equalizer-2-line" aria-hidden="true"></i>
+                </div>
+                <span>Stats</span>
+              </button>
+            </div>
+
+            <div class="nav-group-divider" aria-hidden="true"></div>
+
+            <div class="button-container nav-group" data-group="Misc">
               <div class="nav-misc-dropdown" id="nav-misc-dropdown" hidden>
                 <button type="button" class="button nav-misc-toggle" id="nav-misc-toggle" aria-expanded="false" aria-controls="nav-misc-menu">
                   <div class="icon-container">
@@ -350,44 +386,20 @@
                     </div>
                     <span>Crosshair Converter</span>
                   </button>
+                  <button type="button" class="button nav-misc-button" data-nav-tab="settings-tab" onclick="switchTab(event, 'settings-tab')">
+                    <div class="icon-container">
+                      <i class="ri-tools-line" aria-hidden="true"></i>
+                    </div>
+                    <span>Settings</span>
+                  </button>
+                  <button type="button" class="button nav-misc-button" data-nav-tab="lineup-tab" onclick="switchTab(event, 'lineup-tab')">
+                    <div class="icon-container">
+                      <i class="ri-video-line" aria-hidden="true"></i>
+                    </div>
+                    <span>Lineups</span>
+                  </button>
                 </div>
               </div>
-
-              <button type="button" class="button" onclick="switchTab(event, 'settings-tab')" id="settings-button">
-                <div class="icon-container">
-                  <i class="ri-tools-line" aria-hidden="true"></i>
-                </div>
-                <span>Settings</span>
-              </button>
-            </div>
-
-            <div class="nav-group-divider" aria-hidden="true"></div>
-
-            <div class="button-container nav-group" data-group="Progress">
-              <button type="button" class="button" onclick="switchTab(event, 'stats-tab')" id="stats-button">
-                <div class="icon-container">
-                  <i class="ri-equalizer-2-line" aria-hidden="true"></i>
-                </div>
-                <span>Stats</span>
-              </button>
-
-              <button type="button" class="button" onclick="switchTab(event, 'aim-training-tab')" id="aim-training-button">
-                <div class="icon-container">
-                  <i class="ri-focus-3-line" aria-hidden="true"></i>
-                </div>
-                <span>Aim Trainer</span>
-              </button>
-            </div>
-
-            <div class="nav-group-divider" aria-hidden="true"></div>
-
-            <div class="button-container nav-group" data-group="Lineups">
-              <button type="button" class="button" id="lineup-button" onclick="switchTab(event, 'lineup-tab')">
-                <div class="icon-container">
-                  <i class="ri-video-line" aria-hidden="true"></i>
-                </div>
-                <span>Lineups</span>
-              </button>
             </div>
 
             <div class="nav-more-dropdown" id="nav-more-dropdown">
@@ -405,7 +417,6 @@
                   data-nav-tab="keybinds-tab"
                   onclick="
                     switchTab(event, 'keybinds-tab');
-                    scrollToTop(350);
                   "
                 >
                   <div class="icon-container">
@@ -420,7 +431,6 @@
                   data-nav-tab="updates-tab"
                   onclick="
                     switchTab(event, 'updates-tab');
-                    scrollToTop(350);
                   "
                 >
                   <div class="icon-container">
@@ -435,7 +445,6 @@
                   data-nav-tab="privacy-policy-tab"
                   onclick="
                     switchTab(event, 'privacy-policy-tab');
-                    scrollToTop(350);
                   "
                 >
                   <div class="icon-container">
@@ -450,7 +459,6 @@
                   data-nav-tab="terms-of-service-tab"
                   onclick="
                     switchTab(event, 'terms-of-service-tab');
-                    scrollToTop(350);
                   "
                 >
                   <div class="icon-container">
@@ -465,7 +473,6 @@
                   data-nav-tab="credit-tab"
                   onclick="
                     switchTab(event, 'credit-tab');
-                    scrollToTop(350);
                   "
                 >
                   <div class="icon-container">
@@ -493,7 +500,194 @@
         </nav>
       </div>
 
-      <div class="section" id="sensitivity-converter-tab" style="display: flex">
+      <div class="section is-active is-tab-entering" id="home-tab">
+        <div class="title-description-container home-hero">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-cup-line"></i>
+            </div>
+            <span class="title-heading">Morning Roast</span>
+          </div>
+          <div class="description">Your all-in-one sensitivity toolkit for competitive shooters — convert, calculate, train, and customize in one place.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder home-panel">
+              <fieldset class="fieldset-style home-about">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(23, 74%, 62%)">About Morning Roast</legend>
+                <p class="policy-intro">Morning Roast is a free browser-based utility built for players who care about mouse feel. Whether you are switching from CS2 to Valorant, tuning eDPI for a new main, or warming up with aim drills, everything runs locally in your browser — fast, private, and always available.</p>
+                <div class="home-about-grid">
+                  <div class="home-feature-card home-feature-card--info home-feature-card--about-consistency">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-exchange-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Built for consistency</span>
+                      <span class="home-feature-text">Match your muscle memory across dozens of supported titles. Convert sensitivity between games, compare eDPI values, and keep one familiar feel no matter what you queue.</span>
+                    </span>
+                  </div>
+                  <div class="home-feature-card home-feature-card--info home-feature-card--about-privacy">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-shield-check-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Privacy by design</span>
+                      <span class="home-feature-text">No account required. Conversions and calculations happen on your device. Preferences and aim-trainer scores stay in your browser — we do not collect your sensitivity data.</span>
+                    </span>
+                  </div>
+                  <div class="home-feature-card home-feature-card--info home-feature-card--about-toolkit">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-apps-2-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">More than a converter</span>
+                      <span class="home-feature-text">Train reaction time in the built-in aim trainer, convert CS2 and Valorant crosshair codes, browse lineup references, track personal bests on your profile, and tune the entire app to your taste.</span>
+                    </span>
+                  </div>
+                  <div class="home-feature-card home-feature-card--info home-feature-card--about-customize">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-palette-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Make it yours</span>
+                      <span class="home-feature-text">Pick accent colors, fonts, background patterns or full-screen wallpapers, and a frosted glass theme. Morning Roast adapts to your setup without getting in the way.</span>
+                    </span>
+                  </div>
+                </div>
+              </fieldset>
+
+              <section class="home-features" aria-labelledby="home-features-heading">
+                <div class="home-section-head">
+                  <h2 id="home-features-heading" class="home-section-title"><i class="ri-layout-grid-line" aria-hidden="true"></i> Explore the toolkit</h2>
+                  <p class="home-section-lead">Jump straight into any tool. Each card opens the matching page in the sidebar.</p>
+                </div>
+
+                <div class="home-feature-grid">
+                  <button type="button" class="home-feature-card home-feature-card--converter" onclick="switchTab(event, 'sensitivity-converter-tab')">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-swap-2-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Sensitivity Converter</span>
+                      <span class="home-feature-text">Convert mouse sensitivity between supported games while accounting for DPI on both sides.</span>
+                    </span>
+                    <span class="home-feature-cta">Open converter <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                  </button>
+
+                  <button type="button" class="home-feature-card home-feature-card--edpi" onclick="switchTab(event, 'edpi-calculator-tab')">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-pencil-ruler-2-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">eDPI Calculator</span>
+                      <span class="home-feature-text">Calculate effective DPI, see where you sit on the spectrum, compare two setups side by side, and share results.</span>
+                    </span>
+                    <span class="home-feature-cta">Open eDPI <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                  </button>
+
+                  <button type="button" class="home-feature-card home-feature-card--aim" onclick="switchTab(event, 'aim-training-tab')">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-focus-3-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Aim Trainer</span>
+                      <span class="home-feature-text">Warm up with clickable targets, track hits, misses, accuracy, and reaction time. Scores sync to your profile.</span>
+                    </span>
+                    <span class="home-feature-cta">Start training <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                  </button>
+
+                  <button type="button" class="home-feature-card home-feature-card--crosshair" onclick="switchTab(event, 'crosshair-converter-tab')">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-crosshair-2-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Crosshair Converter</span>
+                      <span class="home-feature-text">Translate crosshair settings between Counter-Strike 2 and Valorant with a live preview before you paste in-game.</span>
+                    </span>
+                    <span class="home-feature-cta">Open crosshair tool <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                  </button>
+
+                  <button type="button" class="home-feature-card home-feature-card--settings" onclick="switchTab(event, 'settings-tab')">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-tools-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Settings</span>
+                      <span class="home-feature-text">Customize accent color, typography, backgrounds, glass theme, audio levels, crosshair preview, and app behavior.</span>
+                    </span>
+                    <span class="home-feature-cta">Open settings <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                  </button>
+
+                  <button type="button" class="home-feature-card home-feature-card--stats" onclick="switchTab(event, 'stats-tab')">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-equalizer-2-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Stats &amp; Profile</span>
+                      <span class="home-feature-text">Review your last conversion, eDPI calculation, aim-trainer personal bests, and performance charts in one profile view.</span>
+                    </span>
+                    <span class="home-feature-cta">View stats <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                  </button>
+
+                  <button type="button" class="home-feature-card home-feature-card--lineups" onclick="switchTab(event, 'lineup-tab')">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-video-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Lineups</span>
+                      <span class="home-feature-text">Browse lineup reference videos with difficulty ratings, playback controls, and quick navigation between clips.</span>
+                    </span>
+                    <span class="home-feature-cta">Browse lineups <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                  </button>
+
+                  <button type="button" class="home-feature-card home-feature-card--updates home-feature-card--secondary" onclick="switchTab(event, 'updates-tab')">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-history-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Patch Notes</span>
+                      <span class="home-feature-text">Read what changed in each release — new features, improvements, and fixes with a searchable date filter.</span>
+                    </span>
+                    <span class="home-feature-cta">Read updates <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                  </button>
+                </div>
+              </section>
+
+              <fieldset class="fieldset-style home-details">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(191, 54%, 82%)">How it works</legend>
+                <ol class="home-steps">
+                  <li>
+                    <strong>Pick your tool</strong>
+                    <span>Use the sidebar or the cards above to open the converter, eDPI calculator, aim trainer, or any misc page.</span>
+                  </li>
+                  <li>
+                    <strong>Enter your numbers</strong>
+                    <span>Select games from the searchable dropdowns, type sensitivity and DPI, or paste a crosshair code — results update as you go.</span>
+                  </li>
+                  <li>
+                    <strong>Copy, share, or train</strong>
+                    <span>Copy results with one click, share a link with your values pre-filled, or hop into the aim trainer to put your settings to work.</span>
+                  </li>
+                  <li>
+                    <strong>Everything stays local</strong>
+                    <span>Your preferences and scores are stored in your browser. Clear site data anytime — no cloud account tied to your aim settings.</span>
+                  </li>
+                </ol>
+              </fieldset>
+
+              <fieldset class="fieldset-style home-details">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(121, 54%, 82%)">Keyboard shortcuts</legend>
+                <p class="policy-intro">Power users can jump around without touching the mouse. Press <kbd>1</kbd>–<kbd>5</kbd> for main tabs, <kbd>6</kbd> to cycle Misc pages, <kbd>7</kbd> to cycle footer pages, and <kbd>C</kbd> to copy on supported tabs.</p>
+                <div class="home-link-row">
+                  <button type="button" class="home-inline-link" onclick="switchTab(event, 'keybinds-tab')">
+                    <i class="ri-keyboard-box-line" aria-hidden="true"></i>
+                    View all keybinds
+                  </button>
+                  <a class="home-inline-link home-inline-link--external" href="https://discord.gg/pPQCJ8RxxU" target="_blank" rel="noopener noreferrer">
+                    <i class="ri-discord-line" aria-hidden="true"></i>
+                    Join Discord
+                  </a>
+                  <a class="home-inline-link home-inline-link--external" href="mailto:svitserk.morningstar@gmail.com">
+                    <i class="ri-mail-line" aria-hidden="true"></i>
+                    Contact
+                  </a>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="sensitivity-converter-tab">
         <div class="title-description-container">
           <div class="title">
             <div class="icon-container">
@@ -1094,7 +1288,6 @@
                   class="topic-indicator"
                   onclick="
                     document.getElementById('sidebar-sensitivity-converter-button').click();
-                    scrollToTop(350);
                   "
                 >
                   <i class="ri-swap-2-line topic-icon"></i>
@@ -1141,7 +1334,6 @@
                   class="topic-indicator"
                   onclick="
                     document.getElementById('sidebar-edpi-calculator-button').click();
-                    scrollToTop(350);
                   "
                 >
                   <i class="ri-pencil-ruler-2-line topic-icon topic-icon--desktop"></i>
@@ -1194,7 +1386,6 @@
                   class="topic-indicator"
                   onclick="
                     document.getElementById('sidebar-aim-training-button').click();
-                    scrollToTop(350);
                   "
                 >
                   <i class="ri-focus-3-line topic-icon"></i>
@@ -1862,21 +2053,19 @@
             <div class="box-holder keybinds-panel">
               <h4 class="settings-section-title"><i class="ri-layout-grid-line" aria-hidden="true"></i> Tabs</h4>
               <div class="keybinds-list">
-                <div class="keybind-row"><kbd>1</kbd><span>Open Sensitivity Converter</span></div>
-                <div class="keybind-row"><kbd>2</kbd><span>Open eDPI Calculator</span></div>
-                <div class="keybind-row" id="keybind-3-row"><kbd>3</kbd><span id="keybind-3-label">Open Crosshair Converter</span></div>
-                <div class="keybind-row"><kbd>4</kbd><span>Open Settings</span></div>
+                <div class="keybind-row"><kbd>1</kbd><span>Open Home</span></div>
+                <div class="keybind-row"><kbd>2</kbd><span>Open Sensitivity Converter</span></div>
+                <div class="keybind-row"><kbd>3</kbd><span>Open eDPI Calculator</span></div>
+                <div class="keybind-row"><kbd>4</kbd><span>Open Aim Trainer</span></div>
                 <div class="keybind-row"><kbd>5</kbd><span>Open Stats</span></div>
-                <div class="keybind-row"><kbd>6</kbd><span>Open Aim Trainer</span></div>
-                <div class="keybind-row" id="keybind-7-row"><kbd>7</kbd><span>Open Lineups</span></div>
-                <div class="keybind-row"><kbd>8</kbd><span id="keybind-8-label">Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)</span></div>
+                <div class="keybind-row" id="keybind-6-row"><kbd>6</kbd><span id="keybind-6-label">Cycle Misc pages (Crosshair Converter / Settings / Lineups)</span></div>
+                <div class="keybind-row"><kbd>7</kbd><span id="keybind-7-label">Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)</span></div>
               </div>
 
               <h4 class="settings-section-title keybinds-section-title"><i class="ri-flashlight-line" aria-hidden="true"></i> Actions</h4>
               <div class="keybinds-list">
                 <div class="keybind-row"><kbd>C</kbd><span>Copy the current tab result</span></div>
                 <div class="keybind-row"><kbd>R</kbd><span>Restart aim trainer session (during play)</span></div>
-                <div class="keybind-row"><kbd>?</kbd><span>Open this Keybinds tab</span></div>
               </div>
             </div>
           </div>
@@ -1923,10 +2112,64 @@
                 </div>
               </div>
 
-              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-17">
+              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-18">
+                <header class="changelog-header">
+                  <time class="changelog-date" datetime="2026-07-18">July 18, 2026</time>
+                  <span class="changelog-badge">Latest</span>
+                </header>
+                <div class="changelog-versions">
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.12</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Home page added (About cards, toolkit shortcuts, how-it-works steps, and keyboard tips)</li>
+                          <li>Home route added (/home deep link; root redirects to Home)</li>
+                          <li>About cards added (Background image cards with 3D tilt on hover)</li>
+                          <li>Misc sidebar menu added (Crosshair Converter, Settings, and Lineups)</li>
+                          <li>Loading screen progress bar added (Percentage and accent fill below the title)</li>
+                          <li>Wallpapers added (Ten new images for home About and toolkit cards)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Sidebar improved (Home first; Stats promoted; Settings and Lineups grouped under Misc)</li>
+                          <li>Hotkeys improved (1–5 open main tabs; 6 cycles Misc; 7 cycles More)</li>
+                          <li>Tab navigation improved (Always scrolls to top on switch)</li>
+                          <li>Loading screen improved (Preloads local images; title above logo; bar matches title width)</li>
+                          <li>Home About cards improved (Feature-card layout with custom wallpapers and tilt)</li>
+                          <li>Home toolkit cards improved (New backgrounds for Converter, eDPI, Aim Trainer, Stats, Settings, and Patch Notes)</li>
+                          <li>How it works improved (Bordered step rows with centered step numbers)</li>
+                          <li>Site assistant improved (Input refocuses on open and after each reply)</li>
+                          <li>Site assistant improved (Chat scroll no longer moves the page behind the panel)</li>
+                          <li>Glass theme improved (Fieldset backgrounds fill under legend notch)</li>
+                          <li>Glass theme improved (Sidebar menu junction clips cleanly on open)</li>
+                          <li>Credit page improved (Layout matches Privacy Policy structure)</li>
+                          <li>eDPI calculator improved (Compare separator uses full accent color)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>Home feature cards fixed (White hairlines inside border on tilt or hover)</li>
+                          <li>Home About cards fixed (Non-clickable cards no longer show pointer cursor)</li>
+                          <li>Crosshair preview fixed (Background images 404 on deep-linked tab routes)</li>
+                          <li>Custom accent picker fixed (Colored fringe on saturation and brightness field)</li>
+                          <li>Glass theme fixed (Dark line where sidebar flyout met sidebar background)</li>
+                          <li>Aim trainer fixed (Press R to restart no longer shown during countdown)</li>
+                          <li>Keybind removed (? shortcut for Keybinds tab)</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
+                </div>
+              </article>
+
+              <article class="changelog-date-group" data-changelog-date="2026-07-17">
                 <header class="changelog-header">
                   <time class="changelog-date" datetime="2026-07-17">July 17, 2026</time>
-                  <span class="changelog-badge">Latest</span>
                 </header>
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
@@ -2364,16 +2607,18 @@
           <div class="description">Recognizing the foundation of our work.</div>
         </div>
 
-        <div class="box-container" style="display: flex; flex-direction: column; gap: 0.5rem">
-          <div class="box-holder">
-            <fieldset class="fieldset-style">
-              <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">Creator</legend>
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder" style="display: flex; flex-direction: column; gap: 0.5rem">
+              <fieldset class="fieldset-style">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">Creator</legend>
 
-              <div class="policy-item item-blue">
-                <h3>FuZiveer</h3>
-                <p>Hello everyone, I hope you’re all having a fantastic day. I’m incredibly excited to share the sensitivity converter website I’ve been building. My goal was to create a tool that makes it easier for everyone to find their perfect settings, maintain consistency, and ultimately level up their gameplay. I truly hope it becomes a valuable resource for you on your journey to improvement. Thank you so much for all the support—it means the world to me. Much love to you all!</p>
-              </div>
-            </fieldset>
+                <div class="policy-item item-blue">
+                  <h3>FuZiveer</h3>
+                  <p>Hello everyone, I hope you’re all having a fantastic day. I’m incredibly excited to share the sensitivity converter website I’ve been building. My goal was to create a tool that makes it easier for everyone to find their perfect settings, maintain consistency, and ultimately level up their gameplay. I truly hope it becomes a valuable resource for you on your journey to improvement. Thank you so much for all the support—it means the world to me. Much love to you all!</p>
+                </div>
+              </fieldset>
+            </div>
           </div>
         </div>
       </div>

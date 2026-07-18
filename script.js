@@ -1514,16 +1514,28 @@ const cacheElements = () => {
   });
 };
 
-function scrollToTop(ms) {
-  if (window.innerWidth <= 768) return;
-  if (window.scrollY <= 0) return;
-  setTimeout(() => {
-    if (window.scrollY <= 0) return;
+function scrollToTop(ms = 0, { allowMobile = false, instant = false } = {}) {
+  if (!allowMobile && window.innerWidth <= 768) return;
+
+  const apply = () => {
     window.scrollTo({
       top: 0,
-      behavior: "smooth",
+      left: 0,
+      behavior: instant ? "instant" : "smooth",
     });
-  }, ms);
+  };
+
+  if (ms > 0) {
+    setTimeout(() => {
+      if (!instant && window.scrollY <= 0) return;
+      apply();
+    }, ms);
+    return;
+  }
+
+  if (!instant && window.scrollY <= 0) return;
+  apply();
+  if (instant) requestAnimationFrame(apply);
 }
 
 const DISTANCE_360_UNIT_KEY = "prefDistance360Unit";
@@ -1832,43 +1844,178 @@ const appLoadingState = {
   dismissed: false,
 };
 
+const APP_LOADING_PROGRESS_WEIGHTS = {
+  fonts: 8,
+  accent: 7,
+  logo: 7,
+  entrance: 8,
+  assets: 70,
+};
+
+const appLoadingAssetProgress = {
+  total: 0,
+  loaded: 0,
+};
+
+function getAppLoadingProgressPercent() {
+  let percent = 0;
+
+  for (const [key, weight] of Object.entries(APP_LOADING_PROGRESS_WEIGHTS)) {
+    if (key === "assets") {
+      if (appLoadingState.assets) {
+        percent += weight;
+      } else if (appLoadingAssetProgress.total > 0) {
+        percent += weight * (appLoadingAssetProgress.loaded / appLoadingAssetProgress.total);
+      }
+      continue;
+    }
+    if (appLoadingState[key]) percent += weight;
+  }
+
+  return Math.min(100, Math.round(percent));
+}
+
+function updateAppLoadingProgressUI() {
+  const bar = document.getElementById("app-loading-progress-bar");
+  const label = document.getElementById("app-loading-progress-label");
+  const meter = document.getElementById("app-loading-progress");
+  if (!bar || !label) return;
+
+  const percent = getAppLoadingProgressPercent();
+  bar.style.width = `${percent}%`;
+  label.textContent = `${percent}%`;
+  meter?.setAttribute("aria-valuenow", String(percent));
+  syncAppLoadingBarWidth();
+}
+
+function syncAppLoadingBarWidth() {
+  const screen = document.getElementById("app-loading-screen");
+  const title = document.querySelector("#app-loading-stage .app-loading-label");
+  const progress = document.getElementById("app-loading-progress");
+  if (!screen || !title || !progress) return;
+  const width = Math.ceil(title.getBoundingClientRect().width);
+  screen.style.setProperty("--app-loading-bar-width", `${width}px`);
+}
+
+function initAppLoadingBarWidthSync() {
+  const title = document.querySelector("#app-loading-stage .app-loading-label");
+  if (!title || initAppLoadingBarWidthSync._init) return;
+  initAppLoadingBarWidthSync._init = true;
+
+  const sync = () => syncAppLoadingBarWidth();
+  sync();
+
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(sync);
+    observer.observe(title);
+  }
+
+  window.addEventListener("resize", sync);
+}
+
 function markAppLoadingReady(key) {
   if (appLoadingState[key] !== false) return;
   appLoadingState[key] = true;
+  updateAppLoadingProgressUI();
   tryDismissAppLoadingScreen();
 }
 
-function waitForImageElement(img) {
-  if (!img) return Promise.resolve();
-  if (img.complete) return Promise.resolve();
-  return new Promise((resolve) => {
-    img.addEventListener("load", resolve, { once: true });
-    img.addEventListener("error", resolve, { once: true });
-  });
-}
-
 function waitForImageUrl(url) {
+  if (!url) return Promise.resolve();
   return new Promise((resolve) => {
     const img = new Image();
     img.decoding = "async";
-    img.onload = () => resolve();
+    const finish = () => {
+      if (typeof img.decode === "function") return img.decode().then(resolve).catch(resolve);
+      resolve();
+    };
+    img.onload = finish;
     img.onerror = () => resolve();
     img.src = url;
   });
 }
 
-function collectAppLoadingImageWaiters() {
-  const waiters = [waitForImageUrl("./assets/logo.png")];
+const APP_LOCAL_IMAGE_PATHS = [
+  "assets/logo.png",
+  "assets/crosshair-preview-bg.png",
+  "assets/crosshair-preview-bg-2.png",
+  "assets/crosshair-preview-bg-3.png",
+  "assets/backgrounds/sunset-lake.jpg",
+  "assets/backgrounds/synthwave-peaks.jpg",
+  "assets/backgrounds/crimson-shards.jpg",
+  "assets/backgrounds/prismatic-ridge.jpg",
+  "assets/backgrounds/cosmic-burst.jpg",
+  "assets/backgrounds/dark-wood.jpg",
+  "assets/backgrounds/royal-damask.jpg",
+  "assets/backgrounds/charcoal-slate.jpg",
+  "assets/backgrounds/neon-flame-stream.jpg",
+  "assets/backgrounds/magenta-paper-glow.jpg",
+  "assets/backgrounds/aged-parchment.jpg",
+  "assets/backgrounds/magenta-fluid-waves.jpg",
+  "assets/backgrounds/crimson-wire-mesh.jpg",
+  "assets/backgrounds/ember-low-poly.jpg",
+  "assets/backgrounds/prismatic-low-poly.jpg",
+  "assets/backgrounds/cyan-magenta-plexus.jpg",
+  "assets/backgrounds/slanted-color-bands.jpg",
+  "assets/backgrounds/magenta-light-trails.jpg",
+  "assets/backgrounds/blue-crystal-poly.jpg",
+  "assets/backgrounds/diagonal-prism-streaks.jpg",
+  "assets/backgrounds/purple-nebula.jpg",
+  "assets/backgrounds/neon-crystal-shards.jpg",
+  "assets/backgrounds/violet-tree-canopy.jpg",
+  "assets/backgrounds/japanese-maple-autumn.jpg",
+  "assets/backgrounds/dark-ferns.jpg",
+  "assets/lineups/cs2/mirage/thumbnail.webp",
+  "assets/lineups/valorant/pearl/thumbnail.webp",
+  "assets/lineup-utilities/cs2/flashbang.png",
+  "assets/lineup-utilities/cs2/he.png",
+  "assets/lineup-utilities/cs2/incendiary.png",
+  "assets/lineup-utilities/cs2/molotov.png",
+  "assets/lineup-utilities/cs2/smoke.png",
+  "assets/lineup-utilities/cs2/ct.svg",
+  "assets/lineup-utilities/cs2/t.svg",
+  "assets/lineup-utilities/valorant/flash.png",
+  "assets/lineup-utilities/valorant/molly.png",
+  "assets/lineup-utilities/valorant/recon.png",
+  "assets/lineup-utilities/valorant/smoke.png",
+  "assets/lineup-utilities/valorant/a.svg",
+  "assets/lineup-utilities/valorant/d.svg",
+];
+
+function addAppLoadingImageUrl(urls, pathOrUrl) {
+  if (!pathOrUrl) return;
+  if (/^(https?:|data:|blob:)/i.test(pathOrUrl)) {
+    urls.add(pathOrUrl);
+    return;
+  }
+  const clean = String(pathOrUrl).replace(/^\.\//, "").replace(/^\//, "");
+  if (typeof resolveAppAssetUrl === "function") {
+    urls.add(resolveAppAssetUrl(clean));
+    return;
+  }
+  urls.add(`${getAppBasePath()}${clean}`);
+}
+
+function collectAppLoadingImageUrls() {
+  const urls = new Set();
+
+  APP_LOCAL_IMAGE_PATHS.forEach((path) => addAppLoadingImageUrl(urls, path));
 
   for (const img of document.images) {
-    // Don't block forever on lazy images that haven't started loading.
-    if (img.loading === "lazy" && !img.complete && !img.currentSrc) continue;
     const src = img.currentSrc || img.getAttribute("src") || "";
     if (!src) continue;
-    waiters.push(waitForImageElement(img));
+    try {
+      addAppLoadingImageUrl(urls, new URL(src, window.location.href).href);
+    } catch {
+      addAppLoadingImageUrl(urls, src);
+    }
   }
 
-  return waiters;
+  return [...urls];
+}
+
+function collectAppLoadingImageWaiters() {
+  return collectAppLoadingImageUrls().map((url) => waitForImageUrl(url));
 }
 
 function initAppLoadingAssetsReady() {
@@ -1876,25 +2023,30 @@ function initAppLoadingAssetsReady() {
   initAppLoadingAssetsReady._started = true;
 
   const settle = () => markAppLoadingReady("assets");
-  const loadPromise =
-    document.readyState === "complete"
-      ? Promise.resolve()
-      : new Promise((resolve) => window.addEventListener("load", resolve, { once: true }));
-
-  const decodeLoadedImages = () =>
-    Promise.all(
-      [...document.images]
-        .filter((img) => img.complete && typeof img.decode === "function")
-        .map((img) => img.decode().catch(() => {})),
-    );
+  const loadPromise = document.readyState === "complete" ? Promise.resolve() : new Promise((resolve) => window.addEventListener("load", resolve, { once: true }));
 
   loadPromise
-    .then(() => Promise.all([...collectAppLoadingImageWaiters(), decodeLoadedImages()]))
+    .then(() => {
+      const urls = collectAppLoadingImageUrls();
+      appLoadingAssetProgress.total = urls.length;
+      appLoadingAssetProgress.loaded = 0;
+      updateAppLoadingProgressUI();
+
+      if (!urls.length) return;
+      return Promise.all(
+        urls.map((url) =>
+          waitForImageUrl(url).finally(() => {
+            appLoadingAssetProgress.loaded += 1;
+            updateAppLoadingProgressUI();
+          }),
+        ),
+      );
+    })
     .then(settle)
     .catch(settle);
 
   // Failsafe so a stalled asset never traps the loading screen.
-  window.setTimeout(settle, 15000);
+  window.setTimeout(settle, 30000);
 }
 
 /** Unit cubic-bezier easing (matches CSS cubic-bezier). */
@@ -2024,6 +2176,7 @@ function prepareAppLoadingSplit(screen) {
     // Logo has already become the blade — keep stage bg only in the split halves.
     clone.querySelector(".app-loading-logo-shell")?.remove();
     clone.querySelector(".app-loading-label")?.remove();
+    clone.querySelector(".app-loading-progress")?.remove();
     const edge = panel.querySelector(".app-loading-panel-edge");
     panel.replaceChildren(clone);
     if (edge) panel.appendChild(edge);
@@ -2090,16 +2243,22 @@ function tryDismissAppLoadingScreen() {
   }, borderFillMs + labelFadeMs);
 
   // 4) Red line expands across the screen
-  window.setTimeout(() => {
-    prepareAppLoadingSplit(screen);
-    void screen.offsetWidth;
-    screen.classList.add("is-slicing");
-  }, borderFillMs + labelFadeMs + morphMs);
+  window.setTimeout(
+    () => {
+      prepareAppLoadingSplit(screen);
+      void screen.offsetWidth;
+      screen.classList.add("is-slicing");
+    },
+    borderFillMs + labelFadeMs + morphMs,
+  );
 
   // 5) Halves split with red edge borders (rAF-driven for smooth motion)
-  window.setTimeout(() => {
-    animateAppLoadingSplit(screen, splitMs, removeScreen);
-  }, borderFillMs + labelFadeMs + morphMs + sliceMs);
+  window.setTimeout(
+    () => {
+      animateAppLoadingSplit(screen, splitMs, removeScreen);
+    },
+    borderFillMs + labelFadeMs + morphMs + sliceMs,
+  );
 
   setTimeout(removeScreen, splitFallbackMs);
 }
@@ -2143,6 +2302,8 @@ function initAppLoadingScreen() {
   }
 
   initAppLoadingAssetsReady();
+  initAppLoadingBarWidthSync();
+  updateAppLoadingProgressUI();
 }
 
 function closeSettingsAppStatusPanel() {
@@ -2157,7 +2318,7 @@ function initAppSidebar() {
   if (!sidebar) return;
 
   sidebar.addEventListener("click", (event) => {
-    const button = event.target.closest(".app-sidebar-item, .app-sidebar-logo, .app-sidebar-more-toggle, .app-sidebar-misc-toggle");
+    const button = event.target.closest(".app-sidebar-item, .app-sidebar-more-toggle, .app-sidebar-misc-toggle");
     if (button) requestAnimationFrame(() => button.blur());
   });
 
@@ -2350,7 +2511,30 @@ function openSidebarMenuBorderGap(sidebar, gapStart, gapEnd, { onComplete } = {}
   });
 }
 
+function finishAppSidebarMenuCloseInstant(kind) {
+  const isMore = kind === "more";
+  const root = document.getElementById(isMore ? "app-sidebar-more" : "app-sidebar-misc");
+  const menu = document.getElementById(isMore ? "sidebar-more-menu" : "sidebar-misc-menu");
+  const toggle = document.getElementById(isMore ? "sidebar-more-button" : "sidebar-misc-button");
+  const sidebar = document.querySelector(".app-sidebar");
+  if (!root || !menu || !toggle) return;
+
+  toggle.setAttribute("aria-expanded", "false");
+  menu.hidden = true;
+  menu.setAttribute("aria-hidden", "true");
+  root.classList.remove("is-open", "is-closing", "is-menu-revealed");
+  clearSidebarMenuBorderGap(sidebar);
+  if (isMore) syncMoreMenuBorder();
+  else syncMiscMenuBorder();
+  flushSidebarMenuCloseCallback(kind);
+}
+
 function beginAppSidebarMenuClose(kind) {
+  if (document.body.classList.contains("reduce-motion")) {
+    finishAppSidebarMenuCloseInstant(kind);
+    return;
+  }
+
   const isMore = kind === "more";
   const root = document.getElementById(isMore ? "app-sidebar-more" : "app-sidebar-misc");
   const menu = document.getElementById(isMore ? "sidebar-more-menu" : "sidebar-misc-menu");
@@ -2391,7 +2575,7 @@ function beginAppSidebarMenuClose(kind) {
   };
 
   const borderRestoreMs = getSidebarBorderMotionMs();
-  if (document.body.classList.contains("reduce-motion") || !borderRestoreMs) {
+  if (!borderRestoreMs) {
     startBorderClose();
     return;
   }
@@ -2423,6 +2607,13 @@ function beginAppMoreMenuOpen() {
   if (!sidebar || !metrics) return;
 
   sidebar.style.setProperty("--more-menu-top", `${metrics.menuTop}px`);
+
+  if (document.body.classList.contains("reduce-motion")) {
+    setSidebarMenuBorderGap(sidebar, metrics.gapStart, metrics.gapEnd);
+    more.classList.add("is-open", "is-menu-revealed");
+    return;
+  }
+
   more.classList.add("is-open");
   openSidebarMenuBorderGap(sidebar, metrics.gapStart, metrics.gapEnd, {
     onComplete: () => {
@@ -2449,6 +2640,13 @@ function beginAppMiscMenuOpen() {
 
   sidebar.style.setProperty("--misc-menu-top", `${metrics.viewportMenuTop}px`);
   sidebar.style.setProperty("--misc-menu-max-height", `${metrics.maxHeight}px`);
+
+  if (document.body.classList.contains("reduce-motion")) {
+    setSidebarMenuBorderGap(sidebar, metrics.gapStart, metrics.gapEnd);
+    misc.classList.add("is-open", "is-menu-revealed");
+    return;
+  }
+
   misc.classList.add("is-open");
   openSidebarMenuBorderGap(sidebar, metrics.gapStart, metrics.gapEnd, {
     onComplete: () => {
@@ -2603,10 +2801,7 @@ function syncMiscMenuBorder({ freezeTop = false } = {}) {
       const menuHeight = menu.scrollHeight;
       const maxTop = viewportOffsetTop + viewportHeight - padding - menuHeight;
       viewportMenuTop = Math.min(viewportMenuTop, Math.max(viewportOffsetTop + padding, maxTop));
-      sidebar.style.setProperty(
-        "--misc-menu-max-height",
-        `${Math.max(viewportOffsetTop + viewportHeight - viewportMenuTop - padding, 120)}px`,
-      );
+      sidebar.style.setProperty("--misc-menu-max-height", `${Math.max(viewportOffsetTop + viewportHeight - viewportMenuTop - padding, 120)}px`);
     }
     sidebar.style.setProperty("--misc-menu-top", `${viewportMenuTop}px`);
   }
@@ -2842,8 +3037,9 @@ function initAppMiscMenu() {
 }
 
 function finishAppLoadingScreen() {
-  const section = [...document.querySelectorAll(".section")].find((el) => el.style.display === "flex");
+  const section = [...document.querySelectorAll(".section")].find((el) => isSectionActive(el));
   if (!section || document.body.classList.contains("reduce-motion")) {
+    section?.classList.remove("is-tab-entering");
     markAppLoadingReady("entrance");
     return;
   }
@@ -2852,18 +3048,19 @@ function finishAppLoadingScreen() {
   const settle = () => {
     if (settled) return;
     settled = true;
+    section.classList.remove("is-tab-entering");
     markAppLoadingReady("entrance");
   };
 
   section.addEventListener(
     "animationend",
     (event) => {
-      if (event.target === section && event.animationName === "scale-animation") settle();
+      if (event.target === section && event.animationName === "tab-enter") settle();
     },
     { once: true },
   );
 
-  setTimeout(settle, 360);
+  setTimeout(settle, 220);
 }
 
 function commitAccentColor(normalized, { instant = false } = {}) {
@@ -2895,7 +3092,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v172";
+const APP_CACHE_VERSION = "morning-roast-v181";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -3400,6 +3597,91 @@ const GLIDER_SELECTOR_CONTAINERS = ".trainer-timer-selector, .trainer-toggle-sel
 
 function updateAllToggleGliders() {
   document.querySelectorAll(GLIDER_SELECTOR_CONTAINERS).forEach(positionToggleGlider);
+}
+
+function updateToggleGlidersIn(root) {
+  if (!root) return;
+  root.querySelectorAll(GLIDER_SELECTOR_CONTAINERS).forEach(positionToggleGlider);
+}
+
+function isSectionActive(section) {
+  return !!section?.classList.contains("is-active");
+}
+
+const tabSwitchUi = {
+  sections: null,
+  sidebarItems: null,
+  moreItems: null,
+  miscItems: null,
+  navButtons: null,
+  moreNavButtons: null,
+};
+
+function getTabSwitchUi() {
+  if (tabSwitchUi.sections) return tabSwitchUi;
+  tabSwitchUi.sections = [...document.querySelectorAll(".section")];
+  tabSwitchUi.sidebarItems = [...document.querySelectorAll(".app-sidebar-item")];
+  tabSwitchUi.moreItems = [...document.querySelectorAll(".app-sidebar-more-item")];
+  tabSwitchUi.miscItems = [...document.querySelectorAll(".app-sidebar-misc-item")];
+  tabSwitchUi.navButtons = [...document.querySelectorAll(".nav-bar .button-container .button, .nav-more-button, #nav-more-toggle, .nav-misc-button, #nav-misc-toggle")];
+  tabSwitchUi.moreNavButtons = [...document.querySelectorAll(".nav-more-button")];
+  return tabSwitchUi;
+}
+
+let tabActivationFrame = 0;
+
+function finishTabEnterAnimation(event) {
+  if (event.animationName !== "tab-enter") return;
+  event.currentTarget.classList.remove("is-tab-entering");
+}
+
+function runTabActivation(id) {
+  if (id === "aim-training-tab") {
+    aimTrainer.handleResize();
+    aimTrainer.updateAllGliders();
+    aimTrainer.resumeLoop();
+  } else if (!aimTrainer.shouldRunLoop?.()) {
+    aimTrainer.stopLoop?.();
+  }
+
+  if (id === "sensitivity-converter-tab") {
+    updateConversion();
+  } else if (id === "edpi-calculator-tab") {
+    updateEDPI();
+    syncEdpiSpectrumPointerTooltip();
+  } else if (id === "crosshair-converter-tab") {
+    ensureCrosshairConverterLoaded()
+      .then(() => {
+        initCrosshairConverterTab?.();
+        updateCrosshairConverterUi?.();
+        updateToggleGlidersIn(document.getElementById("crosshair-converter-tab"));
+      })
+      .catch(() => {});
+  } else if (id === "settings-tab") {
+    aimTrainer.drawCrosshairPreview();
+  } else if (id === "stats-tab") {
+    aimTrainer.displayResultsOnProfile();
+    updateToggleGlidersIn(document.getElementById("stats-tab"));
+    toggleProfileSensConvButtons();
+  } else if (id === "lineup-tab") {
+    applyLineupVideoSources();
+    syncLineupFiltersUiControls();
+    applyLineupGridStateInstant();
+    refreshLineupVideosFixedHeight();
+    updateToggleGlidersIn(document.getElementById("lineup-tab"));
+  }
+
+  updateGameInfoPanelVisibility();
+}
+
+function queueTabActivation(id) {
+  if (tabActivationFrame) nativeCancelAnimationFrame(tabActivationFrame);
+  tabActivationFrame = nativeRequestAnimationFrame(() => {
+    nativeRequestAnimationFrame(() => {
+      tabActivationFrame = 0;
+      runTabActivation(id);
+    });
+  });
 }
 
 const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
@@ -5268,8 +5550,7 @@ const aimTrainer = {
   },
 
   isAimTabVisible() {
-    const tab = document.getElementById("aim-training-tab");
-    return !!tab && tab.style.display !== "none";
+    return isSectionActive(document.getElementById("aim-training-tab"));
   },
 
   shouldRunLoop() {
@@ -6826,7 +7107,6 @@ const aimTrainer = {
       this.ctx.textAlign = "center";
       this.ctx.textBaseline = "middle";
       this.ctx.fillText(String(this.countdownValue), cx, cy + 25);
-      this.drawRestartHint();
       this.drawFinderUI();
       this.drawRandomizerUI();
       return;
@@ -7633,6 +7913,7 @@ function ensureCrosshairConverterLoaded() {
 }
 
 const TAB_SLUGS = {
+  "home-tab": "home",
   "sensitivity-converter-tab": "sensitivity-converter",
   "edpi-calculator-tab": "edpi-calculator",
   "crosshair-converter-tab": "crosshair-converter",
@@ -7647,16 +7928,16 @@ const TAB_SLUGS = {
   "credit-tab": "credit",
 };
 const SLUG_TO_TAB = Object.fromEntries(Object.entries(TAB_SLUGS).map(([tabId, slug]) => [slug, tabId]));
-const DEFAULT_TAB_ID = "sensitivity-converter-tab";
+const DEFAULT_TAB_ID = "home-tab";
 const routeState = {
   isInitial: true,
 };
 
 function getAppBasePath() {
   const script = document.querySelector('script[src*="script.js"]');
-  const src = script?.getAttribute("src") || "script.js";
+  if (!script?.src) return "/";
   try {
-    const { pathname } = new URL(src, window.location.href);
+    const { pathname } = new URL(script.src);
     const base = pathname.replace(/\/?script\.js$/i, "");
     return base.endsWith("/") ? base : `${base}/`;
   } catch {
@@ -7686,14 +7967,14 @@ function getTabIdFromPath() {
 function getCurrentTabId() {
   for (const tabId of Object.keys(TAB_SLUGS)) {
     const section = document.getElementById(tabId);
-    if (section && section.style.display !== "none") return tabId;
+    if (isSectionActive(section)) return tabId;
   }
   return DEFAULT_TAB_ID;
 }
 
 function syncUrlToTab(id, { replace = false, keepSearch = false } = {}) {
+  if (!(id in TAB_SLUGS)) return;
   const slug = TAB_SLUGS[id];
-  if (!slug) return;
 
   const base = getAppBasePath().replace(/\/$/, "");
   const nextPath = `${base}/${slug}`;
@@ -7709,6 +7990,7 @@ function syncUrlToTab(id, { replace = false, keepSearch = false } = {}) {
 }
 
 function initTabRouting() {
+  getTabSwitchUi();
   switchTab(null, getTabIdFromPath(), { updateHistory: false });
 
   window.addEventListener("popstate", () => {
@@ -7718,9 +8000,28 @@ function initTabRouting() {
 
 const FOOTER_TAB_IDS = new Set(["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"]);
 
-const MISC_TAB_IDS = new Set(["crosshair-converter-tab"]);
+const MISC_TAB_IDS = new Set(["crosshair-converter-tab", "settings-tab", "lineup-tab"]);
 
 const MORE_HOTKEY_TAB_ORDER = ["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
+
+const MISC_HOTKEY_TAB_ORDER = ["crosshair-converter-tab", "settings-tab", "lineup-tab"];
+
+const MAIN_TAB_HOTKEYS = {
+  1: "home-tab",
+  2: "sensitivity-converter-tab",
+  3: "edpi-calculator-tab",
+  4: "aim-training-tab",
+  5: "stats-tab",
+};
+
+function getMiscHotkeyTabOrder() {
+  if (!MISC_TAB_ENABLED) return [];
+  return MISC_HOTKEY_TAB_ORDER.filter((id) => id !== "lineup-tab" || LINEUP_TAB_ENABLED);
+}
+
+function getTabIdForNumberHotkey(key) {
+  return MAIN_TAB_HOTKEYS[key] || null;
+}
 
 const FOOTER_BUTTON_IDS = {
   "keybinds-tab": "keybinds-button",
@@ -7731,15 +8032,14 @@ const FOOTER_BUTTON_IDS = {
 };
 
 const NAV_BUTTON_IDS = {
+  "home-tab": "home-button",
   "sensitivity-converter-tab": "sensitivity-converter-button",
   "edpi-calculator-tab": "edpi-calculator-button",
-  "settings-tab": "settings-button",
-  "stats-tab": "stats-button",
-  "lineup-tab": "lineup-button",
   "aim-training-tab": "aim-training-button",
+  "stats-tab": "stats-button",
 };
 
-const LOGO_CYCLE_TAB_IDS = ["sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
+const LOGO_CYCLE_TAB_IDS = ["home-tab", "sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
 function getLogoCycleTabIds() {
   return LOGO_CYCLE_TAB_IDS.filter((id) => {
@@ -7761,7 +8061,6 @@ function cycleTabFromLogo(event) {
   const nextId = ids[nextIndex];
 
   switchTab(event, nextId);
-  if (FOOTER_TAB_IDS.has(nextId)) scrollToTop(350);
 }
 
 function closeMobileNavMiscMenu() {
@@ -9029,13 +9328,13 @@ function enhanceLineupVideoCardFoots(root = document) {
   });
 }
 
-/** Mouse-follow 3D tilt for lineup cards (SCALE_X / SCALE_Y match the tilt demo). */
-function initLineupCardTilt(root = document) {
+/** Mouse-follow 3D tilt (SCALE_X / SCALE_Y match the lineup card tilt demo). */
+function initCardTilt(selector, { tiltXVar = "--card-tilt-x", tiltYVar = "--card-tilt-y", tiltingClass = "is-tilting" } = {}, root = document) {
   const SCALE_X = 2;
   const SCALE_Y = 3.5;
   const scope = root?.querySelectorAll ? root : document;
 
-  scope.querySelectorAll(".lineup-video-card").forEach((card) => {
+  scope.querySelectorAll(selector).forEach((card) => {
     if (!(card instanceof HTMLElement) || card.dataset.tiltBound === "1") return;
     card.dataset.tiltBound = "1";
 
@@ -9050,8 +9349,8 @@ function initLineupCardTilt(root = document) {
     let lastTs = 0;
 
     const applyTilt = () => {
-      card.style.setProperty("--lineup-tilt-x", `${currentX}deg`);
-      card.style.setProperty("--lineup-tilt-y", `${currentY}deg`);
+      card.style.setProperty(tiltXVar, `${currentX}deg`);
+      card.style.setProperty(tiltYVar, `${currentY}deg`);
     };
 
     const measureCard = () => {
@@ -9105,7 +9404,7 @@ function initLineupCardTilt(root = document) {
     card.addEventListener("pointerenter", (event) => {
       if (prefersReducedUiMotion()) return;
       mouseHover = true;
-      card.classList.add("is-tilting");
+      card.classList.add(tiltingClass);
       const rect = measureCard();
       mousePosition = {
         x: event.clientX - rect.left,
@@ -9128,12 +9427,20 @@ function initLineupCardTilt(root = document) {
 
     card.addEventListener("pointerleave", () => {
       mouseHover = false;
-      card.classList.remove("is-tilting");
+      card.classList.remove(tiltingClass);
       targetX = 0;
       targetY = 0;
       schedule();
     });
   });
+}
+
+function initLineupCardTilt(root = document) {
+  initCardTilt(".lineup-video-card", { tiltXVar: "--lineup-tilt-x", tiltYVar: "--lineup-tilt-y" }, root);
+}
+
+function initHomeFeatureCardTilt(root = document) {
+  initCardTilt(".home-feature-card", { tiltXVar: "--home-tilt-x", tiltYVar: "--home-tilt-y" }, root);
 }
 
 function syncLineupSideFilterIcons(game = getActiveLineupGame()) {
@@ -9921,7 +10228,7 @@ function updateLineupVideosScrollState(game = getActiveLineupGame()) {
   if (fixedHeight == null) {
     clearLineupVideosHolderFixedHeight(holder);
     const lineupTab = document.getElementById("lineup-tab");
-    if (lineupTab && lineupTab.style.display !== "none") {
+    if (lineupTab && isSectionActive(lineupTab)) {
       scheduleLineupVideosScrollStateUpdate();
     }
     return;
@@ -11384,20 +11691,39 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
     id = "sensitivity-converter-tab";
   }
 
-  document.querySelectorAll(".section").forEach((s) => (s.style.display = "none"));
-  document.querySelectorAll(".app-sidebar-more-item.active").forEach((b) => b.classList.remove("active"));
-  document.querySelectorAll(".app-sidebar-misc-item.active").forEach((b) => b.classList.remove("active"));
-  document.querySelectorAll(".nav-bar .button-container .button, .nav-more-button, #nav-more-toggle, .nav-misc-button, #nav-misc-toggle").forEach((b) => b.classList.remove("active"));
+  const previousId = getCurrentTabId();
+  if (previousId === id) {
+    closeMobileNavMenu();
+    setAppMoreMenuOpen(false);
+    setAppMiscMenuOpen(false);
+    return;
+  }
 
+  const ui = getTabSwitchUi();
   const target = document.getElementById(id);
-  if (target) target.style.display = "flex";
+  if (!target) return;
+
+  for (const section of ui.sections) {
+    const active = section === target;
+    section.classList.toggle("is-active", active);
+    if (active) {
+      section.classList.add("is-tab-entering");
+      section.addEventListener("animationend", finishTabEnterAnimation, { once: true });
+    } else {
+      section.classList.remove("is-tab-entering");
+    }
+  }
+
+  ui.moreItems.forEach((b) => b.classList.remove("active"));
+  ui.miscItems.forEach((b) => b.classList.remove("active"));
+  ui.navButtons.forEach((b) => b.classList.remove("active"));
 
   const moreToggle = document.getElementById("sidebar-more-button");
   const miscToggle = document.getElementById("sidebar-misc-button");
 
   if (FOOTER_TAB_IDS.has(id)) {
-    document.querySelectorAll(".app-sidebar-item").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".nav-more-button").forEach((b) => b.classList.remove("active"));
+    ui.sidebarItems.forEach((b) => b.classList.remove("active"));
+    ui.moreNavButtons.forEach((b) => b.classList.remove("active"));
     const footerBtn = document.getElementById(FOOTER_BUTTON_IDS[id]);
     if (footerBtn) footerBtn.classList.add("active");
     document.querySelector(`.nav-more-button[data-nav-tab="${id}"]`)?.classList.add("active");
@@ -11405,17 +11731,17 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
     moreToggle?.classList.add("active");
     miscToggle?.classList.remove("active");
   } else if (MISC_TAB_IDS.has(id)) {
-    document.querySelectorAll(".app-sidebar-item").forEach((b) => b.classList.remove("active"));
+    ui.sidebarItems.forEach((b) => b.classList.remove("active"));
     miscToggle?.classList.add("active");
     document.querySelector(`.app-sidebar-misc-item[data-sidebar-tab="${id}"]`)?.classList.add("active");
     document.querySelector(`.nav-misc-button[data-nav-tab="${id}"]`)?.classList.add("active");
     document.getElementById("nav-misc-toggle")?.classList.add("active");
     moreToggle?.classList.remove("active");
   } else {
-    document.querySelectorAll(".app-sidebar-item").forEach((btn) => {
+    ui.sidebarItems.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.sidebarTab === id);
     });
-    document.querySelectorAll(".nav-more-button").forEach((b) => b.classList.remove("active"));
+    ui.moreNavButtons.forEach((b) => b.classList.remove("active"));
     document.getElementById("nav-more-toggle")?.classList.remove("active");
     moreToggle?.classList.remove("active");
     miscToggle?.classList.remove("active");
@@ -11428,51 +11754,18 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
   setAppMiscMenuOpen(false);
   if (id !== "settings-tab") closeSettingsAppStatusPanel();
 
-  if (id === "aim-training-tab") {
-    setTimeout(() => {
-      aimTrainer.handleResize();
-      aimTrainer.updateAllGliders();
-      aimTrainer.resumeLoop();
-    }, 50);
-  } else if (!aimTrainer.shouldRunLoop?.()) {
+  if (previousId === "aim-training-tab" && id !== "aim-training-tab") {
     aimTrainer.stopLoop?.();
   }
 
-  if (id === "sensitivity-converter-tab" || id === "privacy-policy-tab" || id === "terms-of-service-tab") {
-    if (id === "sensitivity-converter-tab") {
-      updateConversion();
-    }
-  } else if (id === "edpi-calculator-tab") {
-    updateEDPI();
-    syncEdpiSpectrumPointerTooltip();
-  } else if (id === "crosshair-converter-tab") {
-    ensureCrosshairConverterLoaded()
-      .then(() => {
-        initCrosshairConverterTab?.();
-        updateCrosshairConverterUi?.();
-        updateAllToggleGliders();
-      })
-      .catch(() => {});
-  } else if (id === "settings-tab") {
-    setTimeout(() => {
-      aimTrainer.drawCrosshairPreview();
-    }, 50);
-  } else if (id === "stats-tab") {
-    setTimeout(() => aimTrainer.displayResultsOnProfile(), 50);
-  } else if (id === "lineup-tab") {
-    setTimeout(() => {
-      applyLineupVideoSources();
-      syncLineupFiltersUiControls();
-      applyLineupGridStateInstant();
-      refreshLineupVideosFixedHeight();
-      updateAllToggleGliders();
-    }, 50);
-  }
-  updateGameInfoPanelVisibility();
-  toggleProfileSensConvButtons();
+  queueTabActivation(id);
 
   if (updateHistory && !routeState.isInitial) {
     syncUrlToTab(id);
+  }
+
+  if (!routeState.isInitial) {
+    scrollToTop(0, { allowMobile: true, instant: true });
   }
 }
 
@@ -12028,7 +12321,7 @@ function scheduleProfileChartsRender(fn) {
 function requestProfileChartsRedraw() {
   scheduleProfileChartsRender(() => {
     const statsTab = document.getElementById("stats-tab");
-    if (!statsTab || statsTab.style.display === "none") return;
+    if (!statsTab || !isSectionActive(statsTab)) return;
     aimTrainer.redrawProfileCharts();
   });
 }
@@ -12052,7 +12345,7 @@ function initProfileChartsWatcher() {
   if (statsTab) {
     new MutationObserver(() => requestProfileChartsRedraw()).observe(statsTab, {
       attributes: true,
-      attributeFilter: ["style"],
+      attributeFilter: ["class"],
     });
   }
 
@@ -12721,42 +13014,47 @@ function initTabBlock() {
 }
 
 function cycleHotkeyTab(tabOrder) {
-  const visibleSection = Array.from(document.querySelectorAll(".section")).find((s) => s.style.display !== "none");
+  const visibleSection = getTabSwitchUi().sections.find((s) => isSectionActive(s));
   const currentIndex = tabOrder.indexOf(visibleSection?.id);
   const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % tabOrder.length : 0;
   const nextId = tabOrder[nextIndex];
   switchTab(null, nextId);
-  if (FOOTER_TAB_IDS.has(nextId)) scrollToTop(350);
 }
 
 function initHotkeys() {
-  const tabMap = {
-    1: "sensitivity-converter-tab",
-    2: "edpi-calculator-tab",
-    4: "settings-tab",
-    5: "stats-tab",
-    6: "aim-training-tab",
-  };
   document.addEventListener("keydown", (e) => {
     const tag = (e.target.tagName || "").toLowerCase();
     if (tag === "input" || tag === "textarea" || e.target.isContentEditable) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.repeat) return;
 
-    if (e.key === "3") {
-      if (MISC_TAB_ENABLED) switchTab(null, "crosshair-converter-tab");
-      e.preventDefault();
-    } else if (e.key === "7") {
-      if (LINEUP_TAB_ENABLED) switchTab(null, "lineup-tab");
-      e.preventDefault();
-    } else if (e.key === "8") {
+    const tabKey = Number(e.key);
+    if (tabKey >= 1 && tabKey <= 5) {
+      const tabId = getTabIdForNumberHotkey(tabKey);
+      if (tabId) {
+        switchTab(null, tabId);
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (e.key === "6") {
+      const miscOrder = getMiscHotkeyTabOrder();
+      if (miscOrder.length) {
+        cycleHotkeyTab(miscOrder);
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (e.key === "7") {
       cycleHotkeyTab(MORE_HOTKEY_TAB_ORDER);
       e.preventDefault();
-    } else if (tabMap[e.key]) {
-      switchTab(null, tabMap[e.key]);
-      e.preventDefault();
-    } else if (e.key.toLowerCase() === "c") {
-      const visibleSection = Array.from(document.querySelectorAll(".section")).find((s) => s.style.display !== "none");
+      return;
+    }
+
+    if (e.key.toLowerCase() === "c") {
+      const visibleSection = getTabSwitchUi().sections.find((s) => isSectionActive(s));
       const copyBtn = visibleSection?.querySelector(".copy-button");
       if (copyBtn) {
         copyBtn.click();
@@ -12766,20 +13064,13 @@ function initHotkeys() {
       if (typeof aimTrainer !== "undefined" && aimTrainer.restartSession?.()) {
         e.preventDefault();
       }
-    } else if (e.key === "?") {
-      switchTab(null, "keybinds-tab");
-      scrollToTop(350);
-      e.preventDefault();
     }
   });
 }
 
 function syncKeybindLabels() {
-  const key3Row = document.getElementById("keybind-3-row");
-  if (key3Row) key3Row.hidden = !MISC_TAB_ENABLED;
-
-  const key7Row = document.getElementById("keybind-7-row");
-  if (key7Row) key7Row.hidden = !LINEUP_TAB_ENABLED;
+  const key6Row = document.getElementById("keybind-6-row");
+  if (key6Row) key6Row.hidden = !MISC_TAB_ENABLED;
 }
 
 function initLogoMask() {
@@ -12851,23 +13142,7 @@ const BG_PATTERN_ICONS = {
   none: "ri-prohibited-line",
 };
 
-const BG_IMAGE_IDS = [
-  "sunset-lake",
-  "synthwave-peaks",
-  "crimson-shards",
-  "prismatic-ridge",
-  "cosmic-burst",
-  "dark-wood",
-  "royal-damask",
-  "charcoal-slate",
-  "neon-flame-stream",
-  "magenta-paper-glow",
-  "aged-parchment",
-  "magenta-fluid-waves",
-  "crimson-wire-mesh",
-  "ember-low-poly",
-  "prismatic-low-poly",
-];
+const BG_IMAGE_IDS = ["sunset-lake", "synthwave-peaks", "crimson-shards", "prismatic-ridge", "cosmic-burst", "dark-wood", "royal-damask", "charcoal-slate", "neon-flame-stream", "magenta-paper-glow", "aged-parchment", "magenta-fluid-waves", "crimson-wire-mesh", "ember-low-poly", "prismatic-low-poly"];
 
 const BG_IMAGE_LEGACY_MAP = {
   midnight: "sunset-lake",
@@ -13474,8 +13749,7 @@ function renderBgBackdropList(mode, activeValue) {
 
 function syncBgBackdropUi(mode, value) {
   const normalizedMode = mode === "image" ? "image" : mode === "none" ? "none" : "pattern";
-  const normalizedValue =
-    normalizedMode === "none" ? "none" : normalizeBgBackdropValue(normalizedMode, value);
+  const normalizedValue = normalizedMode === "none" ? "none" : normalizeBgBackdropValue(normalizedMode, value);
   const labels = getBgBackdropLabels(normalizedMode);
   const icons = getBgBackdropIcons(normalizedMode);
   const label = document.getElementById("bg-backdrop-label");
@@ -13485,14 +13759,10 @@ function syncBgBackdropUi(mode, value) {
   const control = document.querySelector(".bg-backdrop-control");
 
   if (label) {
-    label.textContent =
-      normalizedMode === "none" ? "None" : labels[normalizedValue] || normalizedValue;
+    label.textContent = normalizedMode === "none" ? "None" : labels[normalizedValue] || normalizedValue;
   }
   if (icon) {
-    icon.className =
-      normalizedMode === "none"
-        ? "ri-prohibited-line pref-dropdown-icon"
-        : `${icons[normalizedValue] || "ri-palette-line"} pref-dropdown-icon`;
+    icon.className = normalizedMode === "none" ? "ri-prohibited-line pref-dropdown-icon" : `${icons[normalizedValue] || "ri-palette-line"} pref-dropdown-icon`;
   }
 
   if (dropdown) {
@@ -13756,14 +14026,7 @@ function initBgBackdropControl(savedMode, savedPattern, savedImage) {
   };
 
   initBgBackdropControl.close = close;
-  syncBgBackdropUi(
-    currentMode,
-    currentMode === "image"
-      ? savedImage
-      : currentMode === "pattern"
-        ? savedPattern
-        : "none",
-  );
+  syncBgBackdropUi(currentMode, currentMode === "image" ? savedImage : currentMode === "pattern" ? savedPattern : "none");
 
   trigger.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -14141,11 +14404,7 @@ function initPreferences() {
   const savedDistance360Unit = getDistance360Unit();
   const savedBgPattern = normalizeBgPattern(localStorage.getItem("prefBgPattern"));
   const savedBgImage = normalizeBgImage(localStorage.getItem("prefBgImage"));
-  const savedBgBackdropMode = normalizeBgBackdropMode(
-    localStorage.getItem("prefBgBackdropMode"),
-    savedBgPattern,
-    savedBgImage,
-  );
+  const savedBgBackdropMode = normalizeBgBackdropMode(localStorage.getItem("prefBgBackdropMode"), savedBgPattern, savedBgImage);
   const savedFontFamily = normalizeFontFamily(localStorage.getItem("prefFontFamily"));
 
   if (savedAccent) applyAccent(savedAccent, { instant: true });
@@ -14153,14 +14412,7 @@ function initPreferences() {
   applyFontFamily(savedFontFamily);
   applyContrast(savedContrast);
   applyMotion(savedMotion);
-  applyBgBackdrop(
-    savedBgBackdropMode,
-    savedBgBackdropMode === "image"
-      ? savedBgImage
-      : savedBgBackdropMode === "pattern"
-        ? savedBgPattern
-        : "none",
-  );
+  applyBgBackdrop(savedBgBackdropMode, savedBgBackdropMode === "image" ? savedBgImage : savedBgBackdropMode === "pattern" ? savedBgPattern : "none");
   initBgBackdropControl(savedBgBackdropMode, savedBgPattern, savedBgImage);
   initFontFamilyDropdown(savedFontFamily);
   bgParticles.init();
@@ -14194,7 +14446,17 @@ function initPreferences() {
 
   const clampAccentChannel = (value, min, max) => Math.min(max, Math.max(min, value));
 
-  const customAccentState = { h: 344, s: 99, l: 47, open: false };
+  const customAccentState = { h: 344, s: 99, l: 47, sv: 99, vv: 47, open: false };
+
+  const syncCustomAccentHslFromSpectrum = () => {
+    Object.assign(customAccentState, hsvToHsl(customAccentState.h, customAccentState.sv, customAccentState.vv));
+  };
+
+  const syncCustomAccentSpectrumFromHsl = () => {
+    const hsv = hslToHsv(customAccentState.h, customAccentState.s, customAccentState.l);
+    customAccentState.sv = hsv.s;
+    customAccentState.vv = hsv.v;
+  };
 
   const setAccentCustomPanelOpen = (open) => {
     customAccentState.open = open;
@@ -14237,16 +14499,15 @@ function initPreferences() {
     accentCustomSpectrum?.style.setProperty("--accent-custom-pure", pure);
     if (accentCustomHue) accentCustomHue.value = String(Math.round(h));
     if (accentCustomSpectrumCursor) {
-      const hsv = hslToHsv(h, s, l);
-      accentCustomSpectrumCursor.style.left = `${hsv.s}%`;
-      accentCustomSpectrumCursor.style.top = `${100 - hsv.v}%`;
+      accentCustomSpectrumCursor.style.left = `${customAccentState.sv}%`;
+      accentCustomSpectrumCursor.style.top = `${100 - customAccentState.vv}%`;
     }
     if (accentCustomHex && document.activeElement !== accentCustomHex) {
       accentCustomHex.value = hex.toUpperCase();
       accentCustomHex.classList.remove("invalid");
     }
     if (accentCustomHexSwatch) accentCustomHexSwatch.style.backgroundColor = hex;
-    accentCustomSpectrum?.setAttribute("aria-valuenow", String(Math.round(hslToHsv(h, s, l).s)));
+    accentCustomSpectrum?.setAttribute("aria-valuenow", String(Math.round(customAccentState.sv)));
     if (accentColorInput) accentColorInput.value = hex;
     if (accentCustomSwatch) syncAccentCustomSwatchStyle(accentCustomSwatch, hex);
     if (apply) selectCustomAccent(hex);
@@ -14254,6 +14515,7 @@ function initPreferences() {
 
   const loadAccentCustomPickerFromAccent = (accent) => {
     Object.assign(customAccentState, parseAccentHsl(accent));
+    syncCustomAccentSpectrumFromHsl();
     renderAccentCustomPicker();
   };
 
@@ -14261,9 +14523,9 @@ function initPreferences() {
     if (!accentCustomSpectrum) return;
     const rect = accentCustomSpectrum.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    const sat = clampAccentChannel(((clientX - rect.left) / rect.width) * 100, 0, 100);
-    const val = clampAccentChannel((1 - (clientY - rect.top) / rect.height) * 100, 0, 100);
-    Object.assign(customAccentState, hsvToHsl(customAccentState.h, sat, val));
+    customAccentState.sv = clampAccentChannel(((clientX - rect.left) / rect.width) * 100, 0, 100);
+    customAccentState.vv = clampAccentChannel((1 - (clientY - rect.top) / rect.height) * 100, 0, 100);
+    syncCustomAccentHslFromSpectrum();
     renderAccentCustomPicker({ apply });
   };
 
@@ -14292,28 +14554,28 @@ function initPreferences() {
 
     accentCustomSpectrum.addEventListener("keydown", (e) => {
       const step = e.shiftKey ? 5 : 1;
-      const hsv = hslToHsv(customAccentState.h, customAccentState.s, customAccentState.l);
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        hsv.s = clampAccentChannel(hsv.s - step, 0, 100);
+        customAccentState.sv = clampAccentChannel(customAccentState.sv - step, 0, 100);
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        hsv.s = clampAccentChannel(hsv.s + step, 0, 100);
+        customAccentState.sv = clampAccentChannel(customAccentState.sv + step, 0, 100);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        hsv.v = clampAccentChannel(hsv.v + step, 0, 100);
+        customAccentState.vv = clampAccentChannel(customAccentState.vv + step, 0, 100);
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        hsv.v = clampAccentChannel(hsv.v - step, 0, 100);
+        customAccentState.vv = clampAccentChannel(customAccentState.vv - step, 0, 100);
       } else {
         return;
       }
-      Object.assign(customAccentState, hsvToHsl(customAccentState.h, hsv.s, hsv.v));
+      syncCustomAccentHslFromSpectrum();
       renderAccentCustomPicker({ apply: true });
     });
 
     accentCustomHue?.addEventListener("input", () => {
       customAccentState.h = clampAccentChannel(Number(accentCustomHue.value) || 0, 0, 360);
+      syncCustomAccentHslFromSpectrum();
       renderAccentCustomPicker({ apply: true });
     });
 
@@ -14334,6 +14596,7 @@ function initPreferences() {
       accentCustomHex.value = parsed;
       accentCustomHex.classList.remove("invalid");
       Object.assign(customAccentState, parseAccentHsl(parsed));
+      syncCustomAccentSpectrumFromHsl();
       renderAccentCustomPicker({ apply: true });
     };
 
@@ -14342,6 +14605,7 @@ function initPreferences() {
       const parsed = parseAccentHexInput(accentCustomHex.value);
       if (!parsed) return;
       Object.assign(customAccentState, parseAccentHsl(parsed));
+      syncCustomAccentSpectrumFromHsl();
       renderAccentCustomPicker({ apply: true });
     });
 
@@ -14761,6 +15025,7 @@ function initChangelogDateFilter() {
 document.addEventListener("DOMContentLoaded", () => {
   initAppLoadingScreen();
   initAppSidebar();
+  initHomeFeatureCardTilt();
   initMobileNavMoreMenu();
   syncMiscTabUi();
   if (MISC_TAB_ENABLED) initMobileNavMiscMenu();
@@ -15337,3 +15602,4 @@ document.addEventListener("DOMContentLoaded", () => {
 window.switchTab = switchTab;
 window.cycleTabFromLogo = cycleTabFromLogo;
 window.scrollToTop = scrollToTop;
+window.resolveAppAssetUrl = resolveAppAssetUrl;

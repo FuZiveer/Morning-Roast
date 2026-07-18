@@ -777,6 +777,22 @@
     }
   }
 
+  function resolvePreviewAssetUrl(path) {
+    if (typeof window.resolveAppAssetUrl === "function") return window.resolveAppAssetUrl(path);
+
+    const script = document.querySelector('script[src*="script.js"]');
+    if (!script?.src) return path;
+    try {
+      const { pathname } = new URL(script.src);
+      const base = pathname.replace(/\/?script\.js$/i, "");
+      const prefix = base.endsWith("/") ? base : `${base}/`;
+      const clean = String(path).replace(/^\.\//, "").replace(/^\//, "");
+      return `${prefix}${clean}`;
+    } catch {
+      return path;
+    }
+  }
+
   const PREVIEW_BACKGROUNDS = ["assets/crosshair-preview-bg.png", "assets/crosshair-preview-bg-2.png", "assets/crosshair-preview-bg-3.png"];
   const PREVIEW_REF_WIDTH = 1920;
   const PREVIEW_REF_HEIGHT = 1080;
@@ -800,8 +816,11 @@
 
       img.decoding = "async";
       img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = src;
+      img.onerror = () => {
+        previewBgCache.delete(src);
+        resolve(null);
+      };
+      img.src = resolvePreviewAssetUrl(src);
     });
   }
 
@@ -870,7 +889,12 @@
 
   function drawPreviewSceneLayer(ctx, w, h, preview, bgIndex) {
     const img = getPreviewBgImageAt(bgIndex);
-    if (!drawPreviewBackgroundImage(ctx, w, h, img)) drawPreviewBackgroundFallback(ctx, w, h);
+    if (!drawPreviewBackgroundImage(ctx, w, h, img)) {
+      drawPreviewBackgroundFallback(ctx, w, h);
+      loadPreviewBackground(bgIndex).then((loaded) => {
+        if (loaded) redrawCrosshairPreview();
+      });
+    }
     drawCrosshairOnPreview(ctx, w, h, preview);
   }
 
@@ -1300,7 +1324,7 @@
 
     updateCrosshairConverterUi();
     updateAllToggleGliders?.();
-    loadPreviewBackground(state.bgIndex).then(() => redrawCrosshairPreview());
+    preloadAllPreviewBackgrounds().then(() => redrawCrosshairPreview());
   }
 
   window.initCrosshairConverterTab = initCrosshairConverterTab;
