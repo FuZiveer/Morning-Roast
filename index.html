@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="morning-roast-presence-ws" content="wss://morning-roast-jh3y.onrender.com/presence" />
     <meta name="morning-roast-chat-ws" content="wss://morning-roast-jh3y.onrender.com/chat" />
+    <meta name="morning-roast-api" content="https://morning-roast-jh3y.onrender.com" />
     <title>Morning Roast</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -137,6 +138,7 @@
 
     <script defer src="tools/games.js"></script>
     <script defer src="tools/online-presence.js"></script>
+    <script defer src="tools/auth-client.js"></script>
     <script defer src="tools/live-chat.js"></script>
     <script defer src="script.js"></script>
   </head>
@@ -166,6 +168,46 @@
             <span class="app-loading-progress-label" id="app-loading-progress-label">0%</span>
           </div>
         </div>
+      </div>
+    </div>
+    <div id="auth-gate" class="auth-gate" role="dialog" aria-modal="true" aria-labelledby="auth-gate-title" hidden>
+      <div class="auth-gate-backdrop" aria-hidden="true"></div>
+      <div class="auth-gate-card" role="document">
+        <div class="auth-gate-brand">
+          <span class="logo-stack" aria-hidden="true">
+            <span class="logo-glow"></span>
+            <span class="logo-mark"></span>
+          </span>
+          <h2 id="auth-gate-title">Morning Roast</h2>
+          <p class="auth-gate-tagline">Sign in or create an account to continue.</p>
+        </div>
+
+        <div class="auth-gate-tabs" role="tablist" aria-label="Account">
+          <button type="button" class="auth-gate-tab is-active" id="auth-gate-tab-login" data-gate-tab="login" role="tab" aria-selected="true">Log in</button>
+          <button type="button" class="auth-gate-tab" id="auth-gate-tab-signup" data-gate-tab="signup" role="tab" aria-selected="false">Sign up</button>
+        </div>
+
+        <form id="auth-gate-login-form" class="auth-gate-form" autocomplete="on">
+          <label class="visually-hidden" for="auth-gate-login-email">Email</label>
+          <input id="auth-gate-login-email" class="auth-gate-input" type="email" placeholder="Email" autocomplete="email" required />
+          <label class="visually-hidden" for="auth-gate-login-password">Password</label>
+          <input id="auth-gate-login-password" class="auth-gate-input" type="password" placeholder="Password" autocomplete="current-password" required />
+          <button type="submit" class="auth-gate-submit">Log in</button>
+          <button type="button" id="auth-gate-resend" class="auth-gate-link" hidden>Resend verification email</button>
+        </form>
+
+        <form id="auth-gate-signup-form" class="auth-gate-form" autocomplete="on" hidden>
+          <label class="visually-hidden" for="auth-gate-signup-username">Username</label>
+          <input id="auth-gate-signup-username" class="auth-gate-input" type="text" maxlength="20" placeholder="Username (3-20 chars)" autocomplete="username" required />
+          <label class="visually-hidden" for="auth-gate-signup-email">Email</label>
+          <input id="auth-gate-signup-email" class="auth-gate-input" type="email" placeholder="Email" autocomplete="email" required />
+          <label class="visually-hidden" for="auth-gate-signup-password">Password</label>
+          <input id="auth-gate-signup-password" class="auth-gate-input" type="password" placeholder="Password (min 8 chars)" autocomplete="new-password" required />
+          <button type="submit" class="auth-gate-submit">Create account</button>
+        </form>
+
+        <p id="auth-gate-message" class="auth-gate-message" role="status" aria-live="polite"></p>
+        <p id="auth-gate-unavailable" class="auth-gate-message is-error" hidden>Accounts are unavailable right now. Please try again later.</p>
       </div>
     </div>
     <div id="bg-stars" class="bg-stars bg-stars--fixed" aria-hidden="true"></div>
@@ -302,6 +344,18 @@
           >
             <i class="ri-user-3-line" aria-hidden="true"></i>
             <span>Credit</span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            class="app-sidebar-more-item"
+            id="account-button"
+            onclick="
+              switchTab(event, 'account-tab');
+            "
+          >
+            <i class="ri-account-circle-line" aria-hidden="true"></i>
+            <span>Account</span>
           </button>
           <a role="menuitem" class="app-sidebar-more-item" href="mailto:svitserk.morningstar@gmail.com" target="_blank" rel="noopener noreferrer">
             <i class="ri-mail-line" aria-hidden="true"></i>
@@ -485,6 +539,20 @@
                     <i class="ri-user-3-line" aria-hidden="true"></i>
                   </div>
                   <span>Credit</span>
+                </button>
+
+                <button
+                  type="button"
+                  class="button nav-more-button"
+                  data-nav-tab="account-tab"
+                  onclick="
+                    switchTab(event, 'account-tab');
+                  "
+                >
+                  <div class="icon-container">
+                    <i class="ri-account-circle-line" aria-hidden="true"></i>
+                  </div>
+                  <span>Account</span>
                 </button>
 
                 <a class="button nav-more-link" href="mailto:svitserk.morningstar@gmail.com" target="_blank" rel="noopener noreferrer">
@@ -2644,6 +2712,64 @@
         </div>
       </div>
 
+      <div class="section" id="account-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-account-circle-line"></i>
+            </div>
+            <span>Account</span>
+          </div>
+          <div class="description">Manage your Morning Roast account.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder" style="display: flex; flex-direction: column; gap: 0.5rem">
+              <fieldset class="fieldset-style account-panel" id="account-signed-in" hidden>
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">Signed in</legend>
+                <div class="account-card">
+                  <span class="account-avatar" aria-hidden="true"><i class="ri-user-3-line"></i></span>
+                  <dl class="account-fields">
+                    <div class="account-field">
+                      <dt>Username</dt>
+                      <dd id="account-username">—</dd>
+                    </div>
+                    <div class="account-field">
+                      <dt>Email</dt>
+                      <dd id="account-email">—</dd>
+                    </div>
+                    <div class="account-field">
+                      <dt>Status</dt>
+                      <dd><span id="account-status" class="account-status">—</span></dd>
+                    </div>
+                  </dl>
+                </div>
+                <div class="account-actions">
+                  <button type="button" id="account-logout" class="account-btn account-btn--danger">
+                    <i class="ri-logout-box-r-line" aria-hidden="true"></i>
+                    <span>Log out</span>
+                  </button>
+                </div>
+              </fieldset>
+
+              <fieldset class="fieldset-style account-panel" id="account-signed-out" hidden>
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">Not signed in</legend>
+                <div class="policy-item item-blue">
+                  <p>You are not signed in. Sign in to access chat and your profile.</p>
+                </div>
+                <div class="account-actions">
+                  <button type="button" id="account-signin" class="account-btn">
+                    <i class="ri-login-box-line" aria-hidden="true"></i>
+                    <span>Sign in</span>
+                  </button>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="toast-stack"></div>
 
       <section id="notify-toaster" class="notify-toaster" aria-label="Notifications" aria-live="polite">
@@ -3555,6 +3681,13 @@
               <i class="ri-close-line" aria-hidden="true"></i>
             </button>
           </div>
+          <div id="live-chat-account" class="live-chat-account" hidden>
+            <span class="live-chat-account-user">
+              <i class="ri-user-3-line" aria-hidden="true"></i>
+              <span id="live-chat-account-name">—</span>
+            </span>
+            <button type="button" id="live-chat-logout" class="live-chat-account-logout">Log out</button>
+          </div>
           <div id="live-chat-offline" class="live-chat-offline" hidden>
             <p>Chat is offline. Reconnecting…</p>
           </div>
@@ -3565,7 +3698,36 @@
               <i class="ri-close-line" aria-hidden="true"></i>
             </button>
           </div>
-          <form id="live-chat-form" class="live-chat-form" autocomplete="off">
+
+          <div id="live-chat-auth" class="live-chat-auth" hidden>
+            <div class="live-chat-auth-tabs" role="tablist">
+              <button type="button" class="live-chat-auth-tab is-active" id="live-chat-tab-login" data-auth-tab="login" role="tab" aria-selected="true">Log in</button>
+              <button type="button" class="live-chat-auth-tab" id="live-chat-tab-signup" data-auth-tab="signup" role="tab" aria-selected="false">Sign up</button>
+            </div>
+
+            <form id="live-chat-login-form" class="live-chat-auth-form" autocomplete="on">
+              <label class="visually-hidden" for="live-chat-login-email">Email</label>
+              <input id="live-chat-login-email" class="live-chat-input live-chat-auth-input" type="email" placeholder="Email" autocomplete="email" required />
+              <label class="visually-hidden" for="live-chat-login-password">Password</label>
+              <input id="live-chat-login-password" class="live-chat-input live-chat-auth-input" type="password" placeholder="Password" autocomplete="current-password" required />
+              <button type="submit" class="live-chat-auth-submit">Log in</button>
+              <button type="button" id="live-chat-resend" class="live-chat-auth-link" hidden>Resend verification email</button>
+            </form>
+
+            <form id="live-chat-signup-form" class="live-chat-auth-form" autocomplete="on" hidden>
+              <label class="visually-hidden" for="live-chat-signup-username">Username</label>
+              <input id="live-chat-signup-username" class="live-chat-input live-chat-auth-input" type="text" maxlength="20" placeholder="Username (3-20 chars)" autocomplete="username" required />
+              <label class="visually-hidden" for="live-chat-signup-email">Email</label>
+              <input id="live-chat-signup-email" class="live-chat-input live-chat-auth-input" type="email" placeholder="Email" autocomplete="email" required />
+              <label class="visually-hidden" for="live-chat-signup-password">Password</label>
+              <input id="live-chat-signup-password" class="live-chat-input live-chat-auth-input" type="password" placeholder="Password (min 8 chars)" autocomplete="new-password" required />
+              <button type="submit" class="live-chat-auth-submit">Create account</button>
+            </form>
+
+            <p id="live-chat-auth-message" class="live-chat-auth-message" role="status" aria-live="polite"></p>
+          </div>
+
+          <form id="live-chat-form" class="live-chat-form" autocomplete="off" hidden>
             <label class="visually-hidden" for="live-chat-input">Message</label>
             <input id="live-chat-input" class="live-chat-input" type="text" maxlength="500" placeholder="Say something…" />
             <button type="submit" id="live-chat-send" class="live-chat-send" aria-label="Send message" disabled>
