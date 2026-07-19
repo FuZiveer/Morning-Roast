@@ -4,11 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="morning-roast-presence-ws" content="wss://morning-roast-jh3y.onrender.com/presence" />
+    <meta name="morning-roast-chat-ws" content="wss://morning-roast-jh3y.onrender.com/chat" />
     <title>Morning Roast</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link id="google-font-inter" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
+    <link id="google-font-inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.8.0/fonts/remixicon.css" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
     <script>
@@ -135,9 +136,8 @@
     </script>
 
     <script defer src="tools/games.js"></script>
-    <script defer src="tools/color-names.js"></script>
-    <script defer src="tools/site-assistant.js"></script>
     <script defer src="tools/online-presence.js"></script>
+    <script defer src="tools/live-chat.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
@@ -3540,6 +3540,50 @@
       </span>
     </button>
 
+    <div id="live-chat" class="live-chat">
+      <div class="live-chat-dock">
+        <div id="live-chat-panel" class="live-chat-panel" role="dialog" aria-modal="false" aria-labelledby="live-chat-title" aria-hidden="true">
+          <div class="live-chat-header">
+            <div class="live-chat-header-copy">
+              <span id="live-chat-status" class="live-chat-status" aria-hidden="true"></span>
+              <div>
+                <h3 id="live-chat-title">Live Chat</h3>
+                <p id="live-chat-subtitle" class="live-chat-subtitle">Chat with other visitors</p>
+              </div>
+            </div>
+            <button type="button" id="live-chat-close" class="live-chat-close" aria-label="Close live chat">
+              <i class="ri-close-line" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="live-chat-name-row">
+            <label class="visually-hidden" for="live-chat-name">Display name</label>
+            <input id="live-chat-name" class="live-chat-name" type="text" maxlength="24" placeholder="Your name" autocomplete="nickname" />
+          </div>
+          <div id="live-chat-offline" class="live-chat-offline" hidden>
+            <p>Chat is offline. Reconnecting…</p>
+          </div>
+          <div id="live-chat-messages" class="live-chat-messages" aria-live="polite"></div>
+          <div id="live-chat-reply-bar" class="live-chat-reply-bar" hidden>
+            <span id="live-chat-reply-label" class="live-chat-reply-label"></span>
+            <button type="button" id="live-chat-reply-cancel" class="live-chat-reply-cancel" aria-label="Cancel reply">
+              <i class="ri-close-line" aria-hidden="true"></i>
+            </button>
+          </div>
+          <form id="live-chat-form" class="live-chat-form" autocomplete="off">
+            <label class="visually-hidden" for="live-chat-input">Message</label>
+            <input id="live-chat-input" class="live-chat-input" type="text" maxlength="500" placeholder="Say something…" />
+            <button type="submit" id="live-chat-send" class="live-chat-send" aria-label="Send message" disabled>
+              <i class="ri-send-plane-2-line" aria-hidden="true"></i>
+            </button>
+          </form>
+        </div>
+        <button type="button" id="live-chat-toggle" class="live-chat-toggle" aria-controls="live-chat-panel" aria-expanded="false" aria-label="Open live chat">
+          <i class="ri-chat-3-line live-chat-toggle-open" aria-hidden="true"></i>
+          <i class="ri-close-line live-chat-toggle-close" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
     <div id="site-assistant" class="site-assistant">
       <div class="site-assistant-dock">
         <div id="site-assistant-panel" class="site-assistant-panel" role="dialog" aria-modal="false" aria-labelledby="site-assistant-title" aria-hidden="true">
@@ -3576,7 +3620,7 @@
           </form>
         </div>
         <button type="button" id="site-assistant-toggle" class="site-assistant-toggle" aria-controls="site-assistant-panel" aria-expanded="false" aria-label="Open site helper">
-          <i class="ri-chat-3-line site-assistant-toggle-open" aria-hidden="true"></i>
+          <i class="ri-robot-2-line site-assistant-toggle-open" aria-hidden="true"></i>
           <i class="ri-close-line site-assistant-toggle-close" aria-hidden="true"></i>
         </button>
       </div>

@@ -2,7 +2,7 @@
   "name": "morning-roast-presence",
   "private": true,
   "version": "1.0.0",
-  "description": "WebSocket presence counter for Morning Roast",
+  "description": "WebSocket presence + live chat server for Morning Roast",
   "main": "presence-server.js",
   "scripts": {
     "start": "node presence-server.js",
