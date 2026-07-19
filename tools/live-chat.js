@@ -59,14 +59,6 @@
     return fallback;
   }
 
-  function saveName(name) {
-    try {
-      localStorage.setItem(NAME_KEY, String(name || "").trim().slice(0, 24));
-    } catch {
-      /* ignore */
-    }
-  }
-
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -96,7 +88,6 @@
     const form = root.querySelector("#live-chat-form");
     const input = root.querySelector("#live-chat-input");
     const sendBtn = root.querySelector("#live-chat-send");
-    const nameInput = root.querySelector("#live-chat-name");
     const statusEl = root.querySelector("#live-chat-status");
     const subtitleEl = root.querySelector("#live-chat-subtitle");
     const offlineEl = root.querySelector("#live-chat-offline");
@@ -116,8 +107,6 @@
     /** @type {Map<string, object>} */
     const messageMap = new Map();
     let stickToBottom = true;
-
-    nameInput && (nameInput.value = displayName);
 
     const setStatus = (state, detail = "") => {
       root.classList.remove("is-live", "is-connecting", "is-offline", "is-disabled");
@@ -400,13 +389,6 @@
     });
 
     input.addEventListener("input", syncFormState);
-
-    nameInput?.addEventListener("change", () => {
-      displayName = String(nameInput.value || "").trim().slice(0, 24) || loadName();
-      nameInput.value = displayName;
-      saveName(displayName);
-      if (connected) sendPayload({ type: "rename", name: displayName });
-    });
 
     replyCancel?.addEventListener("click", clearReply);
 
