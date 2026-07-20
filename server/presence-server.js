@@ -88,7 +88,6 @@ wss.on("connection", (ws) => {
   });
 
   clients.add(ws);
-  ws.send(JSON.stringify({ type: "count", count: clients.size }));
   broadcastCount();
 
   ws.on("close", () => removeClient(ws));

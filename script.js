@@ -2313,7 +2313,7 @@ function closeSettingsAppStatusPanel() {
   dropdown.querySelector(".app-status-trigger")?.setAttribute("aria-expanded", "false");
 }
 
-function syncAppChromeVisitors(count, state = "live") {
+function syncAppChromeVisitorsState(state = "offline") {
   const root = document.getElementById("app-chrome-visitors");
   const label = document.getElementById("app-chrome-visitors-label");
   if (!root || !label) return;
@@ -2321,27 +2321,34 @@ function syncAppChromeVisitors(count, state = "live") {
   root.classList.remove("is-live", "is-connecting", "is-offline", "is-disabled");
   root.classList.add(`is-${state}`);
 
-  if (state === "live" && Number.isFinite(count)) {
-    const visitors = Math.max(0, Math.round(count));
-    label.textContent = `${visitors.toLocaleString()} online`;
-    root.setAttribute("aria-label", `${visitors} people online`);
-    return;
-  }
-
-  if (state === "connecting") {
-    label.textContent = "Connecting…";
-    root.setAttribute("aria-label", "Connecting to live visitor count");
-    return;
-  }
-
   if (state === "disabled") {
     label.textContent = "— online";
     root.setAttribute("aria-label", "Live visitor count unavailable");
     return;
   }
 
-  label.textContent = "— online";
-  root.setAttribute("aria-label", "Live visitor count offline");
+  if (state === "connecting") {
+    root.setAttribute("aria-label", "Connecting to live visitor count");
+    return;
+  }
+
+  if (state === "offline") {
+    root.setAttribute("aria-label", "Live visitor count offline");
+    return;
+  }
+
+  root.setAttribute("aria-label", label.textContent || "Live visitor count");
+}
+
+function syncAppChromeVisitorsCount(count) {
+  const root = document.getElementById("app-chrome-visitors");
+  const label = document.getElementById("app-chrome-visitors-label");
+  if (!root || !label || !Number.isFinite(count)) return;
+
+  const visitors = Math.max(0, Math.round(count));
+  label.textContent = `${visitors.toLocaleString()} online`;
+  root.setAttribute("aria-label", `${visitors} people online`);
+  syncAppChromeVisitorsState("live");
 }
 
 function initAppChromeTags() {
@@ -2349,14 +2356,11 @@ function initAppChromeTags() {
 
   if (typeof window.MorningRoastPresence?.initOnlinePresence === "function") {
     window.MorningRoastPresence.initOnlinePresence({
-      onCount: (count) => syncAppChromeVisitors(count, "live"),
-      onState: (state, count) => {
-        if (state === "live" && Number.isFinite(count)) syncAppChromeVisitors(count, "live");
-        else syncAppChromeVisitors(null, state);
-      },
+      onCount: syncAppChromeVisitorsCount,
+      onState: syncAppChromeVisitorsState,
     });
   } else {
-    syncAppChromeVisitors(null, "disabled");
+    syncAppChromeVisitorsState("disabled");
   }
 }
 
@@ -3882,7 +3886,6 @@ const aimTrainer = {
   totalTrackingFrames: 0,
   isFlickingToNewTarget: false,
   lastFrameTime: 0,
-  fpsDisplay: 0,
   restartButton: { w: 180, h: 46, radius: 8 },
   shareButton: { w: 180, h: 46, radius: 8 },
   buttonDisabledUntil: 0,
@@ -6078,10 +6081,6 @@ const aimTrainer = {
     const now = performance.now();
     const dt = Math.min(0.05, (now - this.lastFrameTime) / 1000);
     this.lastFrameTime = now;
-    if (dt > 0) {
-      const instantFps = 1 / dt;
-      this.fpsDisplay = this.fpsDisplay > 0 ? this.fpsDisplay * 0.88 + instantFps * 0.12 : instantFps;
-    }
 
     if (this.isStandbyScreen()) {
       const targetFill = this.standbyCanvasHover ? 1 : 0;
@@ -6850,11 +6849,6 @@ const aimTrainer = {
 
     this.ctx.save();
     this.ctx.textBaseline = "top";
-
-    this.ctx.textAlign = "left";
-    this.ctx.font = canvasFont("bold 14px");
-    this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.88)";
-    this.ctx.fillText(`${Math.round(this.fpsDisplay || 0)} FPS`, pad, topY);
 
     const timerId = this.getSessionTimerId();
     const timerSeconds = isInfiniteTrainerTimer(timerId) ? this.getSessionElapsedSeconds() : this.timeLeft;

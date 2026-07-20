@@ -3,6 +3,9 @@
   const RECONNECT_BASE_MS = 1500;
   const RECONNECT_MAX_MS = 30000;
 
+  /** @type {{ setHandlers: (handlers: object) => void, api: object } | null} */
+  let activeSession = null;
+
   function resolveWsUrl() {
     const meta = document.querySelector('meta[name="morning-roast-presence-ws"]')?.content?.trim();
     if (meta) return meta;
@@ -19,21 +22,27 @@
   }
 
   function initOnlinePresence(handlers = {}) {
+    if (activeSession) {
+      activeSession.setHandlers(handlers);
+      return activeSession.api;
+    }
+
     const url = resolveWsUrl();
     let ws = null;
+    let connectGeneration = 0;
     let reconnectMs = RECONNECT_BASE_MS;
     let reconnectTimer = null;
     let closedByUser = false;
-    let lastCount = null;
+    let handlerRef = handlers;
+
+    const getHandlers = () => handlerRef;
 
     const emitState = (state) => {
-      handlers.onState?.(state, lastCount);
+      getHandlers().onState?.(state);
     };
 
     const emitCount = (count) => {
-      lastCount = count;
-      handlers.onCount?.(count);
-      emitState("live");
+      getHandlers().onCount?.(count);
     };
 
     const cleanupReconnect = () => {
@@ -41,6 +50,13 @@
         clearTimeout(reconnectTimer);
         reconnectTimer = null;
       }
+    };
+
+    const closeSocket = () => {
+      if (!ws) return;
+      const socket = ws;
+      ws = null;
+      socket.close();
     };
 
     const scheduleReconnect = () => {
@@ -57,23 +73,30 @@
       }
 
       cleanupReconnect();
+      closeSocket();
       emitState("connecting");
 
+      const generation = ++connectGeneration;
+      let socket;
+
       try {
-        ws = new WebSocket(url);
+        socket = new WebSocket(url);
       } catch {
-        ws = null;
         emitState("offline");
         scheduleReconnect();
         return;
       }
 
-      ws.addEventListener("open", () => {
+      ws = socket;
+
+      socket.addEventListener("open", () => {
+        if (generation !== connectGeneration || ws !== socket) return;
         reconnectMs = RECONNECT_BASE_MS;
         emitState("live");
       });
 
-      ws.addEventListener("message", (event) => {
+      socket.addEventListener("message", (event) => {
+        if (generation !== connectGeneration || ws !== socket) return;
         try {
           const data = JSON.parse(String(event.data || ""));
           if (data?.type === "count" && Number.isFinite(data.count)) {
@@ -84,34 +107,63 @@
         }
       });
 
-      ws.addEventListener("close", () => {
+      socket.addEventListener("close", () => {
+        if (generation !== connectGeneration) return;
         ws = null;
         emitState("offline");
         scheduleReconnect();
       });
 
-      ws.addEventListener("error", () => {
-        ws?.close();
+      socket.addEventListener("error", () => {
+        if (ws === socket) socket.close();
       });
     }
 
     function destroy() {
       closedByUser = true;
       cleanupReconnect();
-      ws?.close();
-      ws = null;
+      connectGeneration += 1;
+      closeSocket();
+      activeSession = null;
     }
 
     function reconnect() {
       closedByUser = false;
       reconnectMs = RECONNECT_BASE_MS;
-      ws?.close();
-      connect();
+      cleanupReconnect();
+      closeSocket();
+      scheduleReconnect();
     }
+
+    const onPageHide = () => {
+      if (closedByUser || !url) return;
+      cleanupReconnect();
+      connectGeneration += 1;
+      closeSocket();
+    };
+
+    const onPageShow = (event) => {
+      if (closedByUser || !url || !event.persisted) return;
+      if (!ws || ws.readyState === WebSocket.CLOSED) {
+        reconnectMs = RECONNECT_BASE_MS;
+        connect();
+      }
+    };
+
+    global.addEventListener("pagehide", onPageHide);
+    global.addEventListener("pageshow", onPageShow);
+
+    const api = { destroy, reconnect, getUrl: () => url };
+    activeSession = {
+      setHandlers(nextHandlers = {}) {
+        handlerRef = nextHandlers;
+      },
+      api,
+    };
 
     connect();
 
-    return { destroy, reconnect, getUrl: () => url };
+    return api;
   }
 
   global.MorningRoastPresence = {
