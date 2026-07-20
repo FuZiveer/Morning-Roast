@@ -75,11 +75,16 @@ function bindHeightResizeAnimation(el, { durationMs = 300, onSettle } = {}) {
 }
 
 function prefersReducedUiMotion() {
-  return document.body?.classList.contains("reduce-motion") || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  return document.body?.classList.contains("reduce-motion") || prefersReducedMotionMedia;
 }
 
+let prefersReducedMotionMedia = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+window.matchMedia?.("(prefers-reduced-motion: reduce)")?.addEventListener?.("change", (event) => {
+  prefersReducedMotionMedia = event.matches;
+});
+
 function isSiteAssistantPullBlocked() {
-  return document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active");
+  return Boolean(document.pointerLockElement) || document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active");
 }
 
 /** True while the loading veil still covers this point (full screen, or a split half). */
@@ -107,21 +112,44 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
   let hovered = false;
   let animating = false;
   let lastTs = 0;
+  let restCenterX = 0;
+  let restCenterY = 0;
+  let restButtonSize = buttonSizeFallback;
+  let measureQueued = false;
 
   const applyOffset = () => {
     element.style.setProperty(pullXVar, `${offsetX}px`);
     element.style.setProperty(pullYVar, `${offsetY}px`);
   };
 
-  const getRestCenter = () => {
+  const measureRestCenter = () => {
+    const prevX = offsetX;
+    const prevY = offsetY;
+    offsetX = 0;
+    offsetY = 0;
+    applyOffset();
     const rect = element.getBoundingClientRect();
-    return {
-      x: rect.left + rect.width / 2 - offsetX,
-      y: rect.top + rect.height / 2 - offsetY,
-    };
+    restCenterX = rect.left + rect.width / 2;
+    restCenterY = rect.top + rect.height / 2;
+    restButtonSize = rect.width || element.offsetWidth || buttonSizeFallback;
+    offsetX = prevX;
+    offsetY = prevY;
+    applyOffset();
   };
 
+  const queueMeasureRestCenter = () => {
+    if (measureQueued) return;
+    measureQueued = true;
+    requestAnimationFrame(() => {
+      measureQueued = false;
+      measureRestCenter();
+    });
+  };
+
+  const getRestCenter = () => ({ x: restCenterX, y: restCenterY });
+
   const pullBlocked = () => {
+    if (document.pointerLockElement) return true;
     if (isBlocked()) return true;
     if (isAppLoadingCoveringPoint(mouseX, mouseY)) return true;
     const center = getRestCenter();
@@ -133,7 +161,7 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
     lastTs = ts;
     const dtScale = Math.min(2.5, dt * 60);
     const reduced = prefersReducedUiMotion();
-    const buttonSize = element.offsetWidth || buttonSizeFallback;
+    const buttonSize = restButtonSize || element.offsetWidth || buttonSizeFallback;
     let active = false;
 
     if (isLocked()) {
@@ -165,6 +193,7 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
         velY = 0;
         applyOffset();
         animating = false;
+        queueMeasureRestCenter();
       }
       return;
     }
@@ -274,6 +303,17 @@ function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxO
   document.addEventListener("pointerleave", onPointerLeave);
   hoverTarget.addEventListener("pointerenter", onElementEnter);
   hoverTarget.addEventListener("pointerleave", onElementLeave);
+  window.addEventListener("resize", queueMeasureRestCenter, { passive: true });
+  window.addEventListener("scroll", queueMeasureRestCenter, { passive: true });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", queueMeasureRestCenter, { passive: true });
+    window.visualViewport.addEventListener("scroll", queueMeasureRestCenter, { passive: true });
+  }
+  if (typeof ResizeObserver !== "undefined") {
+    const layoutObserver = new ResizeObserver(queueMeasureRestCenter);
+    layoutObserver.observe(element);
+  }
+  queueMeasureRestCenter();
 
   registerMagneticPullRetractor(retract);
 
@@ -301,101 +341,6 @@ function retractAllMagneticPulls() {
 }
 
 const Toast = (() => {
-  const DEFAULT_DURATION = 5000;
-  const RESIZE_MS = 300;
-  let layoutWatchInit = false;
-  let repositionFrame = 0;
-
-  function stackGapPx() {
-    return parseFloat(getComputedStyle(document.documentElement).fontSize) * 0.5;
-  }
-
-  function bindToastResizeAnimation(toast) {
-    bindHeightResizeAnimation(toast, {
-      durationMs: RESIZE_MS,
-      onSettle: () => toast._syncHoverPause?.(),
-    });
-  }
-
-  function getStack() {
-    let stack = document.getElementById("toast-stack");
-    if (!stack) {
-      stack = document.createElement("div");
-      stack.id = "toast-stack";
-      document.body.appendChild(stack);
-    }
-    return stack;
-  }
-
-  let cachedNavBar = null;
-
-  function applyReposition() {
-    const stack = document.getElementById("toast-stack");
-    if (!stack || !stack.children.length) return;
-
-    if (!cachedNavBar) cachedNavBar = document.querySelector(".nav-bar");
-    const gap = stackGapPx();
-    const defaultTop = gap;
-
-    let toastTop = defaultTop;
-    if (cachedNavBar) {
-      const navBottom = cachedNavBar.getBoundingClientRect().bottom;
-      if (navBottom > defaultTop) {
-        toastTop = navBottom + gap;
-      }
-    }
-
-    stack.style.top = `${toastTop}px`;
-  }
-
-  function reposition() {
-    const stack = document.getElementById("toast-stack");
-    if (!stack || !stack.children.length) return;
-    cancelAnimationFrame(repositionFrame);
-    repositionFrame = requestAnimationFrame(applyReposition);
-  }
-
-  function initLayoutWatchers() {
-    if (layoutWatchInit) return;
-    layoutWatchInit = true;
-
-    cachedNavBar = document.querySelector(".nav-bar");
-    const stack = document.getElementById("toast-stack");
-
-    if (typeof ResizeObserver !== "undefined") {
-      if (cachedNavBar) new ResizeObserver(() => reposition()).observe(cachedNavBar);
-      if (stack) new ResizeObserver(() => reposition()).observe(stack);
-    }
-
-    window.addEventListener("scroll", reposition, { passive: true });
-  }
-
-  window.addEventListener("resize", reposition);
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      initLayoutWatchers();
-      reposition();
-    });
-  } else {
-    initLayoutWatchers();
-    reposition();
-  }
-
-  function remove(toast) {
-    if (!toast || toast.dataset.removing) return;
-    toast.dataset.removing = "1";
-    toast.classList.add("toast-out");
-    toast.addEventListener(
-      "animationend",
-      () => {
-        toast.remove();
-        reposition();
-      },
-      { once: true },
-    );
-    setTimeout(() => toast.isConnected && toast.remove(), 400);
-  }
-
   const NOTIFY_MAX = 5;
   const NOTIFY_VISIBLE = 3;
   const NOTIFY_GAP = 14;
@@ -724,29 +669,7 @@ const Toast = (() => {
     return toast;
   }
 
-  function show(opts = {}) {
-    const { title = "", body = "", duration = DEFAULT_DURATION, copyText: copyValue } = opts;
-    const plainBody = String(body)
-      .replace(/<br\s*\/?>/gi, " ")
-      .replace(/<[^>]*>/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-    const parts = [];
-    if (title) parts.push(title);
-    if (plainBody) parts.push(plainBody);
-    if (copyValue && !plainBody.includes(String(copyValue))) parts.push(String(copyValue));
-    const message = parts.join(" · ") || "Notification";
-
-    const titleLower = String(title).toLowerCase();
-    let type = "default";
-    if (/fail|error|cannot|could not/.test(titleLower) || /fail|error|could not/.test(plainBody.toLowerCase())) type = "error";
-    else if (/complete|copied|success|optimal/.test(titleLower) || /copied|discovered|optimal/.test(plainBody.toLowerCase())) type = "success";
-    else if (/tip|shortcut|keyboard|help/.test(titleLower) || /shortcut|press/.test(plainBody.toLowerCase())) type = "info";
-
-    return notify({ message, type, duration });
-  }
-
-  return { show, notify, remove, reposition };
+  return { notify };
 })();
 window.Toast = Toast;
 
@@ -1574,14 +1497,6 @@ function setEdpiCm360Display(sens, dpi, game) {
   toggleVisibility(cmDisplay, visible);
 }
 
-function formatDistance360(sens, dpi, game, unit = getDistance360Unit()) {
-  const value = unit === "in" ? calculateIn360Value(sens, dpi, game) : calculateCm360Value(sens, dpi, game);
-  if (value == null || !Number.isFinite(value)) {
-    return unit === "in" ? "- in/360" : "- cm/360";
-  }
-  return `${value.toFixed(2)} ${unit}/360`;
-}
-
 function formatDistance360Short(sens, dpi, game, unit = getDistance360Unit()) {
   const value = unit === "in" ? calculateIn360Value(sens, dpi, game) : calculateCm360Value(sens, dpi, game);
   if (value == null || !Number.isFinite(value)) return "-";
@@ -2014,10 +1929,6 @@ function collectAppLoadingImageUrls() {
   return [...urls];
 }
 
-function collectAppLoadingImageWaiters() {
-  return collectAppLoadingImageUrls().map((url) => waitForImageUrl(url));
-}
-
 function initAppLoadingAssetsReady() {
   if (initAppLoadingAssetsReady._started) return;
   initAppLoadingAssetsReady._started = true;
@@ -2352,7 +2263,9 @@ function syncAppChromeVisitorsCount(count) {
 }
 
 function initAppChromeTags() {
+  if (initAppChromeTags._init) return;
   if (!document.querySelector(".app-chrome-tags")) return;
+  initAppChromeTags._init = true;
 
   if (typeof window.MorningRoastPresence?.initOnlinePresence === "function") {
     window.MorningRoastPresence.initOnlinePresence({
@@ -3143,7 +3056,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v186";
+const APP_CACHE_VERSION = "morning-roast-v206";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -3166,11 +3079,6 @@ function setMasterVolume(percent) {
   const pct = Math.max(0, Math.min(100, percent));
   audioState.masterVolume = pct / 100;
   localStorage.setItem("prefMasterVolume", String(pct));
-}
-
-function getAppAudioGain(baseGain = 0.05) {
-  if (audioState.masterVolume <= 0) return 0;
-  return baseGain * audioState.masterVolume;
 }
 
 const resetDialogState = {
@@ -3666,6 +3574,12 @@ const tabSwitchUi = {
   miscItems: null,
   navButtons: null,
   moreNavButtons: null,
+  footerButtons: null,
+  navButtonsByTab: null,
+  moreToggle: null,
+  miscToggle: null,
+  navMoreToggle: null,
+  navMiscToggle: null,
 };
 
 function getTabSwitchUi() {
@@ -3676,6 +3590,12 @@ function getTabSwitchUi() {
   tabSwitchUi.miscItems = [...document.querySelectorAll(".app-sidebar-misc-item")];
   tabSwitchUi.navButtons = [...document.querySelectorAll(".nav-bar .button-container .button, .nav-more-button, #nav-more-toggle, .nav-misc-button, #nav-misc-toggle")];
   tabSwitchUi.moreNavButtons = [...document.querySelectorAll(".nav-more-button")];
+  tabSwitchUi.moreToggle = document.getElementById("sidebar-more-button");
+  tabSwitchUi.miscToggle = document.getElementById("sidebar-misc-button");
+  tabSwitchUi.navMoreToggle = document.getElementById("nav-more-toggle");
+  tabSwitchUi.navMiscToggle = document.getElementById("nav-misc-toggle");
+  tabSwitchUi.footerButtons = Object.fromEntries(Object.entries(FOOTER_BUTTON_IDS).map(([tabId, btnId]) => [tabId, document.getElementById(btnId)]));
+  tabSwitchUi.navButtonsByTab = Object.fromEntries(Object.entries(NAV_BUTTON_IDS).map(([tabId, btnId]) => [tabId, document.getElementById(btnId)]));
   return tabSwitchUi;
 }
 
@@ -3720,6 +3640,8 @@ function runTabActivation(id) {
     applyLineupGridStateInstant();
     refreshLineupVideosFixedHeight();
     updateToggleGlidersIn(document.getElementById("lineup-tab"));
+  } else if (id === "account-tab") {
+    window.MorningRoastAuth?.refresh?.();
   }
 
   updateGameInfoPanelVisibility();
@@ -3748,7 +3670,6 @@ function normalizeUiRefreshMode(stored) {
 
 const UiFpsCap = (() => {
   let mode = "max";
-  let suspendDepth = 0;
   let intervalId = null;
   let queue = [];
   let nextId = 1;
@@ -3817,20 +3738,7 @@ const UiFpsCap = (() => {
   return {
     setMode(nextMode) {
       mode = normalizeUiRefreshMode(nextMode);
-      if (suspendDepth > 0) return;
       applyMode();
-    },
-    suspend() {
-      suspendDepth += 1;
-      if (suspendDepth === 1) {
-        stopInterval();
-        unpatchRaf();
-      }
-    },
-    resume() {
-      if (suspendDepth <= 0) return;
-      suspendDepth -= 1;
-      if (suspendDepth === 0) applyMode();
     },
   };
 })();
@@ -4692,7 +4600,7 @@ const aimTrainer = {
   init() {
     this.canvas = document.getElementById("aimCanvas");
     if (!this.canvas) return;
-    this.ctx = this.canvas.getContext("2d", { alpha: false, desynchronized: true }) || this.canvas.getContext("2d");
+    this.ctx = this.canvas.getContext("2d");
     this.canvas.style.cursor = "default";
 
     const sensInput = document.getElementById("canvas-sens");
@@ -4994,6 +4902,8 @@ const aimTrainer = {
         this.isCountingDown = false;
       }
       this.handleResize();
+      if (this.shouldRunLoop()) this.resumeLoop();
+      else this.stopLoop();
     });
 
     document.addEventListener("pointerlockchange", () => {
@@ -5020,32 +4930,23 @@ const aimTrainer = {
       }
     });
 
-    const handlePointerLook = (e) => {
-      if (document.pointerLockElement !== this.canvas) return;
-      const events = typeof e.getCoalescedEvents === "function" ? e.getCoalescedEvents() : [e];
-      for (const ev of events) {
-        if (!ev.movementX && !ev.movementY) continue;
-        this.applyPointerLook(ev.movementX, ev.movementY);
+    document.addEventListener("mousemove", (e) => {
+      if (document.pointerLockElement === this.canvas) {
+        this.handleCamera(e);
       }
-    };
+    });
 
-    document.addEventListener("mousemove", handlePointerLook);
-    document.addEventListener("pointermove", handlePointerLook);
-    document.addEventListener("pointerrawupdate", handlePointerLook);
-
-    window.addEventListener("resize", () => this.handleResize());
+    window.addEventListener("resize", () => {
+      this.handleResize();
+      this.updateAllGliders();
+    });
     this.handleResize();
-    window.addEventListener("resize", () => this.updateAllGliders());
     setTimeout(() => this.updateAllGliders(), 100);
     this.observeGliders();
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) this.stopLoop();
       else this.resumeLoop();
-    });
-    document.addEventListener("fullscreenchange", () => {
-      if (this.shouldRunLoop()) this.resumeLoop();
-      else this.stopLoop();
     });
 
     if (this.shouldRunLoop()) this.resumeLoop();
@@ -5184,7 +5085,7 @@ const aimTrainer = {
     this.render();
   },
 
-  applyPointerLook(movementX, movementY) {
+  handleCamera(e) {
     const sensInput = elements["canvas-sens"];
     const sens = parseFloat(sensInput?.value?.replace(",", ".")) || 0;
 
@@ -5192,15 +5093,10 @@ const aimTrainer = {
     const jitter = this.randomizerEnabled ? this.randomScale : 1.0;
     const rawMultiplier = sens * config.constant * (Math.PI / 180) * jitter;
 
-    const deltaYaw = movementX * rawMultiplier;
-    const deltaPitch = -movementY * rawMultiplier;
+    const deltaYaw = e.movementX * rawMultiplier;
+    const deltaPitch = -e.movementY * rawMultiplier;
     this.recordCameraMovement(deltaYaw, deltaPitch);
     this.camera.pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, this.camera.pitch));
-  },
-
-  handleCamera(e) {
-    if (!e.movementX && !e.movementY) return;
-    this.applyPointerLook(e.movementX, e.movementY);
   },
 
   recordCameraMovement(deltaYaw, deltaPitch) {
@@ -5641,12 +5537,10 @@ const aimTrainer = {
       nativeCancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
-    UiFpsCap.resume();
   },
 
   resumeLoop() {
     if (this.animationId || !this.shouldRunLoop()) return;
-    UiFpsCap.suspend();
     this.lastFrameTime = performance.now();
     this.loop();
   },
@@ -5935,21 +5829,16 @@ const aimTrainer = {
     this.ctx.save();
     this.particles.forEach((p) => {
       const glow = p.scanGlow || 0;
-      if (glow > 0.04) {
-        this.ctx.globalAlpha = p.alpha * glow * 0.42;
-        this.ctx.fillStyle = fillColor;
-        this.ctx.shadowBlur = 14 + glow * 22;
-        this.ctx.shadowColor = glowStrong;
-        this.ctx.beginPath();
-        this.ctx.arc(p.x, p.y, p.size * (1 + glow * 1.15), 0, Math.PI * 2);
-        this.ctx.fill();
-      }
-      this.ctx.globalAlpha = p.alpha * (1 + glow * 0.5);
+      this.ctx.globalAlpha = p.alpha * (1 + glow * 0.35);
       this.ctx.fillStyle = fillColor;
-      this.ctx.shadowBlur = 5 + glow * 18;
-      this.ctx.shadowColor = glow > 0.04 ? glowStrong : glowSoft;
+      if (glow > 0.08) {
+        this.ctx.shadowBlur = 6 + glow * 14;
+        this.ctx.shadowColor = glow > 0.2 ? glowStrong : glowSoft;
+      } else {
+        this.ctx.shadowBlur = 0;
+      }
       this.ctx.beginPath();
-      this.ctx.arc(p.x, p.y, p.size * (1 + glow * 0.4), 0, Math.PI * 2);
+      this.ctx.arc(p.x, p.y, p.size * (1 + glow * 0.35), 0, Math.PI * 2);
       this.ctx.fill();
     });
     this.ctx.shadowBlur = 0;
@@ -5964,6 +5853,8 @@ const aimTrainer = {
     const targetX = layout.cx;
     const targetY = layout.textCenterY;
     const bubbleSize = Math.max(layout.hw, layout.hh);
+    const bubbleHw = layout.hw * 1.08;
+    const bubbleHh = layout.hh * 1.08;
     const pullRadius = bubbleSize * 1.5;
     const absorbDist = 10;
     const bubbleCheckDist = bubbleSize * 1.15;
@@ -6035,7 +5926,10 @@ const aimTrainer = {
       }
 
       const nearBubble = dist < bubbleCheckDist;
-      const absorbed = dist < absorbDist || (nearBubble && this.isPointInStandbyBubble(p.x, p.y));
+      const dxNorm = bubbleHw > 0 ? (p.x - targetX) / bubbleHw : 0;
+      const dyNorm = bubbleHh > 0 ? (p.y - targetY) / bubbleHh : 0;
+      const inBubble = dxNorm * dxNorm + dyNorm * dyNorm <= 1;
+      const absorbed = dist < absorbDist || (nearBubble && inBubble);
       if (absorbed) {
         this.particles.splice(i, 1);
         this.particles.push(this.createStandbyParticleFromSide(layout));
@@ -6074,12 +5968,12 @@ const aimTrainer = {
 
   loop() {
     if (!this.shouldRunLoop()) {
-      this.stopLoop();
+      this.animationId = null;
       return;
     }
 
     const now = performance.now();
-    const dt = Math.min(0.05, (now - this.lastFrameTime) / 1000);
+    const dt = (now - this.lastFrameTime) / 1000;
     this.lastFrameTime = now;
 
     if (this.isStandbyScreen()) {
@@ -7954,18 +7848,45 @@ const MISC_TAB_ENABLED = true;
 
 const miscLoaderState = {
   crosshairConverterPromise: null,
+  colorNamesPromise: null,
+  siteAssistantPromise: null,
 };
+
+function loadDeferredScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(script);
+  });
+}
+
+function ensureColorNamesLoaded() {
+  if (typeof getAccentColorName === "function") return Promise.resolve();
+  if (!miscLoaderState.colorNamesPromise) {
+    miscLoaderState.colorNamesPromise = loadDeferredScript("./tools/color-names.js");
+  }
+  return miscLoaderState.colorNamesPromise;
+}
+
+function ensureSiteAssistantLoaded() {
+  if (typeof window.MorningRoastAssistant?.initSiteAssistant === "function") return Promise.resolve();
+  if (!miscLoaderState.siteAssistantPromise) {
+    miscLoaderState.siteAssistantPromise = loadDeferredScript("./tools/site-assistant.js");
+  }
+  return miscLoaderState.siteAssistantPromise;
+}
+
+function ensureLiveChatLoaded() {
+  if (typeof window.MorningRoastLiveChat?.initLiveChat === "function") return Promise.resolve();
+  return Promise.resolve();
+}
 
 function ensureCrosshairConverterLoaded() {
   if (typeof window.initCrosshairConverterTab === "function") return Promise.resolve();
   if (!miscLoaderState.crosshairConverterPromise) {
-    miscLoaderState.crosshairConverterPromise = new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "./tools/crosshair-converter.js";
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load tools/crosshair-converter.js"));
-      document.head.appendChild(script);
-    });
+    miscLoaderState.crosshairConverterPromise = loadDeferredScript("./tools/crosshair-converter.js");
   }
   return miscLoaderState.crosshairConverterPromise;
 }
@@ -7984,6 +7905,7 @@ const TAB_SLUGS = {
   "privacy-policy-tab": "privacy-policy",
   "terms-of-service-tab": "terms-of-service",
   "credit-tab": "credit",
+  "account-tab": "account",
 };
 const SLUG_TO_TAB = Object.fromEntries(Object.entries(TAB_SLUGS).map(([tabId, slug]) => [slug, tabId]));
 const DEFAULT_TAB_ID = "home-tab";
@@ -8056,11 +7978,201 @@ function initTabRouting() {
   });
 }
 
-const FOOTER_TAB_IDS = new Set(["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"]);
+/**
+ * Mandatory sign-in gate shown on load (revealed behind the loading split).
+ * Locks the app until a valid session exists; fails open if accounts are
+ * unavailable so the site can never brick itself.
+ */
+function initAuthGate() {
+  const gate = document.getElementById("auth-gate");
+  const auth = window.MorningRoastAuth;
+  if (!gate || !auth) return;
+
+  const tabs = gate.querySelectorAll("[data-gate-tab]");
+  const loginForm = document.getElementById("auth-gate-login-form");
+  const signupForm = document.getElementById("auth-gate-signup-form");
+  const loginEmail = document.getElementById("auth-gate-login-email");
+  const loginPassword = document.getElementById("auth-gate-login-password");
+  const signupUsername = document.getElementById("auth-gate-signup-username");
+  const signupEmail = document.getElementById("auth-gate-signup-email");
+  const signupPassword = document.getElementById("auth-gate-signup-password");
+  const resendBtn = document.getElementById("auth-gate-resend");
+  const messageEl = document.getElementById("auth-gate-message");
+  const unavailableEl = document.getElementById("auth-gate-unavailable");
+
+  let checked = false;
+  let locked = false;
+  let lastLoginEmail = "";
+
+  const setMessage = (text, kind = "info") => {
+    if (!messageEl) return;
+    messageEl.textContent = text || "";
+    messageEl.classList.remove("is-error", "is-success");
+    if (kind === "error") messageEl.classList.add("is-error");
+    else if (kind === "success") messageEl.classList.add("is-success");
+  };
+
+  const setLocked = (next) => {
+    locked = next;
+    gate.hidden = !next;
+    document.body.classList.toggle("auth-locked", next);
+    if (next) window.setTimeout(() => loginEmail?.focus(), 80);
+  };
+
+  const evaluate = () => {
+    const state = auth.getState();
+    if (!state.available) {
+      // No backend configured — never trap the user behind the gate.
+      setLocked(false);
+      return;
+    }
+    if (state.authed) {
+      setLocked(false);
+      return;
+    }
+    // Optimistically stay unlocked while a stored token is still being validated.
+    if (state.hasToken && !checked) return;
+    setLocked(true);
+  };
+
+  const switchGateTab = (tab) => {
+    tabs.forEach((btn) => {
+      const active = btn.dataset.gateTab === tab;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    if (loginForm) loginForm.hidden = tab !== "login";
+    if (signupForm) signupForm.hidden = tab !== "signup";
+    setMessage("");
+    if (resendBtn) resendBtn.hidden = true;
+  };
+
+  tabs.forEach((btn) => {
+    btn.addEventListener("click", () => switchGateTab(btn.dataset.gateTab));
+  });
+
+  loginForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const email = loginEmail?.value.trim() || "";
+    const password = loginPassword?.value || "";
+    if (!email || !password) return;
+    lastLoginEmail = email;
+    setMessage("Signing in…");
+    if (resendBtn) resendBtn.hidden = true;
+    const result = await auth.login(email, password);
+    if (result.ok) {
+      setMessage("");
+      if (loginPassword) loginPassword.value = "";
+      return;
+    }
+    setMessage(result.error || "Login failed.", "error");
+    if (result.needsVerification && resendBtn) resendBtn.hidden = false;
+  });
+
+  signupForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const username = signupUsername?.value.trim() || "";
+    const email = signupEmail?.value.trim() || "";
+    const password = signupPassword?.value || "";
+    if (!username || !email || !password) return;
+    setMessage("Creating account…");
+    const result = await auth.register(username, email, password);
+    if (result.ok) {
+      setMessage(result.message || "Check your email for a verification link.", "success");
+      if (signupPassword) signupPassword.value = "";
+    } else {
+      setMessage(result.error || "Sign up failed.", "error");
+    }
+  });
+
+  resendBtn?.addEventListener("click", async () => {
+    const email = lastLoginEmail || loginEmail?.value.trim() || "";
+    if (!email) return;
+    setMessage("Sending verification email…");
+    const result = await auth.resend(email);
+    setMessage(result.message || result.error || "Verification email sent.", result.ok ? "success" : "error");
+    if (result.ok && resendBtn) resendBtn.hidden = true;
+  });
+
+  const handleVerifyRedirect = () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has("verified")) return;
+      const ok = params.get("verified") === "1";
+      switchGateTab("login");
+      setMessage(
+        ok ? "Email verified! You can log in now." : "Verification link is invalid or expired.",
+        ok ? "success" : "error",
+      );
+      params.delete("verified");
+      const query = params.toString();
+      const next = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
+      window.history.replaceState(null, "", next);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  auth.subscribe(() => {
+    if (unavailableEl) unavailableEl.hidden = auth.getState().available;
+    evaluate();
+  });
+
+  Promise.resolve(auth.refresh()).finally(() => {
+    checked = true;
+    evaluate();
+  });
+
+  handleVerifyRedirect();
+
+  window.MorningRoastAuthGate = {
+    open: () => setLocked(true),
+    close: () => setLocked(false),
+    isOpen: () => locked,
+  };
+}
+
+/** Renders the Account tab (username, email, verified status, log out). */
+function initAccountTab() {
+  const auth = window.MorningRoastAuth;
+  const signedIn = document.getElementById("account-signed-in");
+  const signedOut = document.getElementById("account-signed-out");
+  if (!auth || (!signedIn && !signedOut)) return;
+
+  const usernameEl = document.getElementById("account-username");
+  const emailEl = document.getElementById("account-email");
+  const statusEl = document.getElementById("account-status");
+  const logoutBtn = document.getElementById("account-logout");
+  const signinBtn = document.getElementById("account-signin");
+
+  const render = (state) => {
+    const authed = state.authed;
+    if (signedIn) signedIn.hidden = !authed;
+    if (signedOut) signedOut.hidden = authed;
+    if (!authed) return;
+
+    const user = state.user || {};
+    if (usernameEl) usernameEl.textContent = user.username || "—";
+    if (emailEl) emailEl.textContent = user.email || "—";
+    if (statusEl) {
+      const verified = Boolean(user.verified);
+      statusEl.textContent = user.email == null ? "—" : verified ? "Verified" : "Unverified";
+      statusEl.classList.toggle("is-verified", verified);
+      statusEl.classList.toggle("is-unverified", !verified && user.email != null);
+    }
+  };
+
+  logoutBtn?.addEventListener("click", () => auth.logout());
+  signinBtn?.addEventListener("click", () => window.MorningRoastAuthGate?.open?.());
+
+  auth.subscribe(render);
+}
+
+const FOOTER_TAB_IDS = new Set(["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab", "account-tab"]);
 
 const MISC_TAB_IDS = new Set(["crosshair-converter-tab", "settings-tab", "lineup-tab"]);
 
-const MORE_HOTKEY_TAB_ORDER = ["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
+const MORE_HOTKEY_TAB_ORDER = ["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab", "account-tab"];
 
 const MISC_HOTKEY_TAB_ORDER = ["crosshair-converter-tab", "lineup-tab", "settings-tab"];
 
@@ -8087,6 +8199,7 @@ const FOOTER_BUTTON_IDS = {
   "privacy-policy-tab": "privacy-policy-button",
   "terms-of-service-tab": "terms-of-service-button",
   "credit-tab": "credit-button",
+  "account-tab": "account-button",
 };
 
 const NAV_BUTTON_IDS = {
@@ -8097,7 +8210,7 @@ const NAV_BUTTON_IDS = {
   "stats-tab": "stats-button",
 };
 
-const LOGO_CYCLE_TAB_IDS = ["home-tab", "sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
+const LOGO_CYCLE_TAB_IDS = ["home-tab", "sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab", "account-tab"];
 
 function getLogoCycleTabIds() {
   return LOGO_CYCLE_TAB_IDS.filter((id) => {
@@ -8371,28 +8484,6 @@ const LINEUP_MAP_ICONS = {
     pearl: "https://media.valorant-api.com/maps/fd267378-4d1d-484f-ff52-77821ed10dc2/displayicon.png",
     summit: "https://media.valorant-api.com/maps/756da597-416b-c0f2-f47b-afbdf28670bc/displayicon.png",
     sunset: "https://media.valorant-api.com/maps/92584fbe-486a-b1b2-9faa-39b0f486b498/displayicon.png",
-  },
-};
-
-/** Map callout names used for keyword chips and title parsing (longest match first). */
-const LINEUP_MAP_CALLOUTS = {
-  cs2: {
-    mirage: ["Window", "Connector", "Bench", "Jungle", "Stairs", "Palace", "Catwalk", "Apartments", "Underpass", "Ticket", "Top Mid", "A Site", "B Site", "Short", "Market", "Van", "Con", "CT"],
-    "dust-ii": ["Long", "Short", "Cat", "B Tunnels", "Mid Doors", "Xbox", "Pit", "A Site", "B Site"],
-    inferno: ["Banana", "Pit", "Library", "Apps", "Apartments", "A Site", "B Site", "Mid", "Arch"],
-    ancient: ["A Main", "B Main", "Mid", "Donut", "Temple", "Cave", "A Site", "B Site"],
-    anubis: ["A Main", "B Main", "Mid", "Canal", "Heaven", "A Site", "B Site"],
-    nuke: ["Ramp", "Secret", "Heaven", "Hell", "Outside", "A Site", "B Site"],
-    overpass: ["Monster", "Short", "Long", "Heaven", "Bathrooms", "A Site", "B Site"],
-    vertigo: ["A Ramp", "B Ramp", "Mid", "Scaffold", "A Site", "B Site"],
-  },
-  valorant: {
-    bind: ["A Short", "A Long", "B Long", "B Short", "Hookah", "Showers", "U-Hall", "Heaven", "A Site", "B Site"],
-    haven: ["A Long", "A Short", "C Long", "Garage", "Heaven", "A Site", "B Site", "C Site"],
-    ascent: ["A Main", "B Main", "Mid", "Market", "Wine", "Tree", "Heaven", "A Site", "B Site"],
-    split: ["A Main", "B Main", "Mid", "Heaven", "Mail", "Vents", "A Site", "B Site"],
-    lotus: ["A Main", "B Main", "C Main", "A Rope", "B Rope", "Top Mid", "A Site", "B Site", "C Site"],
-    pearl: ["B Push", "A Main", "B Main", "Mid", "Art", "Docks", "Tunnel", "Heaven", "A Site", "B Site"],
   },
 };
 
@@ -8832,10 +8923,6 @@ function applyLineupVideoSources(root = document) {
 
 function getLineupVideoTitle(card) {
   return card.querySelector(".lineup-video-title")?.textContent?.trim() || "";
-}
-
-function lineupAgentToSlug(name) {
-  return name.trim().toLowerCase().replace(/\//g, "").replace(/\s+/g, "");
 }
 
 function lineupValorantAgentLabel(slug) {
@@ -9399,6 +9486,7 @@ function initCardTilt(selector, { tiltXVar = "--card-tilt-x", tiltYVar = "--card
     let mouseHover = false;
     let mousePosition = { x: 0, y: 0 };
     let cardSize = { width: 0, height: 0 };
+    let cardRect = null;
     let currentX = 0;
     let currentY = 0;
     let targetX = 0;
@@ -9412,9 +9500,17 @@ function initCardTilt(selector, { tiltXVar = "--card-tilt-x", tiltYVar = "--card
     };
 
     const measureCard = () => {
-      const rect = card.getBoundingClientRect();
-      cardSize = { width: rect.width, height: rect.height };
-      return rect;
+      cardRect = card.getBoundingClientRect();
+      cardSize = { width: cardRect.width, height: cardRect.height };
+      return cardRect;
+    };
+
+    const setMouseFromEvent = (event) => {
+      if (!cardRect) measureCard();
+      mousePosition = {
+        x: event.clientX - cardRect.left,
+        y: event.clientY - cardRect.top,
+      };
     };
 
     const updateTargets = () => {
@@ -9463,28 +9559,22 @@ function initCardTilt(selector, { tiltXVar = "--card-tilt-x", tiltYVar = "--card
       if (prefersReducedUiMotion()) return;
       mouseHover = true;
       card.classList.add(tiltingClass);
-      const rect = measureCard();
-      mousePosition = {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
-      };
+      measureCard();
+      setMouseFromEvent(event);
       updateTargets();
       schedule();
     });
 
     card.addEventListener("pointermove", (event) => {
       if (!mouseHover || prefersReducedUiMotion()) return;
-      const rect = measureCard();
-      mousePosition = {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
-      };
+      setMouseFromEvent(event);
       updateTargets();
       schedule();
     });
 
     card.addEventListener("pointerleave", () => {
       mouseHover = false;
+      cardRect = null;
       card.classList.remove(tiltingClass);
       targetX = 0;
       targetY = 0;
@@ -9525,30 +9615,6 @@ function getLineupGameForCard(card) {
   return getActiveLineupGame();
 }
 
-function getLineupMapCallouts(game, mapSlug) {
-  return LINEUP_MAP_CALLOUTS[game]?.[mapSlug] || [];
-}
-
-function getLineupCardCallout(card) {
-  const explicit = card.dataset.lineupCallout?.trim();
-  if (explicit) return explicit;
-
-  const mapSlug = (card.dataset.lineupMap || "").toLowerCase();
-  if (!mapSlug) return "";
-
-  const game = getLineupGameForCard(card);
-  const title = getLineupVideoTitle(card);
-  if (!title) return "";
-
-  const titleLower = title.toLowerCase();
-  const callouts = [...getLineupMapCallouts(game, mapSlug)].sort((a, b) => b.length - a.length);
-  for (const callout of callouts) {
-    if (titleLower.includes(callout.toLowerCase())) return callout;
-  }
-
-  return "";
-}
-
 function applyLineupSearchHighlights(game = getActiveLineupGame()) {
   const lineupTab = document.getElementById("lineup-tab");
   if (lineupTab) clearSettingsSearchHighlights(lineupTab);
@@ -9581,23 +9647,6 @@ function lineupMapToSlug(name) {
 
 function lineupMapFromSlug(slug, game) {
   return (LINEUP_MAPS[game] || []).find((name) => lineupMapToSlug(name) === slug) || null;
-}
-
-function getLineupMapSlugsWithVideos(game = getActiveLineupGame()) {
-  const grid = getLineupGrid(game);
-  const slugs = new Set();
-  if (!grid) return slugs;
-
-  grid.querySelectorAll(".lineup-video-card").forEach((card) => {
-    const map = (card.dataset.lineupMap || "").toLowerCase().trim();
-    if (map) slugs.add(map);
-  });
-  return slugs;
-}
-
-function lineupGameHasVideos(game = getActiveLineupGame()) {
-  const grid = getLineupGrid(game);
-  return !!grid?.querySelector(".lineup-video-card");
 }
 
 function resolveLineupMapFilter(game = getActiveLineupGame()) {
@@ -10439,10 +10488,6 @@ function syncLineupGameSelectorUi(game = getActiveLineupGame()) {
     opt.setAttribute("aria-selected", active ? "true" : "false");
   });
   syncGameTriggerIcon("lineup-game");
-}
-
-function countVisibleLineupCards(grid) {
-  return [...grid.querySelectorAll(".lineup-video-card")].filter(isLineupCardDisplayed).length;
 }
 
 const lineupFilterTransitionState = {
@@ -11776,16 +11821,15 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
   ui.miscItems.forEach((b) => b.classList.remove("active"));
   ui.navButtons.forEach((b) => b.classList.remove("active"));
 
-  const moreToggle = document.getElementById("sidebar-more-button");
-  const miscToggle = document.getElementById("sidebar-misc-button");
+  const moreToggle = ui.moreToggle;
+  const miscToggle = ui.miscToggle;
 
   if (FOOTER_TAB_IDS.has(id)) {
     ui.sidebarItems.forEach((b) => b.classList.remove("active"));
     ui.moreNavButtons.forEach((b) => b.classList.remove("active"));
-    const footerBtn = document.getElementById(FOOTER_BUTTON_IDS[id]);
-    if (footerBtn) footerBtn.classList.add("active");
+    ui.footerButtons[id]?.classList.add("active");
     document.querySelector(`.nav-more-button[data-nav-tab="${id}"]`)?.classList.add("active");
-    document.getElementById("nav-more-toggle")?.classList.add("active");
+    ui.navMoreToggle?.classList.add("active");
     moreToggle?.classList.add("active");
     miscToggle?.classList.remove("active");
   } else if (MISC_TAB_IDS.has(id)) {
@@ -11793,18 +11837,17 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
     miscToggle?.classList.add("active");
     document.querySelector(`.app-sidebar-misc-item[data-sidebar-tab="${id}"]`)?.classList.add("active");
     document.querySelector(`.nav-misc-button[data-nav-tab="${id}"]`)?.classList.add("active");
-    document.getElementById("nav-misc-toggle")?.classList.add("active");
+    ui.navMiscToggle?.classList.add("active");
     moreToggle?.classList.remove("active");
   } else {
     ui.sidebarItems.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.sidebarTab === id);
     });
     ui.moreNavButtons.forEach((b) => b.classList.remove("active"));
-    document.getElementById("nav-more-toggle")?.classList.remove("active");
+    ui.navMoreToggle?.classList.remove("active");
     moreToggle?.classList.remove("active");
     miscToggle?.classList.remove("active");
-    const navBtn = NAV_BUTTON_IDS[id] ? document.getElementById(NAV_BUTTON_IDS[id]) : null;
-    if (navBtn) navBtn.classList.add("active");
+    ui.navButtonsByTab[id]?.classList.add("active");
   }
 
   closeMobileNavMenu();
@@ -12227,25 +12270,6 @@ function getCommittedGameFromInput(input) {
   return resolveStoredGameName(input.dataset.lastValid || "");
 }
 
-function resolveGameFromInput(input, listId) {
-  if (!input) return null;
-  const val = input.value.trim();
-  if (!val) return null;
-  const fromDisplay = MorningRoastGames.resolveGameFromDisplayName(val);
-  if (fromDisplay) return fromDisplay;
-  const list = document.getElementById(listId || input.id.replace("-search", "-list"));
-  if (!list) return null;
-
-  const options = Array.from(list.querySelectorAll(".pref-dropdown-option"));
-  const getOptionName = (opt) => getGameOptionLabel(opt);
-  const lower = val.toLowerCase();
-  const exact = options.find((opt) => getGameDisplayName(getOptionName(opt)).toLowerCase() === lower);
-  if (exact) return getOptionName(exact);
-
-  const partial = options.find((opt) => getGameDisplayName(getOptionName(opt)).toLowerCase().startsWith(lower));
-  return partial ? getOptionName(partial) : null;
-}
-
 function syncGameClearButton(inputId, clearId) {
   const input = document.getElementById(inputId);
   const clearBtn = document.getElementById(clearId);
@@ -12253,14 +12277,6 @@ function syncGameClearButton(inputId, clearId) {
   const hasValue = Boolean(input.value.trim());
   clearBtn.hidden = !hasValue;
   clearBtn.style.display = hasValue ? "flex" : "none";
-}
-
-function clearAimHistoryForGame(game) {
-  const prefix = `aimHistory_${game.toUpperCase()}_`;
-  for (let i = localStorage.length - 1; i >= 0; i--) {
-    const key = localStorage.key(i);
-    if (key?.startsWith(prefix)) localStorage.removeItem(key);
-  }
 }
 
 function clearAimHistoryForDay(game, mode, timer, dayKey) {
@@ -12505,13 +12521,6 @@ function resolveProgressChartSelectedDay(hist) {
 function getProgressSessionsForDay(hist, dayKey) {
   const { start, end } = getProgressDayWindow(dayKey);
   return hist.filter((entry) => entry?.ts >= start && entry?.ts <= end).sort((a, b) => a.ts - b.ts);
-}
-
-function progressChartXForTime(ts, start, end, padX, cssW) {
-  const width = cssW - padX * 2;
-  if (end <= start || width <= 0) return padX + width / 2;
-  const clamped = Math.max(start, Math.min(end, ts));
-  return padX + ((clamped - start) / (end - start)) * width;
 }
 
 function renderProgressCalendarGrid(hist) {
@@ -13501,27 +13510,34 @@ const FONT_FAMILY_LABELS = {
   figtree: "Figtree",
 };
 
+const GOOGLE_FONT_WEIGHTS = "400;500;600;700";
+const GOOGLE_FONT_DISPLAY = "&display=swap";
+
+function googleFontUrl(family, weights = GOOGLE_FONT_WEIGHTS) {
+  return `https://fonts.googleapis.com/css2?family=${family}:wght@${weights}${GOOGLE_FONT_DISPLAY}`;
+}
+
 const GOOGLE_FONT_URLS = {
-  inter: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
-  roboto: "https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap",
-  poppins: "https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100..900;1,100..900&display=swap",
-  "space-grotesk": "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap",
-  "dm-sans": "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap",
-  montserrat: "https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap",
-  "open-sans": "https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap",
-  lato: "https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap",
-  nunito: "https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap",
-  raleway: "https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,100..900;1,100..900&display=swap",
-  ubuntu: "https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap",
-  "source-sans-3": "https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap",
-  "work-sans": "https://fonts.googleapis.com/css2?family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap",
-  outfit: "https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap",
-  manrope: "https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap",
-  oswald: "https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap",
-  rubik: "https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap",
-  lexend: "https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap",
-  "plus-jakarta-sans": "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap",
-  figtree: "https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap",
+  inter: googleFontUrl("Inter"),
+  roboto: googleFontUrl("Roboto"),
+  poppins: googleFontUrl("Poppins"),
+  "space-grotesk": googleFontUrl("Space+Grotesk"),
+  "dm-sans": googleFontUrl("DM+Sans"),
+  montserrat: googleFontUrl("Montserrat"),
+  "open-sans": googleFontUrl("Open+Sans"),
+  lato: googleFontUrl("Lato", "400;700"),
+  nunito: googleFontUrl("Nunito"),
+  raleway: googleFontUrl("Raleway"),
+  ubuntu: googleFontUrl("Ubuntu", "400;500;700"),
+  "source-sans-3": googleFontUrl("Source+Sans+3"),
+  "work-sans": googleFontUrl("Work+Sans"),
+  outfit: googleFontUrl("Outfit"),
+  manrope: googleFontUrl("Manrope"),
+  oswald: googleFontUrl("Oswald"),
+  rubik: googleFontUrl("Rubik"),
+  lexend: googleFontUrl("Lexend"),
+  "plus-jakarta-sans": googleFontUrl("Plus+Jakarta+Sans"),
+  figtree: googleFontUrl("Figtree"),
 };
 
 const loadedGoogleFonts = new Set(["inter"]);
@@ -13536,10 +13552,6 @@ function ensureGoogleFontLoaded(fontId) {
   link.rel = "stylesheet";
   link.href = href;
   document.head.appendChild(link);
-}
-
-function preloadFontPickerFamilies() {
-  FONT_FAMILY_IDS.forEach((id) => ensureGoogleFontLoaded(id));
 }
 
 function getAppFontFamilyStack() {
@@ -13904,14 +13916,6 @@ function stopPrefDropdownPortalTracking(list) {
   prefDropdownPortalTrackers.delete(list);
 }
 
-function bindPrefDropdownPortalListeners(list, trigger) {
-  startPrefDropdownPortalTracking(list, trigger);
-}
-
-function unbindPrefDropdownPortalListeners(list) {
-  stopPrefDropdownPortalTracking(list);
-}
-
 function mountPrefDropdownPortal(list, trigger) {
   if (!list || !trigger) return;
   if (!list._portalAnchor) list._portalAnchor = list.parentElement;
@@ -13991,14 +13995,6 @@ function hideAllGameDropdownLists(exceptPrefix) {
   GAME_DROPDOWN_PREFIXES.forEach((prefix) => {
     if (prefix !== exceptPrefix) hideGameDropdownList(prefix);
   });
-}
-
-function showProfileGameList() {
-  showGameDropdownList("profile-game");
-}
-
-function hideProfileGameList() {
-  hideGameDropdownList("profile-game");
 }
 
 function initTrainerModeDropdown(savedMode) {
@@ -14146,7 +14142,6 @@ function initFontFamilyDropdown(savedValue) {
   };
 
   const open = () => {
-    preloadFontPickerFamilies();
     initTrainerModeDropdown.close?.();
     initBgBackdropControl.close?.();
     dropdown.classList.add("is-open");
@@ -14327,6 +14322,7 @@ function resetSettingsModalSearch(overlayId) {
 }
 
 function initThemeSettingsMenu() {
+  void ensureColorNamesLoaded();
   const overlay = document.getElementById("theme-settings-overlay");
   const openBtn = document.getElementById("open-theme-settings");
   const closeBtn = document.getElementById("close-theme-settings");
@@ -15087,6 +15083,8 @@ function initChangelogDateFilter() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initAppLoadingScreen();
+  initAuthGate();
+  initAccountTab();
   initAppChromeTags();
   initAppSidebar();
   initHomeFeatureCardTilt();
@@ -15132,7 +15130,23 @@ document.addEventListener("DOMContentLoaded", () => {
   initThemeSettingsMenu();
   initGeneralSettingsMenu();
   initConfirmReset();
-  window.MorningRoastAssistant?.initSiteAssistant?.();
+  const initSiteAssistantWhenIdle = () => {
+    ensureSiteAssistantLoaded()
+      .then(() => window.MorningRoastAssistant?.initSiteAssistant?.())
+      .catch(() => {});
+  };
+  const initLiveChatWhenIdle = () => {
+    ensureLiveChatLoaded()
+      .then(() => window.MorningRoastLiveChat?.initLiveChat?.())
+      .catch(() => {});
+  };
+  if ("requestIdleCallback" in window) {
+    requestIdleCallback(initSiteAssistantWhenIdle, { timeout: 4000 });
+    requestIdleCallback(initLiveChatWhenIdle, { timeout: 4000 });
+  } else {
+    setTimeout(initSiteAssistantWhenIdle, 2000);
+    setTimeout(initLiveChatWhenIdle, 2000);
+  }
   initOfflineStatus();
   initTrainerSettingsDropdowns();
   initProfileChartsWatcher();

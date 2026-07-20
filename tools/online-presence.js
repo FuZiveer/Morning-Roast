@@ -21,6 +21,10 @@
     return "";
   }
 
+  function socketConnectingOrOpen(ws) {
+    return ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN);
+  }
+
   function initOnlinePresence(handlers = {}) {
     if (activeSession) {
       activeSession.setHandlers(handlers);
@@ -61,16 +65,70 @@
 
     const scheduleReconnect = () => {
       cleanupReconnect();
-      if (closedByUser || !url) return;
+      if (closedByUser || !url || document.hidden) return;
       reconnectTimer = setTimeout(connect, reconnectMs);
       reconnectMs = Math.min(Math.round(reconnectMs * 1.5), RECONNECT_MAX_MS);
     };
+
+    const teardownSocket = () => {
+      if (!ws) return;
+      const socket = ws;
+      ws = null;
+      intentionalClose = true;
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onclose = null;
+      socket.onerror = null;
+      try {
+        socket.close();
+      } catch {
+        /* ignore */
+      }
+    };
+
+    function bindSocket(socket) {
+      socket.addEventListener("open", () => {
+        reconnectMs = RECONNECT_BASE_MS;
+      });
+
+      socket.addEventListener("message", (event) => {
+        try {
+          const data = JSON.parse(String(event.data || ""));
+          if (data?.type === "count" && Number.isFinite(data.count)) {
+            emitCount(Math.max(0, Math.round(data.count)));
+          }
+        } catch {
+          /* ignore malformed payloads */
+        }
+      });
+
+      socket.addEventListener("close", () => {
+        if (ws !== socket) {
+          intentionalClose = false;
+          return;
+        }
+        ws = null;
+        if (intentionalClose) {
+          intentionalClose = false;
+          return;
+        }
+        emitState("offline");
+        scheduleReconnect();
+      });
+
+      socket.addEventListener("error", () => {
+        if (ws !== socket) return;
+        teardownSocket();
+      });
+    }
 
     function connect() {
       if (!url) {
         emitState("disabled");
         return;
       }
+      if (document.hidden) return;
+      if (socketConnectingOrOpen(ws)) return;
 
       cleanupReconnect();
       closeSocket();
