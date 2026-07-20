@@ -3092,7 +3092,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v182";
+const APP_CACHE_VERSION = "morning-roast-v183";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -6767,30 +6767,9 @@ const aimTrainer = {
   drawSessionHud(cx) {
     const pad = 24;
     const topY = 26;
-    let acc;
-    if (isTrainerAccuracyMode(this.mode)) {
-      acc = this.totalTrackingFrames === 0 ? 0 : Math.round((this.trackingFrames / this.totalTrackingFrames) * 100);
-    } else {
-      acc = this.totalClicks === 0 ? 0 : Math.ceil((this.hits / this.totalClicks) * 100);
-    }
 
     this.ctx.save();
     this.ctx.textBaseline = "top";
-    this.ctx.textAlign = "left";
-    this.ctx.font = canvasFont("bold 14px");
-    this.ctx.fillStyle = "hsla(0, 0%, 100%, 0.88)";
-    this.ctx.fillText(`HITS: ${this.hits}`, pad, topY);
-    this.ctx.fillText(`ACC: ${acc}%`, pad, topY + 22);
-
-    if (!isTrainerAccuracyMode(this.mode) && this.missFlashAlpha > 0) {
-      this.ctx.save();
-      this.ctx.globalAlpha = this.missFlashAlpha;
-      this.ctx.fillStyle = "hsl(0, 100%, 55%)";
-      this.ctx.shadowBlur = 10;
-      this.ctx.shadowColor = "red";
-      this.ctx.fillText(`ACC: ${acc}%`, pad, topY + 22);
-      this.ctx.restore();
-    }
 
     const timerId = this.getSessionTimerId();
     const timerSeconds = isInfiniteTrainerTimer(timerId) ? this.getSessionElapsedSeconds() : this.timeLeft;
@@ -15033,6 +15012,19 @@ function initChangelogDateFilter() {
 document.addEventListener("DOMContentLoaded", () => {
   initAppLoadingScreen();
   initAppSidebar();
+  const presenceEl = document.getElementById("app-sidebar-presence");
+  const presenceCountEl = document.getElementById("online-member-count");
+  window.MorningRoastPresence?.initOnlinePresence?.({
+    onCount(count) {
+      if (presenceCountEl) presenceCountEl.textContent = String(count);
+    },
+    onState(state) {
+      if (!presenceEl) return;
+      presenceEl.classList.toggle("is-live", state === "live");
+      presenceEl.classList.toggle("is-offline", state === "offline" || state === "disabled");
+      presenceEl.title = state === "live" ? "Live members online" : state === "connecting" ? "Connecting to live member count" : "Live member count unavailable";
+    },
+  });
   initHomeFeatureCardTilt();
   initMobileNavMoreMenu();
   syncMiscTabUi();

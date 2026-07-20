@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="morning-roast-presence-ws" content="wss://morning-roast-39ov.onrender.com/presence" />
     <title>Morning Roast</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -136,6 +137,7 @@
     <script defer src="tools/games.js"></script>
     <script defer src="tools/color-names.js"></script>
     <script defer src="tools/site-assistant.js"></script>
+    <script defer src="tools/online-presence.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
@@ -175,6 +177,10 @@
           <span class="logo-mark" aria-hidden="true"></span>
         </span>
         <span class="app-sidebar-label app-sidebar-logo-label">Morning Roast</span>
+      </div>
+      <div class="app-sidebar-presence" id="app-sidebar-presence" role="status" aria-live="polite" title="Connecting to live member count">
+        <span class="app-sidebar-presence-dot" aria-hidden="true"></span>
+        <span class="app-sidebar-label app-sidebar-presence-label"><strong id="online-member-count">—</strong> online</span>
       </div>
       <nav class="app-sidebar-nav" aria-label="Tools">
         <div class="app-sidebar-group">

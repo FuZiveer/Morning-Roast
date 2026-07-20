@@ -1005,6 +1005,49 @@ input[type="number"] {
     height: var(--sidebar-button-size);
   }
 
+  .app-sidebar-presence {
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 2rem;
+    margin: 0.15rem 0 0.45rem;
+    padding: 0 var(--sidebar-inset-x);
+    color: hsl(var(--text-muted));
+    font-size: calc(0.75rem * var(--text-size-scale, 1));
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .app-sidebar-presence-dot {
+    flex: 0 0 auto;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-left: 0.475rem;
+    border-radius: 50%;
+    background: hsl(42, 85%, 55%);
+    box-shadow: 0 0 0.45rem hsl(42, 85%, 55% / 0.45);
+  }
+
+  .app-sidebar-presence.is-live .app-sidebar-presence-dot {
+    background: hsl(142, 72%, 50%);
+    box-shadow: 0 0 0.5rem hsl(142, 72%, 50% / 0.55);
+  }
+
+  .app-sidebar-presence.is-offline .app-sidebar-presence-dot {
+    background: hsl(0, 72%, 58%);
+    box-shadow: none;
+  }
+
+  .app-sidebar-presence-label {
+    left: calc(var(--sidebar-inset-x) + 1.5rem + 0.75rem);
+  }
+
+  .app-sidebar-presence-label strong {
+    color: hsl(0, 0%, 95%);
+  }
+
   .app-sidebar-logo-label {
     position: absolute;
     left: calc(var(--sidebar-button-size) + 0.75rem);
