@@ -15017,6 +15017,7 @@ document.addEventListener("DOMContentLoaded", () => {
   window.MorningRoastPresence?.initOnlinePresence?.({
     onCount(count) {
       if (presenceCountEl) presenceCountEl.textContent = String(count);
+      presenceEl?.classList.add("has-count");
     },
     onState(state) {
       if (!presenceEl) return;

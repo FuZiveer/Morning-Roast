@@ -179,8 +179,8 @@
         <span class="app-sidebar-label app-sidebar-logo-label">Morning Roast</span>
       </div>
       <div class="app-sidebar-presence" id="app-sidebar-presence" role="status" aria-live="polite" title="Connecting to live member count">
-        <span class="app-sidebar-presence-dot" aria-hidden="true"></span>
-        <span class="app-sidebar-label app-sidebar-presence-label"><strong id="online-member-count">—</strong> online</span>
+        <strong class="app-sidebar-presence-count" id="online-member-count">—</strong>
+        <span class="app-sidebar-presence-label">Members online</span>
       </div>
       <nav class="app-sidebar-nav" aria-label="Tools">
         <div class="app-sidebar-group">
@@ -372,7 +372,7 @@
               </button>
             </div>
 
-            <div class="nav-group-divider" aria-hidden="true"></div>
+            <div class="nav-group-divider nav-group-divider--before-misc" aria-hidden="true"></div>
 
             <div class="button-container nav-group" data-group="Misc">
               <div class="nav-misc-dropdown" id="nav-misc-dropdown" hidden>
@@ -405,6 +405,8 @@
                 </div>
               </div>
             </div>
+
+            <div class="nav-group-divider nav-group-divider--before-more" aria-hidden="true"></div>
 
             <div class="nav-more-dropdown" id="nav-more-dropdown">
               <button type="button" class="button nav-more-toggle" id="nav-more-toggle" aria-expanded="false" aria-controls="nav-more-menu">
@@ -2116,10 +2118,46 @@
                 </div>
               </div>
 
-              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-18">
+              <article class="changelog-date-group is-latest" data-changelog-date="2026-07-21">
+                <header class="changelog-header">
+                  <time class="changelog-date" datetime="2026-07-21">July 21, 2026</time>
+                  <span class="changelog-badge">Latest</span>
+                </header>
+                <div class="changelog-versions">
+                  <section class="changelog-version-block">
+                    <h3 class="changelog-version">0.2.14</h3>
+                    <div class="changelog-type-groups">
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--new">New</legend>
+                        <ul class="changelog-list">
+                          <li>Live member counter added (Sidebar displays the current number of connected visitors)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--improve">Improve</legend>
+                        <ul class="changelog-list">
+                          <li>Online counter improved (Status dot changes into the member count after connecting)</li>
+                          <li>Sidebar improved (Online counter matches navigation button sizing and alignment)</li>
+                          <li>Sidebar hover states improved (Navigation, presence, and menu buttons use one consistent background)</li>
+                          <li>Tab switching improved (Panel backgrounds remain visually stable during transitions)</li>
+                          <li>Mobile menu improved (Misc and More share matching button styling with a divider between them)</li>
+                          <li>Keybinds page improved (Shortcut rows now match the Home How It Works cards)</li>
+                        </ul>
+                      </fieldset>
+                      <fieldset class="fieldset-style changelog-fieldset">
+                        <legend class="fieldset-style-legend changelog-legend changelog-legend--fix">Fix</legend>
+                        <ul class="changelog-list">
+                          <li>Aim trainer fixed (Top-left session stats no longer appear during training)</li>
+                        </ul>
+                      </fieldset>
+                    </div>
+                  </section>
+                </div>
+              </article>
+
+              <article class="changelog-date-group" data-changelog-date="2026-07-18">
                 <header class="changelog-header">
                   <time class="changelog-date" datetime="2026-07-18">July 18, 2026</time>
-                  <span class="changelog-badge">Latest</span>
                 </header>
                 <div class="changelog-versions">
                   <section class="changelog-version-block">
