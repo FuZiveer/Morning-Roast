@@ -1704,12 +1704,12 @@ html.logo-mask-ready .logo-mark {
 @keyframes tab-enter {
   from {
     opacity: 0;
-    transform: translate3d(0, 8px, 0);
+    translate: 0 8px;
   }
 
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    translate: 0 0;
   }
 }
 
