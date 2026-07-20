@@ -2,7 +2,7 @@
   "name": "morning-roast-presence",
   "private": true,
   "version": "1.0.0",
-  "description": "WebSocket presence + live chat server for Morning Roast",
+  "description": "WebSocket presence counter for Morning Roast",
   "main": "presence-server.js",
   "scripts": {
     "start": "node presence-server.js",
@@ -12,10 +12,6 @@
     "node": ">=18"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.14",
-    "pg": "^8.12.0",
     "ws": "^8.18.3"
   }
 }

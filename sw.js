@@ -5,8 +5,6 @@ const CORE_ASSETS = [
   "./tools/games.js",
   "./script.js",
   "./tools/online-presence.js",
-  "./tools/auth-client.js",
-  "./tools/live-chat.js",
   "./assets/favicon.ico",
   "./assets/logo.png",
   "./manifest.webmanifest",

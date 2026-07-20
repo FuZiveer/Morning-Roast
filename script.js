@@ -3640,8 +3640,6 @@ function runTabActivation(id) {
     applyLineupGridStateInstant();
     refreshLineupVideosFixedHeight();
     updateToggleGlidersIn(document.getElementById("lineup-tab"));
-  } else if (id === "account-tab") {
-    window.MorningRoastAuth?.refresh?.();
   }
 
   updateGameInfoPanelVisibility();
@@ -7878,11 +7876,6 @@ function ensureSiteAssistantLoaded() {
   return miscLoaderState.siteAssistantPromise;
 }
 
-function ensureLiveChatLoaded() {
-  if (typeof window.MorningRoastLiveChat?.initLiveChat === "function") return Promise.resolve();
-  return Promise.resolve();
-}
-
 function ensureCrosshairConverterLoaded() {
   if (typeof window.initCrosshairConverterTab === "function") return Promise.resolve();
   if (!miscLoaderState.crosshairConverterPromise) {
@@ -7905,7 +7898,6 @@ const TAB_SLUGS = {
   "privacy-policy-tab": "privacy-policy",
   "terms-of-service-tab": "terms-of-service",
   "credit-tab": "credit",
-  "account-tab": "account",
 };
 const SLUG_TO_TAB = Object.fromEntries(Object.entries(TAB_SLUGS).map(([tabId, slug]) => [slug, tabId]));
 const DEFAULT_TAB_ID = "home-tab";
@@ -7978,201 +7970,11 @@ function initTabRouting() {
   });
 }
 
-/**
- * Mandatory sign-in gate shown on load (revealed behind the loading split).
- * Locks the app until a valid session exists; fails open if accounts are
- * unavailable so the site can never brick itself.
- */
-function initAuthGate() {
-  const gate = document.getElementById("auth-gate");
-  const auth = window.MorningRoastAuth;
-  if (!gate || !auth) return;
-
-  const tabs = gate.querySelectorAll("[data-gate-tab]");
-  const loginForm = document.getElementById("auth-gate-login-form");
-  const signupForm = document.getElementById("auth-gate-signup-form");
-  const loginEmail = document.getElementById("auth-gate-login-email");
-  const loginPassword = document.getElementById("auth-gate-login-password");
-  const signupUsername = document.getElementById("auth-gate-signup-username");
-  const signupEmail = document.getElementById("auth-gate-signup-email");
-  const signupPassword = document.getElementById("auth-gate-signup-password");
-  const resendBtn = document.getElementById("auth-gate-resend");
-  const messageEl = document.getElementById("auth-gate-message");
-  const unavailableEl = document.getElementById("auth-gate-unavailable");
-
-  let checked = false;
-  let locked = false;
-  let lastLoginEmail = "";
-
-  const setMessage = (text, kind = "info") => {
-    if (!messageEl) return;
-    messageEl.textContent = text || "";
-    messageEl.classList.remove("is-error", "is-success");
-    if (kind === "error") messageEl.classList.add("is-error");
-    else if (kind === "success") messageEl.classList.add("is-success");
-  };
-
-  const setLocked = (next) => {
-    locked = next;
-    gate.hidden = !next;
-    document.body.classList.toggle("auth-locked", next);
-    if (next) window.setTimeout(() => loginEmail?.focus(), 80);
-  };
-
-  const evaluate = () => {
-    const state = auth.getState();
-    if (!state.available) {
-      // No backend configured — never trap the user behind the gate.
-      setLocked(false);
-      return;
-    }
-    if (state.authed) {
-      setLocked(false);
-      return;
-    }
-    // Optimistically stay unlocked while a stored token is still being validated.
-    if (state.hasToken && !checked) return;
-    setLocked(true);
-  };
-
-  const switchGateTab = (tab) => {
-    tabs.forEach((btn) => {
-      const active = btn.dataset.gateTab === tab;
-      btn.classList.toggle("is-active", active);
-      btn.setAttribute("aria-selected", active ? "true" : "false");
-    });
-    if (loginForm) loginForm.hidden = tab !== "login";
-    if (signupForm) signupForm.hidden = tab !== "signup";
-    setMessage("");
-    if (resendBtn) resendBtn.hidden = true;
-  };
-
-  tabs.forEach((btn) => {
-    btn.addEventListener("click", () => switchGateTab(btn.dataset.gateTab));
-  });
-
-  loginForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const email = loginEmail?.value.trim() || "";
-    const password = loginPassword?.value || "";
-    if (!email || !password) return;
-    lastLoginEmail = email;
-    setMessage("Signing in…");
-    if (resendBtn) resendBtn.hidden = true;
-    const result = await auth.login(email, password);
-    if (result.ok) {
-      setMessage("");
-      if (loginPassword) loginPassword.value = "";
-      return;
-    }
-    setMessage(result.error || "Login failed.", "error");
-    if (result.needsVerification && resendBtn) resendBtn.hidden = false;
-  });
-
-  signupForm?.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const username = signupUsername?.value.trim() || "";
-    const email = signupEmail?.value.trim() || "";
-    const password = signupPassword?.value || "";
-    if (!username || !email || !password) return;
-    setMessage("Creating account…");
-    const result = await auth.register(username, email, password);
-    if (result.ok) {
-      setMessage(result.message || "Check your email for a verification link.", "success");
-      if (signupPassword) signupPassword.value = "";
-    } else {
-      setMessage(result.error || "Sign up failed.", "error");
-    }
-  });
-
-  resendBtn?.addEventListener("click", async () => {
-    const email = lastLoginEmail || loginEmail?.value.trim() || "";
-    if (!email) return;
-    setMessage("Sending verification email…");
-    const result = await auth.resend(email);
-    setMessage(result.message || result.error || "Verification email sent.", result.ok ? "success" : "error");
-    if (result.ok && resendBtn) resendBtn.hidden = true;
-  });
-
-  const handleVerifyRedirect = () => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (!params.has("verified")) return;
-      const ok = params.get("verified") === "1";
-      switchGateTab("login");
-      setMessage(
-        ok ? "Email verified! You can log in now." : "Verification link is invalid or expired.",
-        ok ? "success" : "error",
-      );
-      params.delete("verified");
-      const query = params.toString();
-      const next = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
-      window.history.replaceState(null, "", next);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  auth.subscribe(() => {
-    if (unavailableEl) unavailableEl.hidden = auth.getState().available;
-    evaluate();
-  });
-
-  Promise.resolve(auth.refresh()).finally(() => {
-    checked = true;
-    evaluate();
-  });
-
-  handleVerifyRedirect();
-
-  window.MorningRoastAuthGate = {
-    open: () => setLocked(true),
-    close: () => setLocked(false),
-    isOpen: () => locked,
-  };
-}
-
-/** Renders the Account tab (username, email, verified status, log out). */
-function initAccountTab() {
-  const auth = window.MorningRoastAuth;
-  const signedIn = document.getElementById("account-signed-in");
-  const signedOut = document.getElementById("account-signed-out");
-  if (!auth || (!signedIn && !signedOut)) return;
-
-  const usernameEl = document.getElementById("account-username");
-  const emailEl = document.getElementById("account-email");
-  const statusEl = document.getElementById("account-status");
-  const logoutBtn = document.getElementById("account-logout");
-  const signinBtn = document.getElementById("account-signin");
-
-  const render = (state) => {
-    const authed = state.authed;
-    if (signedIn) signedIn.hidden = !authed;
-    if (signedOut) signedOut.hidden = authed;
-    if (!authed) return;
-
-    const user = state.user || {};
-    if (usernameEl) usernameEl.textContent = user.username || "—";
-    if (emailEl) emailEl.textContent = user.email || "—";
-    if (statusEl) {
-      const verified = Boolean(user.verified);
-      statusEl.textContent = user.email == null ? "—" : verified ? "Verified" : "Unverified";
-      statusEl.classList.toggle("is-verified", verified);
-      statusEl.classList.toggle("is-unverified", !verified && user.email != null);
-    }
-  };
-
-  logoutBtn?.addEventListener("click", () => auth.logout());
-  signinBtn?.addEventListener("click", () => window.MorningRoastAuthGate?.open?.());
-
-  auth.subscribe(render);
-}
-
-const FOOTER_TAB_IDS = new Set(["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab", "account-tab"]);
+const FOOTER_TAB_IDS = new Set(["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"]);
 
 const MISC_TAB_IDS = new Set(["crosshair-converter-tab", "settings-tab", "lineup-tab"]);
 
-const MORE_HOTKEY_TAB_ORDER = ["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab", "account-tab"];
+const MORE_HOTKEY_TAB_ORDER = ["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
 const MISC_HOTKEY_TAB_ORDER = ["crosshair-converter-tab", "lineup-tab", "settings-tab"];
 
@@ -8199,7 +8001,6 @@ const FOOTER_BUTTON_IDS = {
   "privacy-policy-tab": "privacy-policy-button",
   "terms-of-service-tab": "terms-of-service-button",
   "credit-tab": "credit-button",
-  "account-tab": "account-button",
 };
 
 const NAV_BUTTON_IDS = {
@@ -8210,7 +8011,7 @@ const NAV_BUTTON_IDS = {
   "stats-tab": "stats-button",
 };
 
-const LOGO_CYCLE_TAB_IDS = ["home-tab", "sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab", "account-tab"];
+const LOGO_CYCLE_TAB_IDS = ["home-tab", "sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
 function getLogoCycleTabIds() {
   return LOGO_CYCLE_TAB_IDS.filter((id) => {
@@ -15083,8 +14884,6 @@ function initChangelogDateFilter() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initAppLoadingScreen();
-  initAuthGate();
-  initAccountTab();
   initAppChromeTags();
   initAppSidebar();
   initHomeFeatureCardTilt();
@@ -15135,17 +14934,10 @@ document.addEventListener("DOMContentLoaded", () => {
       .then(() => window.MorningRoastAssistant?.initSiteAssistant?.())
       .catch(() => {});
   };
-  const initLiveChatWhenIdle = () => {
-    ensureLiveChatLoaded()
-      .then(() => window.MorningRoastLiveChat?.initLiveChat?.())
-      .catch(() => {});
-  };
   if ("requestIdleCallback" in window) {
     requestIdleCallback(initSiteAssistantWhenIdle, { timeout: 4000 });
-    requestIdleCallback(initLiveChatWhenIdle, { timeout: 4000 });
   } else {
     setTimeout(initSiteAssistantWhenIdle, 2000);
-    setTimeout(initLiveChatWhenIdle, 2000);
   }
   initOfflineStatus();
   initTrainerSettingsDropdowns();
