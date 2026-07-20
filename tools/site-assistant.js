@@ -617,9 +617,21 @@
     return { row, bubble };
   }
 
-  function initToggleMagnetism() {
-    // Magnetic pull disabled for the assistant toggle.
-    return { lock() {}, unlock() {} };
+  function initToggleMagnetism(dock, toggle, { isLocked }) {
+    if (typeof initMagneticPull !== "function") {
+      return { lock() {}, unlock() {} };
+    }
+    return initMagneticPull(dock, {
+      pullRadius: 100,
+      followRadius: null,
+      maxOffset: 42,
+      pullXVar: "--site-assistant-toggle-pull-x",
+      pullYVar: "--site-assistant-toggle-pull-y",
+      isLocked,
+      isBlocked: () => typeof isSiteAssistantPullBlocked === "function" && isSiteAssistantPullBlocked(),
+      buttonSizeFallback: 64,
+      hoverElement: toggle,
+    });
   }
 
   function initSiteAssistant() {
