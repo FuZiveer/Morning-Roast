@@ -415,8 +415,8 @@ html[data-bg-pattern="stars"] .bg-stars--fixed {
   flex-direction: column;
   align-items: stretch;
   gap: 0.45rem;
-  width: var(--app-loading-bar-width, auto);
-  min-width: var(--app-loading-bar-width, auto);
+  width: var(--app-loading-bar-width, 9rem);
+  min-width: var(--app-loading-bar-width, 9rem);
   transition: opacity var(--app-loading-label-fade-duration) ease;
 }
 

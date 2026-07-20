@@ -1911,6 +1911,7 @@ function initAppLoadingBarWidthSync() {
   }
 
   window.addEventListener("resize", sync);
+  document.fonts?.ready?.then(sync).catch(() => {});
 }
 
 function markAppLoadingReady(key) {
