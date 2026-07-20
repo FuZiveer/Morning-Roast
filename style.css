@@ -4462,7 +4462,7 @@ body.reduce-motion .sens-finder-hint {
   left: 50%;
   transform: translateX(-50%);
   padding: 0 0.25rem;
-  background: hsl(0, 0%, 4%);
+  background: transparent;
   white-space: nowrap;
   font-size: calc(0.58rem * var(--text-size-scale, 1));
   font-weight: 600;
@@ -4511,7 +4511,7 @@ body.reduce-motion .sens-finder-hint {
   bottom: auto;
   transform: translate(-50%, -50%);
   padding: 0 0.4rem;
-  background: hsl(0, 0%, 4%);
+  background: transparent;
   white-space: nowrap;
   font-size: calc(0.58rem * var(--text-size-scale, 1));
   font-weight: 600;
