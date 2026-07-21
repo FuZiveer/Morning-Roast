@@ -11,13 +11,29 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "*")
   .filter(Boolean);
 const clients = new Set();
 
+const DEFAULT_ACTIVITY = "Browsing";
+const ALLOWED_ACTIVITIES = new Set([DEFAULT_ACTIVITY, "Converting Sensitivity", "Calculating eDPI", "Aim Training", "Converting Crosshair", "Watching Lineups", "Viewing Stats"]);
+
 function isOriginAllowed(origin) {
   if (ALLOWED_ORIGINS.includes("*")) return true;
   return Boolean(origin) && ALLOWED_ORIGINS.includes(origin.replace(/\/$/, ""));
 }
 
+function buildActivityBreakdown() {
+  const activities = {};
+  for (const client of clients) {
+    const activity = client.activity || DEFAULT_ACTIVITY;
+    activities[activity] = (activities[activity] || 0) + 1;
+  }
+  return activities;
+}
+
 function broadcastCount() {
-  const payload = JSON.stringify({ type: "count", count: clients.size });
+  const payload = JSON.stringify({
+    type: "count",
+    count: clients.size,
+    activities: buildActivityBreakdown(),
+  });
   for (const client of clients) {
     if (client.readyState === WebSocket.OPEN) client.send(payload);
   }
@@ -52,11 +68,27 @@ server.on("upgrade", (req, socket, head) => {
 
 wss.on("connection", (client) => {
   client.isAlive = true;
+  client.activity = DEFAULT_ACTIVITY;
   clients.add(client);
   broadcastCount();
 
   client.on("pong", () => {
     client.isAlive = true;
+  });
+
+  client.on("message", (raw) => {
+    let message;
+    try {
+      message = JSON.parse(String(raw));
+    } catch {
+      return;
+    }
+    if (message?.type !== "activity") return;
+    const activity = typeof message.activity === "string" ? message.activity : "";
+    const next = ALLOWED_ACTIVITIES.has(activity) ? activity : DEFAULT_ACTIVITY;
+    if (next === client.activity) return;
+    client.activity = next;
+    broadcastCount();
   });
   client.on("close", () => {
     if (clients.delete(client)) broadcastCount();

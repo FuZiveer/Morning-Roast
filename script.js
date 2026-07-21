@@ -3128,7 +3128,7 @@ const resetDialogState = {
 };
 
 function isScrollLockedByOverlay() {
-  return document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active") || document.getElementById("reaction-test-overlay")?.classList.contains("active") || document.getElementById("lineup-video-overlay")?.classList.contains("active") || document.getElementById("lineup-badge-info-overlay")?.classList.contains("active");
+  return document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active") || document.getElementById("presence-activity-overlay")?.classList.contains("active") || document.getElementById("reaction-test-overlay")?.classList.contains("active") || document.getElementById("lineup-video-overlay")?.classList.contains("active") || document.getElementById("lineup-badge-info-overlay")?.classList.contains("active");
 }
 
 function syncBodyScrollLock() {
@@ -11663,6 +11663,124 @@ function initLineupTab() {
   }
 }
 
+const TAB_ACTIVITY_LABELS = {
+  "sensitivity-converter-tab": "Converting Sensitivity",
+  "edpi-calculator-tab": "Calculating eDPI",
+  "aim-training-tab": "Aim Training",
+  "crosshair-converter-tab": "Converting Crosshair",
+  "lineup-tab": "Watching Lineups",
+  "stats-tab": "Viewing Stats",
+};
+const DEFAULT_ACTIVITY_LABEL = "Browsing";
+
+let presenceApi = null;
+let presenceIsLive = false;
+let presenceState = "connecting";
+let presenceActivityCounts = {};
+
+function activityLabelForTab(id) {
+  return TAB_ACTIVITY_LABELS[id] || DEFAULT_ACTIVITY_LABEL;
+}
+
+function reportActivityForTab(id) {
+  presenceApi?.setActivity?.(activityLabelForTab(id));
+}
+
+function isPresencePopupOpen() {
+  const overlay = document.getElementById("presence-activity-overlay");
+  return Boolean(overlay) && overlay.classList.contains("active");
+}
+
+function renderPresenceActivityPopup() {
+  const list = document.getElementById("presence-activity-list");
+  const empty = document.getElementById("presence-activity-empty");
+  const summary = document.getElementById("presence-activity-summary");
+  if (!list || !empty) return;
+
+  const entries = Object.entries(presenceActivityCounts)
+    .filter(([, count]) => Number.isFinite(count) && count > 0)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+  const total = entries.reduce((sum, [, count]) => sum + count, 0);
+
+  if (summary) {
+    if (presenceState === "connecting") {
+      summary.textContent = "Connecting to the live member count…";
+    } else if (presenceState !== "live") {
+      summary.textContent = "Live member count is currently unavailable.";
+    } else {
+      summary.textContent = total === 1 ? "1 member online right now." : `${total} members online right now.`;
+    }
+  }
+
+  list.innerHTML = "";
+  if (!entries.length) {
+    empty.textContent = presenceState === "live" ? "No activity to show yet." : "Activity will appear once the live connection is available.";
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+
+  for (const [label, count] of entries) {
+    const item = document.createElement("li");
+    item.className = "presence-activity-item";
+    const name = document.createElement("span");
+    name.className = "presence-activity-name";
+    name.textContent = label;
+    const value = document.createElement("span");
+    value.className = "presence-activity-value";
+    value.textContent = String(count);
+    item.append(name, value);
+    list.append(item);
+  }
+}
+
+function setPresencePopupOpen(open) {
+  const trigger = document.getElementById("app-sidebar-presence");
+  const overlay = document.getElementById("presence-activity-overlay");
+  if (!trigger || !overlay) return;
+
+  if (open) {
+    renderPresenceActivityPopup();
+    overlay.classList.add("active");
+    trigger.setAttribute("aria-expanded", "true");
+    syncBodyScrollLock();
+  } else {
+    overlay.classList.remove("active");
+    trigger.setAttribute("aria-expanded", "false");
+    syncBodyScrollLock();
+  }
+}
+
+function togglePresencePopup() {
+  setPresencePopupOpen(!isPresencePopupOpen());
+}
+
+function initPresenceActivityPopup() {
+  const trigger = document.getElementById("app-sidebar-presence");
+  const overlay = document.getElementById("presence-activity-overlay");
+  if (!trigger || !overlay) return;
+  const closeBtn = document.getElementById("close-presence-activity");
+
+  trigger.addEventListener("click", (event) => {
+    event.preventDefault();
+    togglePresencePopup();
+  });
+
+  closeBtn?.addEventListener("click", () => setPresencePopupOpen(false));
+
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) setPresencePopupOpen(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && isPresencePopupOpen()) {
+      setPresencePopupOpen(false);
+      trigger.focus();
+    }
+  });
+}
+
 function switchTab(_evt, id, { updateHistory = true } = {}) {
   if (id === "lineup-tab" && !LINEUP_TAB_ENABLED) return;
   if (id === "crosshair-converter-tab" && !MISC_TAB_ENABLED) return;
@@ -11739,6 +11857,7 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
   }
 
   queueTabActivation(id);
+  reportActivityForTab(id);
 
   if (updateHistory && !routeState.isInitial) {
     syncUrlToTab(id);
@@ -14389,10 +14508,7 @@ function initPreferences() {
   const savedBgImageRaw = localStorage.getItem("prefBgImage");
   const savedBgImage = savedBgImageRaw == null ? DEFAULT_BG_IMAGE : normalizeBgImage(savedBgImageRaw);
   const savedBgBackdropModeRaw = localStorage.getItem("prefBgBackdropMode");
-  const savedBgBackdropMode =
-    savedBgBackdropModeRaw == null
-      ? DEFAULT_BG_BACKDROP_MODE
-      : normalizeBgBackdropMode(savedBgBackdropModeRaw, savedBgPattern, savedBgImage);
+  const savedBgBackdropMode = savedBgBackdropModeRaw == null ? DEFAULT_BG_BACKDROP_MODE : normalizeBgBackdropMode(savedBgBackdropModeRaw, savedBgPattern, savedBgImage);
   const savedFontFamily = normalizeFontFamily(localStorage.getItem("prefFontFamily"));
 
   applyAccent(savedAccent || DEFAULT_ACCENT, { instant: true });
@@ -15015,18 +15131,28 @@ document.addEventListener("DOMContentLoaded", () => {
   initAppSidebar();
   const presenceEl = document.getElementById("app-sidebar-presence");
   const presenceCountEl = document.getElementById("online-member-count");
-  window.MorningRoastPresence?.initOnlinePresence?.({
+  presenceApi = window.MorningRoastPresence?.initOnlinePresence?.({
     onCount(count) {
       if (presenceCountEl) presenceCountEl.textContent = String(count);
       presenceEl?.classList.add("has-count");
     },
+    onActivities(activities) {
+      presenceActivityCounts = activities || {};
+      if (isPresencePopupOpen()) renderPresenceActivityPopup();
+    },
     onState(state) {
+      presenceState = state;
+      presenceIsLive = state === "live";
+      if (!presenceIsLive) presenceActivityCounts = {};
+      if (isPresencePopupOpen()) renderPresenceActivityPopup();
       if (!presenceEl) return;
       presenceEl.classList.toggle("is-live", state === "live");
       presenceEl.classList.toggle("is-offline", state === "offline" || state === "disabled");
       presenceEl.title = state === "live" ? "Live members online" : state === "connecting" ? "Connecting to live member count" : "Live member count unavailable";
     },
-  });
+  }) || null;
+  initPresenceActivityPopup();
+  reportActivityForTab(getCurrentTabId());
   initHomeFeatureCardTilt();
   initMobileNavMoreMenu();
   syncMiscTabUi();

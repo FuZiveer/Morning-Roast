@@ -941,6 +941,69 @@ input[type="number"] {
   color: var(--accent-color);
 }
 
+.presence-activity-modal {
+  width: min(30rem, 100%);
+}
+
+.presence-activity-summary {
+  margin: 0 0 1.25rem;
+  font-size: calc(0.85rem * var(--text-size-scale, 1));
+  color: hsl(0, 0%, 55%);
+}
+
+.presence-activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.presence-activity-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border: var(--border-width) solid hsl(var(--border-subtle));
+  border-radius: 1rem;
+  font-size: calc(0.9rem * var(--text-size-scale, 1));
+  font-weight: 600;
+  color: hsl(0, 0%, 88%);
+  transition: border-color var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.presence-activity-item:hover {
+  border-color: hsla(0, 0%, 100%, 0.1);
+}
+
+.presence-activity-value {
+  flex: 0 0 auto;
+  min-width: 1.9rem;
+  padding: 0 0.6rem;
+  height: 1.9rem;
+  display: grid;
+  place-content: center;
+  border-radius: 999px;
+  background: hsl(142, 72%, 50% / 0.15);
+  color: hsl(142, 72%, 58%);
+  font-size: calc(0.85rem * var(--text-size-scale, 1));
+  font-weight: 700;
+}
+
+.presence-activity-empty {
+  margin: 0;
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: calc(0.9rem * var(--text-size-scale, 1));
+  color: hsl(0, 0%, 55%);
+}
+
+.presence-activity-empty[hidden] {
+  display: none;
+}
+
 @media (min-width: 769px) {
   body.app-ready {
     padding-left: var(--sidebar-collapsed-width);
@@ -1021,10 +1084,14 @@ input[type="number"] {
     border-radius: 0.85rem;
     background-color: transparent;
     color: hsl(0, 0%, 72%);
+    font-family: inherit;
     font-size: calc(0.8rem * var(--text-size-scale, 1));
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
+    cursor: pointer;
+    text-align: left;
+    appearance: none;
     transition:
       background-color var(--button-motion-duration) var(--button-motion-ease),
       color var(--button-motion-duration) var(--button-motion-ease);
@@ -1950,7 +2017,9 @@ html.logo-mask-ready .logo-mark {
   background-position: center;
   opacity: 0.42;
   transform: translateZ(0);
-  transition: opacity var(--button-motion-duration, 0.3s) ease, transform var(--button-motion-duration, 0.3s) ease;
+  transition:
+    opacity var(--button-motion-duration, 0.3s) ease,
+    transform var(--button-motion-duration, 0.3s) ease;
   pointer-events: none;
 }
 
@@ -6957,9 +7026,7 @@ body.reduce-motion .app-status-dropdown {
   border: none;
   box-shadow: inset 0 0 0 var(--border-width) hsl(var(--border-subtle));
   background-color: var(--accent-custom-pure, hsl(344 100% 50%));
-  background-image:
-    linear-gradient(to top, hsl(0, 0%, 0%), transparent),
-    linear-gradient(to right, hsl(0, 0%, 100%), var(--accent-custom-pure, hsl(344 100% 50%)));
+  background-image: linear-gradient(to top, hsl(0, 0%, 0%), transparent), linear-gradient(to right, hsl(0, 0%, 100%), var(--accent-custom-pure, hsl(344 100% 50%)));
   cursor: crosshair;
   touch-action: none;
   overflow: hidden;
@@ -8288,16 +8355,7 @@ html.glass-theme :is(.nav-bar, .app-sidebar, .app-sidebar-more-menu:not([hidden]
     -webkit-backdrop-filter: var(--glass-blur);
     pointer-events: none;
     z-index: 0;
-    clip-path: polygon(
-      0 0,
-      100% 0,
-      100% var(--sidebar-menu-border-gap-start, 0px),
-      calc(100% - var(--border-width)) var(--sidebar-menu-border-gap-start, 0px),
-      calc(100% - var(--border-width)) var(--sidebar-menu-border-gap-end, 0px),
-      100% var(--sidebar-menu-border-gap-end, 0px),
-      100% 100%,
-      0 100%
-    );
+    clip-path: polygon(0 0, 100% 0, 100% var(--sidebar-menu-border-gap-start, 0px), calc(100% - var(--border-width)) var(--sidebar-menu-border-gap-start, 0px), calc(100% - var(--border-width)) var(--sidebar-menu-border-gap-end, 0px), 100% var(--sidebar-menu-border-gap-end, 0px), 100% 100%, 0 100%);
   }
 
   html.glass-theme .app-sidebar:has(.app-sidebar-more.is-open) > *,

@@ -178,10 +178,10 @@
         </span>
         <span class="app-sidebar-label app-sidebar-logo-label">Morning Roast</span>
       </div>
-      <div class="app-sidebar-presence" id="app-sidebar-presence" role="status" aria-live="polite" title="Connecting to live member count">
+      <button type="button" class="app-sidebar-presence" id="app-sidebar-presence" aria-live="polite" title="Connecting to live member count" aria-haspopup="dialog" aria-expanded="false">
         <strong class="app-sidebar-presence-count" id="online-member-count">—</strong>
         <span class="app-sidebar-presence-label">Members online</span>
-      </div>
+      </button>
       <nav class="app-sidebar-nav" aria-label="Tools">
         <div class="app-sidebar-group">
           <button type="button" class="app-sidebar-item active" data-sidebar-tab="home-tab" onclick="switchTab(event, 'home-tab')" id="sidebar-home-button">
@@ -2685,6 +2685,22 @@
       <section id="notify-toaster" class="notify-toaster" aria-label="Notifications" aria-live="polite">
         <ol class="toaster notify-stack" data-x-position="right" data-y-position="bottom" data-expanded="false"></ol>
       </section>
+    </div>
+
+    <div id="presence-activity-overlay" class="trainer-settings-overlay presence-activity-overlay">
+      <div class="modal-content settings-modal-shell presence-activity-modal">
+        <div class="settings-modal-head">
+          <div class="modal-header">
+            <h3>Members Online</h3>
+            <button id="close-presence-activity" class="close-modal" aria-label="Close"><i class="ri-close-line"></i></button>
+          </div>
+        </div>
+        <div class="settings-modal-body">
+          <p class="presence-activity-summary" id="presence-activity-summary">Live look at what everyone is doing right now.</p>
+          <ul class="presence-activity-list" id="presence-activity-list"></ul>
+          <p class="presence-activity-empty" id="presence-activity-empty" hidden>No activity to show yet.</p>
+        </div>
+      </div>
     </div>
 
     <div id="trainer-settings-overlay" class="trainer-settings-overlay">

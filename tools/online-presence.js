@@ -5,14 +5,19 @@
   let activeSession = null;
 
   function resolveWsUrl() {
-    const configured = document.querySelector('meta[name="morning-roast-presence-ws"]')?.content?.trim();
-    if (configured) return configured;
-
     const host = global.location?.hostname;
-    if (host === "localhost" || host === "127.0.0.1") {
+    const isLocalHost = host === "localhost" || host === "127.0.0.1";
+
+    // On localhost, always prefer the local presence server so dev testing
+    // doesn't depend on the deployed (meta-configured) production server.
+    if (isLocalHost) {
       const protocol = global.location?.protocol === "https:" ? "wss" : "ws";
       return `${protocol}://${host}:8080/presence`;
     }
+
+    const configured = document.querySelector('meta[name="morning-roast-presence-ws"]')?.content?.trim();
+    if (configured) return configured;
+
     return "";
   }
 
@@ -30,7 +35,18 @@
       reconnectMs: RECONNECT_BASE_MS,
       stopped: false,
       generation: 0,
+      activity: null,
       api: null,
+    };
+
+    const sendActivity = () => {
+      const socket = session.socket;
+      if (!session.activity || !socket || socket.readyState !== WebSocket.OPEN) return;
+      try {
+        socket.send(JSON.stringify({ type: "activity", activity: session.activity }));
+      } catch {
+        // Ignore send failures; activity re-sends on reconnect.
+      }
     };
 
     const emitState = (state) => session.handlers.onState?.(state);
@@ -67,6 +83,7 @@
         if (generation !== session.generation || session.socket !== socket) return;
         session.reconnectMs = RECONNECT_BASE_MS;
         emitState("live");
+        sendActivity();
       });
 
       socket.addEventListener("message", (event) => {
@@ -75,6 +92,9 @@
           const message = JSON.parse(String(event.data || ""));
           if (message?.type === "count" && Number.isFinite(message.count)) {
             session.handlers.onCount?.(Math.max(0, Math.round(message.count)));
+            if (message.activities && typeof message.activities === "object") {
+              session.handlers.onActivities?.(message.activities);
+            }
           }
         } catch {
           // Ignore malformed server messages.
@@ -103,6 +123,12 @@
         session.stopped = false;
         session.reconnectMs = RECONNECT_BASE_MS;
         connect();
+      },
+      setActivity(activity) {
+        const next = typeof activity === "string" && activity ? activity : null;
+        if (next === session.activity) return;
+        session.activity = next;
+        sendActivity();
       },
       getUrl: () => url,
     };
