@@ -89,8 +89,20 @@ html[data-bg-image="synthwave-peaks"] {
   --app-bg-image-url: url("./assets/backgrounds/synthwave-peaks.jpg");
 }
 
-html[data-bg-image="crimson-shards"] {
-  --app-bg-image-url: url("./assets/backgrounds/crimson-shards.jpg");
+html[data-bg-image="neon-city-street"] {
+  --app-bg-image-url: url("./assets/backgrounds/neon-city-street.jpg");
+}
+
+html[data-bg-image="purple-stag-lake"] {
+  --app-bg-image-url: url("./assets/backgrounds/purple-stag-lake.jpg");
+}
+
+html[data-bg-image="moon-mountain-stars"] {
+  --app-bg-image-url: url("./assets/backgrounds/moon-mountain-stars.jpg");
+}
+
+html[data-bg-image="rustic-coffee-bar"] {
+  --app-bg-image-url: url("./assets/backgrounds/rustic-coffee-bar.jpg");
 }
 
 html[data-bg-image="prismatic-ridge"] {
@@ -1420,7 +1432,7 @@ input[type="number"] {
     background-color: var(--glass-surface-raised);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    box-shadow: var(--glass-shadow);
+    box-shadow: none;
   }
 
   body.app-ready:has(.trainer-settings-overlay.active) .app-sidebar {
@@ -8316,7 +8328,7 @@ html.glass-theme .lineup-video-favorite-btn:hover {
 html.glass-theme :is(.app-sidebar-more-menu:not([hidden]), .app-sidebar-misc-menu:not([hidden])) {
   border-top: var(--sidebar-edge-border);
   border-right: var(--sidebar-edge-border);
-  box-shadow: var(--glass-shadow);
+  box-shadow: none;
 }
 
 html.glass-theme :is(.nav-bar, .app-sidebar, .app-sidebar-more-menu:not([hidden]), .app-sidebar-misc-menu:not([hidden])) {

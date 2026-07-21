@@ -1943,7 +1943,10 @@ const APP_LOCAL_IMAGE_PATHS = [
   "assets/crosshair-preview-bg-3.png",
   "assets/backgrounds/sunset-lake.jpg",
   "assets/backgrounds/synthwave-peaks.jpg",
-  "assets/backgrounds/crimson-shards.jpg",
+  "assets/backgrounds/neon-city-street.jpg",
+  "assets/backgrounds/purple-stag-lake.jpg",
+  "assets/backgrounds/moon-mountain-stars.jpg",
+  "assets/backgrounds/rustic-coffee-bar.jpg",
   "assets/backgrounds/prismatic-ridge.jpg",
   "assets/backgrounds/cosmic-burst.jpg",
   "assets/backgrounds/dark-wood.jpg",
@@ -3093,7 +3096,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v183";
+const APP_CACHE_VERSION = "morning-roast-v184";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -13241,7 +13244,7 @@ const BG_PATTERN_ICONS = {
   none: "ri-prohibited-line",
 };
 
-const BG_IMAGE_IDS = ["sunset-lake", "synthwave-peaks", "crimson-shards", "prismatic-ridge", "cosmic-burst", "dark-wood", "royal-damask", "charcoal-slate", "neon-flame-stream", "magenta-paper-glow", "aged-parchment", "magenta-fluid-waves", "crimson-wire-mesh", "ember-low-poly", "prismatic-low-poly"];
+const BG_IMAGE_IDS = ["sunset-lake", "synthwave-peaks", "neon-city-street", "purple-stag-lake", "moon-mountain-stars", "rustic-coffee-bar", "prismatic-ridge", "cosmic-burst", "dark-wood", "royal-damask", "charcoal-slate", "neon-flame-stream", "magenta-paper-glow", "aged-parchment", "magenta-fluid-waves", "crimson-wire-mesh", "ember-low-poly", "prismatic-low-poly"];
 
 const DEFAULT_BG_IMAGE = "magenta-fluid-waves";
 const DEFAULT_BG_BACKDROP_MODE = "image";
@@ -13253,7 +13256,8 @@ const BG_IMAGE_LEGACY_MAP = {
   "wallpaper-1": "sunset-lake",
   "wallpaper-2": "synthwave-peaks",
   "wallpaper-3": "sunset-lake",
-  "wallpaper-4": "crimson-shards",
+  "wallpaper-4": "neon-city-street",
+  "crimson-shards": "neon-city-street",
   "wallpaper-5": "prismatic-ridge",
   "wallpaper-6": "cosmic-burst",
   "wallpaper-7": "sunset-lake",
@@ -13271,7 +13275,10 @@ const BG_IMAGE_LABELS = {
   none: "None",
   "sunset-lake": "Sunset Lake",
   "synthwave-peaks": "Synthwave Peaks",
-  "crimson-shards": "Crimson Shards",
+  "neon-city-street": "Neon City Street",
+  "purple-stag-lake": "Purple Stag Lake",
+  "moon-mountain-stars": "Moon Mountain Stars",
+  "rustic-coffee-bar": "Rustic Coffee Bar",
   "prismatic-ridge": "Prismatic Ridge",
   "cosmic-burst": "Cosmic Burst",
   "dark-wood": "Dark Wood",
@@ -13290,7 +13297,10 @@ const BG_IMAGE_ICONS = {
   none: "ri-prohibited-line",
   "sunset-lake": "ri-landscape-line",
   "synthwave-peaks": "ri-contrast-2-line",
-  "crimson-shards": "ri-fire-line",
+  "neon-city-street": "ri-building-4-line",
+  "purple-stag-lake": "ri-landscape-line",
+  "moon-mountain-stars": "ri-moon-clear-line",
+  "rustic-coffee-bar": "ri-cup-line",
   "prismatic-ridge": "ri-sparkling-2-line",
   "cosmic-burst": "ri-planet-line",
   "dark-wood": "ri-layout-row-line",
@@ -15131,26 +15141,27 @@ document.addEventListener("DOMContentLoaded", () => {
   initAppSidebar();
   const presenceEl = document.getElementById("app-sidebar-presence");
   const presenceCountEl = document.getElementById("online-member-count");
-  presenceApi = window.MorningRoastPresence?.initOnlinePresence?.({
-    onCount(count) {
-      if (presenceCountEl) presenceCountEl.textContent = String(count);
-      presenceEl?.classList.add("has-count");
-    },
-    onActivities(activities) {
-      presenceActivityCounts = activities || {};
-      if (isPresencePopupOpen()) renderPresenceActivityPopup();
-    },
-    onState(state) {
-      presenceState = state;
-      presenceIsLive = state === "live";
-      if (!presenceIsLive) presenceActivityCounts = {};
-      if (isPresencePopupOpen()) renderPresenceActivityPopup();
-      if (!presenceEl) return;
-      presenceEl.classList.toggle("is-live", state === "live");
-      presenceEl.classList.toggle("is-offline", state === "offline" || state === "disabled");
-      presenceEl.title = state === "live" ? "Live members online" : state === "connecting" ? "Connecting to live member count" : "Live member count unavailable";
-    },
-  }) || null;
+  presenceApi =
+    window.MorningRoastPresence?.initOnlinePresence?.({
+      onCount(count) {
+        if (presenceCountEl) presenceCountEl.textContent = String(count);
+        presenceEl?.classList.add("has-count");
+      },
+      onActivities(activities) {
+        presenceActivityCounts = activities || {};
+        if (isPresencePopupOpen()) renderPresenceActivityPopup();
+      },
+      onState(state) {
+        presenceState = state;
+        presenceIsLive = state === "live";
+        if (!presenceIsLive) presenceActivityCounts = {};
+        if (isPresencePopupOpen()) renderPresenceActivityPopup();
+        if (!presenceEl) return;
+        presenceEl.classList.toggle("is-live", state === "live");
+        presenceEl.classList.toggle("is-offline", state === "offline" || state === "disabled");
+        presenceEl.title = state === "live" ? "Live members online" : state === "connecting" ? "Connecting to live member count" : "Live member count unavailable";
+      },
+    }) || null;
   initPresenceActivityPopup();
   reportActivityForTab(getCurrentTabId());
   initHomeFeatureCardTilt();

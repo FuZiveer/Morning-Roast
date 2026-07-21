@@ -24,23 +24,7 @@
           }
           var pattern = localStorage.getItem("prefBgPattern") || "waves";
           var bgImage = localStorage.getItem("prefBgImage") || "magenta-fluid-waves";
-          var bgImageIds = [
-            "sunset-lake",
-            "synthwave-peaks",
-            "crimson-shards",
-            "prismatic-ridge",
-            "cosmic-burst",
-            "dark-wood",
-            "royal-damask",
-            "charcoal-slate",
-            "neon-flame-stream",
-            "magenta-paper-glow",
-            "aged-parchment",
-            "magenta-fluid-waves",
-            "crimson-wire-mesh",
-            "ember-low-poly",
-            "prismatic-low-poly",
-          ];
+          var bgImageIds = ["sunset-lake", "synthwave-peaks", "neon-city-street", "purple-stag-lake", "moon-mountain-stars", "rustic-coffee-bar", "prismatic-ridge", "cosmic-burst", "dark-wood", "royal-damask", "charcoal-slate", "neon-flame-stream", "magenta-paper-glow", "aged-parchment", "magenta-fluid-waves", "crimson-wire-mesh", "ember-low-poly", "prismatic-low-poly"];
           var legacyBgImages = {
             midnight: "sunset-lake",
             amber: "synthwave-peaks",
@@ -48,7 +32,8 @@
             "wallpaper-1": "sunset-lake",
             "wallpaper-2": "synthwave-peaks",
             "wallpaper-3": "sunset-lake",
-            "wallpaper-4": "crimson-shards",
+            "wallpaper-4": "neon-city-street",
+            "crimson-shards": "neon-city-street",
             "wallpaper-5": "prismatic-ridge",
             "wallpaper-6": "cosmic-burst",
             "wallpaper-7": "sunset-lake",
@@ -241,63 +226,23 @@
           <span class="app-sidebar-label">More</span>
         </button>
         <div class="app-sidebar-more-menu" id="sidebar-more-menu" role="menu" aria-labelledby="sidebar-more-button" hidden>
-          <button
-            type="button"
-            role="menuitem"
-            class="app-sidebar-more-item"
-            id="keybinds-button"
-            onclick="
-              switchTab(event, 'keybinds-tab');
-            "
-          >
+          <button type="button" role="menuitem" class="app-sidebar-more-item" id="keybinds-button" onclick="switchTab(event, 'keybinds-tab')">
             <i class="ri-keyboard-box-line" aria-hidden="true"></i>
             <span>Keybinds</span>
           </button>
-          <button
-            type="button"
-            role="menuitem"
-            class="app-sidebar-more-item"
-            id="updates-button"
-            onclick="
-              switchTab(event, 'updates-tab');
-            "
-          >
+          <button type="button" role="menuitem" class="app-sidebar-more-item" id="updates-button" onclick="switchTab(event, 'updates-tab')">
             <i class="ri-history-line" aria-hidden="true"></i>
             <span>Patch Notes</span>
           </button>
-          <button
-            type="button"
-            role="menuitem"
-            class="app-sidebar-more-item"
-            id="privacy-policy-button"
-            onclick="
-              switchTab(event, 'privacy-policy-tab');
-            "
-          >
+          <button type="button" role="menuitem" class="app-sidebar-more-item" id="privacy-policy-button" onclick="switchTab(event, 'privacy-policy-tab')">
             <i class="ri-lock-2-line" aria-hidden="true"></i>
             <span>Privacy Policy</span>
           </button>
-          <button
-            type="button"
-            role="menuitem"
-            class="app-sidebar-more-item"
-            id="terms-of-service-button"
-            onclick="
-              switchTab(event, 'terms-of-service-tab');
-            "
-          >
+          <button type="button" role="menuitem" class="app-sidebar-more-item" id="terms-of-service-button" onclick="switchTab(event, 'terms-of-service-tab')">
             <i class="ri-customer-service-line" aria-hidden="true"></i>
             <span>Terms of Service</span>
           </button>
-          <button
-            type="button"
-            role="menuitem"
-            class="app-sidebar-more-item"
-            id="credit-button"
-            onclick="
-              switchTab(event, 'credit-tab');
-            "
-          >
+          <button type="button" role="menuitem" class="app-sidebar-more-item" id="credit-button" onclick="switchTab(event, 'credit-tab')">
             <i class="ri-user-3-line" aria-hidden="true"></i>
             <span>Credit</span>
           </button>
@@ -417,70 +362,35 @@
                 <i class="ri-arrow-down-s-line nav-more-chevron" aria-hidden="true"></i>
               </button>
               <div class="nav-more-menu" id="nav-more-menu" hidden>
-                <button
-                  type="button"
-                  class="button nav-more-button"
-                  data-nav-tab="keybinds-tab"
-                  onclick="
-                    switchTab(event, 'keybinds-tab');
-                  "
-                >
+                <button type="button" class="button nav-more-button" data-nav-tab="keybinds-tab" onclick="switchTab(event, 'keybinds-tab')">
                   <div class="icon-container">
                     <i class="ri-keyboard-box-line" aria-hidden="true"></i>
                   </div>
                   <span>Keybinds</span>
                 </button>
 
-                <button
-                  type="button"
-                  class="button nav-more-button"
-                  data-nav-tab="updates-tab"
-                  onclick="
-                    switchTab(event, 'updates-tab');
-                  "
-                >
+                <button type="button" class="button nav-more-button" data-nav-tab="updates-tab" onclick="switchTab(event, 'updates-tab')">
                   <div class="icon-container">
                     <i class="ri-history-line" aria-hidden="true"></i>
                   </div>
                   <span>Patch Notes</span>
                 </button>
 
-                <button
-                  type="button"
-                  class="button nav-more-button"
-                  data-nav-tab="privacy-policy-tab"
-                  onclick="
-                    switchTab(event, 'privacy-policy-tab');
-                  "
-                >
+                <button type="button" class="button nav-more-button" data-nav-tab="privacy-policy-tab" onclick="switchTab(event, 'privacy-policy-tab')">
                   <div class="icon-container">
                     <i class="ri-lock-2-line" aria-hidden="true"></i>
                   </div>
                   <span>Privacy Policy</span>
                 </button>
 
-                <button
-                  type="button"
-                  class="button nav-more-button"
-                  data-nav-tab="terms-of-service-tab"
-                  onclick="
-                    switchTab(event, 'terms-of-service-tab');
-                  "
-                >
+                <button type="button" class="button nav-more-button" data-nav-tab="terms-of-service-tab" onclick="switchTab(event, 'terms-of-service-tab')">
                   <div class="icon-container">
                     <i class="ri-customer-service-line" aria-hidden="true"></i>
                   </div>
                   <span>Terms of Service</span>
                 </button>
 
-                <button
-                  type="button"
-                  class="button nav-more-button"
-                  data-nav-tab="credit-tab"
-                  onclick="
-                    switchTab(event, 'credit-tab');
-                  "
-                >
+                <button type="button" class="button nav-more-button" data-nav-tab="credit-tab" onclick="switchTab(event, 'credit-tab')">
                   <div class="icon-container">
                     <i class="ri-user-3-line" aria-hidden="true"></i>
                   </div>
@@ -1290,12 +1200,7 @@
           <div class="box-container">
             <div class="box-holder result-container">
               <div class="topic-indicator-holder">
-                <div
-                  class="topic-indicator"
-                  onclick="
-                    document.getElementById('sidebar-sensitivity-converter-button').click();
-                  "
-                >
+                <div class="topic-indicator" onclick="document.getElementById('sidebar-sensitivity-converter-button').click()">
                   <i class="ri-swap-2-line topic-icon"></i>
                   <span>Sensitivity converter</span>
                 </div>
@@ -1336,12 +1241,7 @@
 
             <div class="box-holder result-container">
               <div class="topic-indicator-holder">
-                <div
-                  class="topic-indicator"
-                  onclick="
-                    document.getElementById('sidebar-edpi-calculator-button').click();
-                  "
-                >
+                <div class="topic-indicator" onclick="document.getElementById('sidebar-edpi-calculator-button').click()">
                   <i class="ri-pencil-ruler-2-line topic-icon topic-icon--desktop"></i>
                   <i class="ri-calculator-line topic-icon topic-icon--mobile"></i>
                   <span>EDPI calculator</span>
@@ -1388,12 +1288,7 @@
           <div class="box-container">
             <div class="box-holder result-container">
               <div class="topic-indicator-holder">
-                <div
-                  class="topic-indicator"
-                  onclick="
-                    document.getElementById('sidebar-aim-training-button').click();
-                  "
-                >
+                <div class="topic-indicator" onclick="document.getElementById('sidebar-aim-training-button').click()">
                   <i class="ri-focus-3-line topic-icon"></i>
                   <span>Aim trainer</span>
                 </div>
