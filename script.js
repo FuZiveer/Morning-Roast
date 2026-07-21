@@ -1960,7 +1960,7 @@ const APP_LOCAL_IMAGE_PATHS = [
   "assets/backgrounds/ember-low-poly.jpg",
   "assets/backgrounds/prismatic-low-poly.jpg",
   "assets/backgrounds/cyan-magenta-plexus.jpg",
-  "assets/backgrounds/slanted-color-bands.jpg",
+  "assets/backgrounds/neon-shard-streaks.jpg",
   "assets/backgrounds/magenta-light-trails.jpg",
   "assets/backgrounds/blue-crystal-poly.jpg",
   "assets/backgrounds/diagonal-prism-streaks.jpg",
