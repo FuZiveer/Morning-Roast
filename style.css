@@ -3905,11 +3905,12 @@ html.glass-theme .home-inline-link:focus-visible {
 }
 
 .community-chat-panel .community-chat-status-dot {
+  --chat-status-color: hsl(43, 96%, 56%);
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
-  background: hsl(43, 96%, 56%);
-  box-shadow: 0 0 0.5rem hsl(43, 96%, 56% / 0.45);
+  background: var(--chat-status-color);
+  box-shadow: 0 0 0.55rem hsl(from var(--chat-status-color) h s l / 0.7);
   flex-shrink: 0;
 }
 
@@ -11843,15 +11844,13 @@ button.crosshair-preset-btn {
 }
 
 .community-chat-panel[data-chat-state="live"] .community-chat-status-dot {
-  background: hsl(142, 72%, 50%);
-  box-shadow: 0 0 0.5rem hsl(142, 72%, 50% / 0.45);
+  --chat-status-color: hsl(142, 72%, 50%);
 }
 
 .community-chat-panel[data-chat-state="offline"] .community-chat-status-dot,
 .community-chat-panel[data-chat-state="disabled"] .community-chat-status-dot,
 .community-chat-panel[data-chat-state="connecting"] .community-chat-status-dot {
-  background: hsl(43, 96%, 56%);
-  box-shadow: 0 0 0.5rem hsl(43, 96%, 56% / 0.45);
+  --chat-status-color: hsl(43, 96%, 56%);
 }
 
 .site-assistant-toggle {
