@@ -78,228 +78,6 @@ function prefersReducedUiMotion() {
   return document.body?.classList.contains("reduce-motion") || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
 }
 
-function isSiteAssistantPullBlocked() {
-  return document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active");
-}
-
-/** True while the loading veil still covers this point (full screen, or a split half). */
-function isAppLoadingCoveringPoint(clientX, clientY) {
-  const screen = document.getElementById("app-loading-screen");
-  if (!screen?.isConnected) return false;
-  if (!screen.classList.contains("is-splitting")) return true;
-  if (clientX == null || clientY == null || Number.isNaN(clientX) || Number.isNaN(clientY)) return true;
-  const top = document.elementFromPoint(clientX, clientY);
-  return Boolean(top?.closest?.(".app-loading-panel, .app-loading-blade, .app-loading-panel-edge"));
-}
-
-function initMagneticPull(element, { pullRadius = 100, followRadius = null, maxOffset = 42, pullXVar = "--magnetic-pull-x", pullYVar = "--magnetic-pull-y", isLocked = () => false, isBlocked = () => false, buttonSizeFallback = 50, hoverElement = null } = {}) {
-  if (!element) return { lock() {}, unlock() {} };
-  const hoverTarget = hoverElement || element;
-
-  let offsetX = 0;
-  let offsetY = 0;
-  let velX = 0;
-  let velY = 0;
-  let mouseX = null;
-  let mouseY = null;
-  let lockedOffsetX = 0;
-  let lockedOffsetY = 0;
-  let hovered = false;
-  let animating = false;
-  let lastTs = 0;
-
-  const applyOffset = () => {
-    element.style.setProperty(pullXVar, `${offsetX}px`);
-    element.style.setProperty(pullYVar, `${offsetY}px`);
-  };
-
-  const getRestCenter = () => {
-    const rect = element.getBoundingClientRect();
-    return {
-      x: rect.left + rect.width / 2 - offsetX,
-      y: rect.top + rect.height / 2 - offsetY,
-    };
-  };
-
-  const pullBlocked = () => {
-    if (isBlocked()) return true;
-    if (isAppLoadingCoveringPoint(mouseX, mouseY)) return true;
-    const center = getRestCenter();
-    return isAppLoadingCoveringPoint(center.x, center.y);
-  };
-
-  const tick = (ts) => {
-    const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0.016;
-    lastTs = ts;
-    const dtScale = Math.min(2.5, dt * 60);
-    const reduced = prefersReducedUiMotion();
-    const buttonSize = element.offsetWidth || buttonSizeFallback;
-    let active = false;
-
-    if (isLocked()) {
-      offsetX = lockedOffsetX;
-      offsetY = lockedOffsetY;
-      velX = 0;
-      velY = 0;
-      applyOffset();
-      animating = false;
-      return;
-    }
-
-    if (pullBlocked()) {
-      hovered = false;
-      const spring = 0.18 * dtScale;
-      velX += -offsetX * spring;
-      velY += -offsetY * spring;
-      velX *= Math.pow(0.82, dtScale);
-      velY *= Math.pow(0.82, dtScale);
-      offsetX += velX * dtScale;
-      offsetY += velY * dtScale;
-      applyOffset();
-      if (Math.hypot(offsetX, offsetY) > 0.05 || Math.hypot(velX, velY) > 0.002) {
-        requestAnimationFrame(tick);
-      } else {
-        offsetX = 0;
-        offsetY = 0;
-        velX = 0;
-        velY = 0;
-        applyOffset();
-        animating = false;
-      }
-      return;
-    }
-
-    if (!reduced && mouseX != null && mouseY != null) {
-      const center = getRestCenter();
-      const dx = mouseX - center.x;
-      const dy = mouseY - center.y;
-      const dist = Math.hypot(dx, dy);
-
-      if (dist > 0.001) {
-        if (hovered) {
-          const follow = 0.24 * dtScale;
-          velX += (dx - offsetX) * follow;
-          velY += (dy - offsetY) * follow;
-          active = true;
-        } else if (followRadius != null && dist < followRadius) {
-          const t = 1 - dist / followRadius;
-          const follow = (0.32 + t * 0.5) * dtScale;
-          velX += (dx - offsetX) * follow;
-          velY += (dy - offsetY) * follow;
-          active = true;
-        } else if (dist < pullRadius) {
-          const t = 1 - dist / pullRadius;
-          const pullStrength = (0.28 + t * t * 2.6) * (reduced ? 0.35 : 1);
-          velX += (dx / dist) * pullStrength * dtScale;
-          velY += (dy / dist) * pullStrength * dtScale;
-          velX *= 1 - t * 0.018 * dtScale;
-          velY *= 1 - t * 0.018 * dtScale;
-          active = true;
-
-          if (dist < buttonSize * 0.85) {
-            const push = ((buttonSize * 0.85 - dist) / buttonSize) * 0.18;
-            velX -= (dx / dist) * push * dtScale;
-            velY -= (dy / dist) * push * dtScale;
-          }
-        }
-      }
-    }
-
-    const spring = mouseX == null ? 0.16 : hovered ? 0.03 : 0.08;
-    velX += -offsetX * spring * dtScale;
-    velY += -offsetY * spring * dtScale;
-    velX *= Math.pow(0.86, dtScale);
-    velY *= Math.pow(0.86, dtScale);
-    offsetX += velX * dtScale;
-    offsetY += velY * dtScale;
-
-    const mag = Math.hypot(offsetX, offsetY);
-    if (mag > maxOffset) {
-      const scale = maxOffset / mag;
-      offsetX *= scale;
-      offsetY *= scale;
-      velX *= 0.45;
-      velY *= 0.45;
-    }
-
-    applyOffset();
-
-    if (active || Math.hypot(velX, velY) > 0.002 || Math.hypot(offsetX, offsetY) > 0.05) {
-      requestAnimationFrame(tick);
-    } else {
-      animating = false;
-    }
-  };
-
-  const retract = () => {
-    if (isLocked()) return;
-    schedule();
-  };
-
-  const schedule = () => {
-    if (isLocked() || animating) return;
-    animating = true;
-    lastTs = 0;
-    requestAnimationFrame(tick);
-  };
-
-  const onPointerMove = (event) => {
-    mouseX = event.clientX;
-    mouseY = event.clientY;
-    if (pullBlocked()) {
-      retract();
-      return;
-    }
-    if (!isLocked()) schedule();
-  };
-
-  const onPointerLeave = () => {
-    mouseX = null;
-    mouseY = null;
-    schedule();
-  };
-
-  const onElementEnter = () => {
-    if (pullBlocked()) return;
-    hovered = true;
-    schedule();
-  };
-
-  const onElementLeave = () => {
-    hovered = false;
-    schedule();
-  };
-
-  document.addEventListener("pointermove", onPointerMove, { passive: true });
-  document.addEventListener("pointerleave", onPointerLeave);
-  hoverTarget.addEventListener("pointerenter", onElementEnter);
-  hoverTarget.addEventListener("pointerleave", onElementLeave);
-
-  registerMagneticPullRetractor(retract);
-
-  return {
-    lock() {
-      lockedOffsetX = offsetX;
-      lockedOffsetY = offsetY;
-      applyOffset();
-    },
-    unlock() {
-      schedule();
-    },
-    retract,
-  };
-}
-
-const magneticPullRetractors = [];
-
-function registerMagneticPullRetractor(retract) {
-  if (typeof retract === "function") magneticPullRetractors.push(retract);
-}
-
-function retractAllMagneticPulls() {
-  magneticPullRetractors.forEach((retract) => retract());
-}
-
 const Toast = (() => {
   const DEFAULT_DURATION = 5000;
   const RESIZE_MS = 300;
@@ -2137,7 +1915,6 @@ function animateAppLoadingSplit(screen, durationMs, onDone) {
   panelB.style.pointerEvents = "auto";
   document.body.classList.add("app-loading-splitting");
   screen.classList.add("is-splitting");
-  retractAllMagneticPulls();
 
   let start = null;
   let rafId = 0;
@@ -2204,18 +1981,18 @@ function tryDismissAppLoadingScreen() {
   const screen = document.getElementById("app-loading-screen");
   if (!screen) {
     document.body.classList.add("app-ready");
+    queueUsernameOnboardingAfterLoad();
     return;
   }
 
   appLoadingState.dismissed = true;
   document.body.classList.add("app-ready", "app-loading");
   screen.setAttribute("aria-busy", "false");
-  retractAllMagneticPulls();
 
   const removeScreen = () => {
     document.body.classList.remove("app-loading", "app-loading-splitting");
     if (screen.isConnected) screen.remove();
-    retractAllMagneticPulls();
+    queueUsernameOnboardingAfterLoad();
   };
 
   if (document.body.classList.contains("reduce-motion") || prefersReducedUiMotion()) {
@@ -2271,6 +2048,7 @@ function initAppLoadingScreen() {
   const screen = document.getElementById("app-loading-screen");
   if (!screen) {
     document.body.classList.add("app-ready");
+    queueUsernameOnboardingAfterLoad();
     return;
   }
 
@@ -2310,13 +2088,6 @@ function initAppLoadingScreen() {
   updateAppLoadingProgressUI();
 }
 
-function closeSettingsAppStatusPanel() {
-  const dropdown = document.querySelector("#settings-tab .app-status-dropdown");
-  if (!dropdown) return;
-  dropdown.classList.remove("is-open");
-  dropdown.querySelector(".app-status-trigger")?.setAttribute("aria-expanded", "false");
-}
-
 function initAppSidebar() {
   const sidebar = document.querySelector(".app-sidebar");
   if (!sidebar) return;
@@ -2350,8 +2121,8 @@ function initAppSidebar() {
 function syncMiscTabUi() {
   const misc = document.getElementById("app-sidebar-misc");
   const navMisc = document.getElementById("nav-misc-dropdown");
-  if (misc) misc.hidden = !MISC_TAB_ENABLED;
-  if (navMisc) navMisc.hidden = !MISC_TAB_ENABLED;
+  if (misc) misc.hidden = false;
+  if (navMisc) navMisc.hidden = false;
 }
 
 const sidebarMenuCloseCallbacks = {
@@ -3096,7 +2867,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v184";
+const APP_CACHE_VERSION = "morning-roast-v193";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -3131,12 +2902,11 @@ const resetDialogState = {
 };
 
 function isScrollLockedByOverlay() {
-  return document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active") || document.getElementById("presence-activity-overlay")?.classList.contains("active") || document.getElementById("reaction-test-overlay")?.classList.contains("active") || document.getElementById("lineup-video-overlay")?.classList.contains("active") || document.getElementById("lineup-badge-info-overlay")?.classList.contains("active");
+  return isUsernameOnboardingOpen() || document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("profile-display-name-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active") || document.getElementById("presence-activity-overlay")?.classList.contains("active") || document.getElementById("reaction-test-overlay")?.classList.contains("active") || document.getElementById("lineup-video-overlay")?.classList.contains("active") || document.getElementById("lineup-badge-info-overlay")?.classList.contains("active");
 }
 
 function syncBodyScrollLock() {
   document.body.style.overflow = isScrollLockedByOverlay() ? "hidden" : "";
-  retractAllMagneticPulls();
 }
 
 function closeConfirmReset() {
@@ -3182,7 +2952,28 @@ function initConfirmReset() {
 
 const SETTINGS_MODAL_OVERLAY_IDS = ["trainer-settings-overlay", "theme-settings-overlay", "general-settings-overlay"];
 
+const SETTINGS_MODAL_TAB_CONFIG = {
+  "trainer-settings-overlay": { selectorId: "trainer-settings-tab-selector", defaultTab: "session" },
+  "theme-settings-overlay": { selectorId: "theme-settings-tab-selector", defaultTab: "appearance" },
+  "general-settings-overlay": { selectorId: "general-settings-tab-selector", defaultTab: "performance" },
+};
+
+function getSettingsModalTabSelector(overlay) {
+  const config = SETTINGS_MODAL_TAB_CONFIG[overlay?.id];
+  return config ? overlay.querySelector(`#${config.selectorId}`) : null;
+}
+
 function openTrainerSettingsDropdownAncestors(node, overlay) {
+  const sectionsRoot = overlay?.querySelector(".trainer-settings-sections");
+  const section = node.closest(".trainer-settings-section[data-settings-tab]");
+  if (section && sectionsRoot?.classList.contains("is-search-mode")) {
+    section.hidden = false;
+    section.classList.add("is-active");
+    return;
+  }
+
+  if (SETTINGS_MODAL_TAB_CONFIG[overlay?.id]) return;
+
   let current = node;
   while (current && current !== overlay) {
     if (current.classList?.contains("trainer-settings-dropdown")) {
@@ -3229,6 +3020,16 @@ function resetTrainerSettingsDropdowns(overlayId) {
     });
   });
 
+  if (!overlayId) {
+    SETTINGS_MODAL_OVERLAY_IDS.forEach((id) => {
+      syncSettingsModalSearchMode(document.getElementById(id), false);
+      resetSettingsModalTabs(id);
+    });
+  } else if (SETTINGS_MODAL_TAB_CONFIG[overlayId]) {
+    syncSettingsModalSearchMode(document.getElementById(overlayId), false);
+    resetSettingsModalTabs(overlayId);
+  }
+
   initTrainerModeDropdown.close?.();
   initTrainerTimerDropdown.close?.();
   initTrainerAspectDropdown.close?.();
@@ -3236,62 +3037,749 @@ function resetTrainerSettingsDropdowns(overlayId) {
   initFontFamilyDropdown.close?.();
 }
 
-function initOfflineStatus() {
-  const connectionEl = document.getElementById("offline-connection");
-  const swEl = document.getElementById("offline-sw");
-  const cacheEl = document.getElementById("offline-cache-version");
-  const readyEl = document.getElementById("offline-ready");
-  if (!connectionEl) return;
+function setSettingsModalTab(tabId, { overlay = null, overlayId = overlay?.id, updateGliders = true } = {}) {
+  const resolvedOverlay = overlay || document.getElementById(overlayId);
+  const config = SETTINGS_MODAL_TAB_CONFIG[resolvedOverlay?.id];
+  if (!resolvedOverlay || !config) return;
 
-  const dropdown = document.querySelector(".app-status-dropdown");
-  const trigger = dropdown?.querySelector(".app-status-trigger");
-  if (dropdown && trigger) {
-    trigger.addEventListener("click", () => {
-      const open = dropdown.classList.toggle("is-open");
-      trigger.setAttribute("aria-expanded", open ? "true" : "false");
-    });
+  const sectionsRoot = resolvedOverlay.querySelector(".trainer-settings-sections");
+  const selector = getSettingsModalTabSelector(resolvedOverlay);
+  if (!sectionsRoot || !selector || sectionsRoot.classList.contains("is-search-mode")) return;
+
+  const resolvedTab = tabId || config.defaultTab;
+
+  sectionsRoot.querySelectorAll(".trainer-settings-section[data-settings-tab]").forEach((section) => {
+    const active = section.dataset.settingsTab === resolvedTab;
+    section.classList.toggle("is-active", active);
+    section.hidden = !active;
+  });
+
+  selector.querySelectorAll(".toggle-btn[data-settings-tab]").forEach((btn) => {
+    const active = btn.dataset.settingsTab === resolvedTab;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  });
+
+  if (updateGliders) {
+    syncToggleGlider(selector);
+    if (resolvedOverlay.id === "trainer-settings-overlay" && typeof aimTrainer !== "undefined") {
+      aimTrainer.updateAllGliders?.();
+      drawTargetSpreadPreview?.(aimTrainer.targetSpreadLevel, { instant: true });
+    }
   }
+}
 
-  if (cacheEl) cacheEl.textContent = APP_CACHE_VERSION;
+function resetSettingsModalTabs(overlayId) {
+  const config = SETTINGS_MODAL_TAB_CONFIG[overlayId];
+  if (!config) return;
+  setSettingsModalTab(config.defaultTab, { overlayId });
+}
 
-  const updateConnection = () => {
-    const online = navigator.onLine;
-    connectionEl.textContent = online ? "Online" : "Offline";
-    connectionEl.className = online ? "is-online" : "is-offline";
-  };
+function syncSettingsModalSearchMode(overlay, searching) {
+  if (!overlay || !SETTINGS_MODAL_TAB_CONFIG[overlay.id]) return;
 
-  updateConnection();
-  window.addEventListener("online", updateConnection);
-  window.addEventListener("offline", updateConnection);
+  const sectionsRoot = overlay.querySelector(".trainer-settings-sections");
+  const tabBar = overlay.querySelector(".trainer-settings-tab-bar");
+  if (!sectionsRoot) return;
 
-  if (!("serviceWorker" in navigator)) {
-    if (swEl) swEl.textContent = "Not supported";
-    if (readyEl) readyEl.textContent = "No";
+  sectionsRoot.classList.toggle("is-search-mode", searching);
+  if (tabBar) tabBar.hidden = searching;
+
+  if (searching) {
+    sectionsRoot.querySelectorAll(".trainer-settings-section[data-settings-tab]").forEach((section) => {
+      const visible = !section.classList.contains("is-filtered-out");
+      section.hidden = !visible;
+      section.classList.toggle("is-active", visible);
+    });
     return;
   }
 
-  navigator.serviceWorker.ready
-    .then(async (registration) => {
-      if (swEl) {
-        swEl.textContent = registration.active ? "Active" : "Waiting";
-        if (registration.active) swEl.className = "is-ready";
-      }
-      try {
-        const cache = await caches.open(APP_CACHE_VERSION);
-        const keys = await cache.keys();
-        const hasCore = keys.some((request) => request.url.includes("index.html"));
-        if (readyEl) {
-          readyEl.textContent = hasCore ? "Yes" : "Partial";
-          if (hasCore) readyEl.className = "is-ready";
-        }
-      } catch {
-        if (readyEl) readyEl.textContent = "No";
-      }
-    })
-    .catch(() => {
-      if (swEl) swEl.textContent = "Unavailable";
-      if (readyEl) readyEl.textContent = "No";
+  const config = SETTINGS_MODAL_TAB_CONFIG[overlay.id];
+  const activeTab = getSettingsModalTabSelector(overlay)?.querySelector(".toggle-btn.active")?.dataset.settingsTab || config.defaultTab;
+  setSettingsModalTab(activeTab, { overlay });
+}
+
+function initSettingsModalTabs() {
+  if (initSettingsModalTabs._init) return;
+  initSettingsModalTabs._init = true;
+
+  SETTINGS_MODAL_OVERLAY_IDS.forEach((overlayId) => {
+    const overlay = document.getElementById(overlayId);
+    const selector = getSettingsModalTabSelector(overlay);
+    const config = SETTINGS_MODAL_TAB_CONFIG[overlayId];
+    if (!overlay || !selector || !config) return;
+
+    selector.querySelectorAll(".toggle-btn[data-settings-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        setSettingsModalTab(btn.dataset.settingsTab, { overlay });
+      });
     });
+
+    setSettingsModalTab(config.defaultTab, { overlay, updateGliders: false });
+    syncToggleGlider(selector);
+    observeSettingsModalTabGlider(selector);
+  });
+}
+
+function observeSettingsModalTabGlider(selector) {
+  if (!selector || typeof ResizeObserver === "undefined" || selector.dataset.gliderObserved) return;
+  selector.dataset.gliderObserved = "1";
+
+  const ro = new ResizeObserver(() => syncToggleGlider(selector));
+  ro.observe(selector);
+  selector.querySelectorAll(".toggle-btn[data-settings-tab]").forEach((btn) => ro.observe(btn));
+  selector._settingsTabGliderObserver = ro;
+}
+
+const PROFILE_DISPLAY_NAME_KEY = "profileDisplayName";
+const PROFILE_BIO_KEY = "profileBio";
+const PROFILE_AVATAR_KEY = "profileAvatarImage";
+const PROFILE_DISPLAY_NAME_COOLDOWN_KEY = "profileDisplayNameChangedAt";
+const PROFILE_BIO_MAX = 160;
+const PROFILE_DISPLAY_NAME_MAX = 32;
+const PROFILE_DISPLAY_NAME_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+const PROFILE_AVATAR_MAX_BYTES = 120000;
+const PROFILE_AVATAR_MAX_DIM = 256;
+
+let profileDisplayNameCooldownTimer = null;
+const profileDisplayNameConfirmState = {
+  pendingName: "",
+};
+
+let profileDisplayNameTaken = false;
+let profileDisplayNameAvailabilityToken = 0;
+let profileDisplayNameAvailabilityTimer = null;
+
+function getDisplayNameTakenMessage() {
+  return window.MorningRoastChat?.getDisplayNameTakenMessage?.() || "That display name is already in use. Choose another one.";
+}
+
+async function checkDisplayNameAvailability(name) {
+  if (typeof window.MorningRoastChat?.checkDisplayNameAvailability === "function") {
+    return window.MorningRoastChat.checkDisplayNameAvailability(name);
+  }
+  return true;
+}
+
+function setProfileDisplayNameTaken(taken) {
+  profileDisplayNameTaken = Boolean(taken);
+  syncProfileDisplayNameUi();
+}
+
+function scheduleDisplayNameAvailabilityCheck(name) {
+  if (profileDisplayNameAvailabilityTimer !== null) {
+    window.clearTimeout(profileDisplayNameAvailabilityTimer);
+    profileDisplayNameAvailabilityTimer = null;
+  }
+
+  const draft = String(name || "").trim();
+  const saved = getSavedDisplayName();
+  if (!draft || draft.toLowerCase() === saved.toLowerCase()) {
+    setProfileDisplayNameTaken(false);
+    return;
+  }
+
+  profileDisplayNameAvailabilityTimer = window.setTimeout(async () => {
+    profileDisplayNameAvailabilityTimer = null;
+    const token = ++profileDisplayNameAvailabilityToken;
+    const available = await checkDisplayNameAvailability(draft);
+    if (token !== profileDisplayNameAvailabilityToken) return;
+    setProfileDisplayNameTaken(!available);
+  }, 350);
+}
+
+function getSavedDisplayName() {
+  return String(localStorage.getItem(PROFILE_DISPLAY_NAME_KEY) || "").trim();
+}
+
+function getDisplayNameCooldownEndsAt() {
+  const changedAt = Number(localStorage.getItem(PROFILE_DISPLAY_NAME_COOLDOWN_KEY));
+  if (!Number.isFinite(changedAt) || changedAt <= 0) return 0;
+  return changedAt + PROFILE_DISPLAY_NAME_COOLDOWN_MS;
+}
+
+function getDisplayNameCooldownRemainingMs() {
+  const endsAt = getDisplayNameCooldownEndsAt();
+  if (!endsAt) return 0;
+  return Math.max(0, endsAt - Date.now());
+}
+
+function isDisplayNameOnCooldown() {
+  return getDisplayNameCooldownRemainingMs() > 0;
+}
+
+function formatDisplayNameCooldownRemaining(ms) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function getDisplayNameCooldownMessage(ms = getDisplayNameCooldownRemainingMs()) {
+  return `You can change your display name again in ${formatDisplayNameCooldownRemaining(ms)}.`;
+}
+
+function startDisplayNameCooldown() {
+  localStorage.setItem(PROFILE_DISPLAY_NAME_COOLDOWN_KEY, String(Date.now()));
+}
+
+function scheduleProfileDisplayNameCooldownRefresh() {
+  if (profileDisplayNameCooldownTimer !== null) {
+    window.clearTimeout(profileDisplayNameCooldownTimer);
+    profileDisplayNameCooldownTimer = null;
+  }
+
+  const remaining = getDisplayNameCooldownRemainingMs();
+  if (remaining <= 0) {
+    syncProfileDisplayNameUi();
+    return;
+  }
+
+  profileDisplayNameCooldownTimer = window.setTimeout(() => {
+    profileDisplayNameCooldownTimer = null;
+    syncProfileDisplayNameUi();
+    if (getDisplayNameCooldownRemainingMs() > 0) {
+      scheduleProfileDisplayNameCooldownRefresh();
+    }
+  }, 1000);
+}
+
+function syncProfileDisplayNameUi() {
+  const nameInput = document.getElementById("profile-display-name");
+  const hintEl = document.getElementById("profile-display-name-hint");
+  const actionsEl = document.getElementById("profile-display-name-actions");
+  const saveBtn = document.getElementById("profile-display-name-save");
+  const cancelBtn = document.getElementById("profile-display-name-cancel");
+  if (!nameInput) return;
+
+  const saved = getSavedDisplayName();
+  const draft = String(nameInput.value || "").trim();
+  const remaining = getDisplayNameCooldownRemainingMs();
+  const onCooldown = remaining > 0;
+  const hasDraft = draft !== saved;
+  const missingName = !draft;
+  const canEdit = !onCooldown;
+
+  nameInput.readOnly = onCooldown;
+  nameInput.classList.toggle("is-locked", onCooldown);
+  nameInput.setAttribute("aria-invalid", missingName && hasDraft ? "true" : "false");
+
+  if (hintEl) {
+    hintEl.classList.remove("is-cooldown", "is-error");
+
+    if (onCooldown) {
+      hintEl.hidden = false;
+      hintEl.classList.add("is-cooldown");
+      hintEl.textContent = getDisplayNameCooldownMessage(remaining);
+    } else if (missingName && saved) {
+      hintEl.hidden = false;
+      hintEl.classList.add("is-error");
+      hintEl.textContent = "Display name is required. You can't remove your name.";
+    } else if (missingName && !saved) {
+      hintEl.hidden = false;
+      hintEl.classList.add("is-error");
+      hintEl.textContent = "Choose a display name — it's required for chat and your profile.";
+    } else if (profileDisplayNameTaken && hasDraft && !missingName) {
+      hintEl.hidden = false;
+      hintEl.classList.add("is-error");
+      hintEl.textContent = getDisplayNameTakenMessage();
+    } else {
+      hintEl.hidden = true;
+      hintEl.textContent = "";
+    }
+  }
+
+  if (actionsEl) actionsEl.hidden = onCooldown;
+  if (cancelBtn) cancelBtn.disabled = !canEdit || !hasDraft;
+  if (saveBtn) saveBtn.disabled = !canEdit || !hasDraft || missingName || profileDisplayNameTaken;
+}
+
+function applyProfileDisplayName(name, { startCooldown = false } = {}) {
+  const trimmed = String(name || "").trim();
+  if (!trimmed) return false;
+
+  const value = persistProfileFields({ name: trimmed });
+  if (!value) return false;
+
+  if (startCooldown) startDisplayNameCooldown();
+
+  const nameInput = document.getElementById("profile-display-name");
+  if (nameInput) nameInput.value = value;
+
+  window.MorningRoastChat?.initCommunityChat?.()?.refreshIdentity?.();
+  setProfileDisplayNameTaken(false);
+  syncProfileDisplayNameUi();
+  scheduleProfileDisplayNameCooldownRefresh();
+  return true;
+}
+
+function revertProfileDisplayNameDraft() {
+  const nameInput = document.getElementById("profile-display-name");
+  if (!nameInput) return;
+  nameInput.value = getSavedDisplayName();
+  profileDisplayNameAvailabilityToken += 1;
+  setProfileDisplayNameTaken(false);
+}
+
+function openProfileDisplayNameConfirm(name) {
+  const overlay = document.getElementById("profile-display-name-overlay");
+  if (!overlay) {
+    applyProfileDisplayName(name, { startCooldown: true });
+    return;
+  }
+
+  profileDisplayNameConfirmState.pendingName = name;
+  overlay.classList.add("active");
+  overlay.setAttribute("aria-hidden", "false");
+  syncBodyScrollLock();
+}
+
+function closeProfileDisplayNameConfirm() {
+  const overlay = document.getElementById("profile-display-name-overlay");
+  if (overlay) {
+    overlay.classList.remove("active");
+    overlay.setAttribute("aria-hidden", "true");
+  }
+  profileDisplayNameConfirmState.pendingName = "";
+  syncBodyScrollLock();
+}
+
+async function handleProfileDisplayNameSave() {
+  const nameInput = document.getElementById("profile-display-name");
+  if (!nameInput) return;
+
+  const draft = String(nameInput.value || "").trim();
+  const saved = getSavedDisplayName();
+
+  if (!draft) {
+    Toast.notify({ message: "Display name is required. You can't remove your name.", type: "error" });
+    syncProfileDisplayNameUi();
+    return;
+  }
+
+  if (draft === saved) {
+    syncProfileDisplayNameUi();
+    return;
+  }
+
+  if (isDisplayNameOnCooldown()) {
+    Toast.notify({
+      message: getDisplayNameCooldownMessage(),
+      type: "error",
+    });
+    syncProfileDisplayNameUi();
+    return;
+  }
+
+  const available = await checkDisplayNameAvailability(draft);
+  if (!available) {
+    setProfileDisplayNameTaken(true);
+    Toast.notify({ message: getDisplayNameTakenMessage(), type: "error" });
+    return;
+  }
+
+  if (saved) {
+    openProfileDisplayNameConfirm(draft);
+    return;
+  }
+
+  applyProfileDisplayName(draft, { startCooldown: false });
+}
+
+function initProfileDisplayNameConfirm() {
+  const overlay = document.getElementById("profile-display-name-overlay");
+  if (!overlay || initProfileDisplayNameConfirm._init) return;
+  initProfileDisplayNameConfirm._init = true;
+
+  document.getElementById("profile-display-name-overlay-cancel")?.addEventListener("click", closeProfileDisplayNameConfirm);
+  document.getElementById("profile-display-name-overlay-confirm")?.addEventListener("click", async () => {
+    const name = profileDisplayNameConfirmState.pendingName;
+    closeProfileDisplayNameConfirm();
+    if (!name) return;
+
+    const available = await checkDisplayNameAvailability(name);
+    if (!available) {
+      setProfileDisplayNameTaken(true);
+      Toast.notify({ message: getDisplayNameTakenMessage(), type: "error" });
+      return;
+    }
+
+    applyProfileDisplayName(name, { startCooldown: true });
+  });
+
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) closeProfileDisplayNameConfirm();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !overlay.classList.contains("active")) return;
+    event.preventDefault();
+    closeProfileDisplayNameConfirm();
+  });
+}
+
+function parseOwnerDisplayNames(value) {
+  return String(value || "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+function getOwnerDisplayNames() {
+  const fromChat = window.MorningRoastChat?.getOwnerDisplayNames?.();
+  if (Array.isArray(fromChat) && fromChat.length) return fromChat;
+  return parseOwnerDisplayNames(document.querySelector('meta[name="morning-roast-owner-names"]')?.content);
+}
+
+function isOwnerDisplayName(name) {
+  if (typeof window.MorningRoastChat?.isOwnerDisplayName === "function") {
+    return window.MorningRoastChat.isOwnerDisplayName(name);
+  }
+  const normalized = String(name || "").trim().toLowerCase();
+  if (!normalized) return false;
+  return getOwnerDisplayNames().some((owner) => owner.trim().toLowerCase() === normalized);
+}
+
+function syncProfileOwnerPill(name) {
+  const pill = document.getElementById("profile-owner-pill");
+  if (!pill) return;
+  pill.hidden = !isOwnerDisplayName(name);
+}
+
+function hasStoredDisplayName() {
+  return Boolean(String(localStorage.getItem(PROFILE_DISPLAY_NAME_KEY) || "").trim());
+}
+
+function isUsernameOnboardingOpen() {
+  return document.getElementById("username-onboarding-overlay")?.classList.contains("active");
+}
+
+function getStoredProfileAvatar() {
+  return localStorage.getItem(PROFILE_AVATAR_KEY) || "";
+}
+
+function persistProfileAvatar(dataUrl) {
+  if (!dataUrl) {
+    localStorage.removeItem(PROFILE_AVATAR_KEY);
+    return "";
+  }
+  localStorage.setItem(PROFILE_AVATAR_KEY, dataUrl);
+  return dataUrl;
+}
+
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Could not read image"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressProfileAvatarDataUrl(source) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const scale = Math.min(1, PROFILE_AVATAR_MAX_DIM / Math.max(image.width, image.height));
+      const width = Math.max(1, Math.round(image.width * scale));
+      const height = Math.max(1, Math.round(image.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Could not process image"));
+        return;
+      }
+      ctx.drawImage(image, 0, 0, width, height);
+
+      let quality = 0.88;
+      let dataUrl = canvas.toDataURL("image/jpeg", quality);
+      while (dataUrl.length > PROFILE_AVATAR_MAX_BYTES && quality > 0.45) {
+        quality -= 0.08;
+        dataUrl = canvas.toDataURL("image/jpeg", quality);
+      }
+      resolve(dataUrl);
+    };
+    image.onerror = () => reject(new Error("Invalid image file"));
+    image.src = source;
+  });
+}
+
+async function prepareProfileAvatarFile(file) {
+  if (!file || !String(file.type || "").startsWith("image/")) {
+    throw new Error("Choose an image file");
+  }
+  const raw = await loadImageFromFile(file);
+  return compressProfileAvatarDataUrl(raw);
+}
+
+function syncProfileAvatar(name) {
+  const avatar = document.getElementById("profile-avatar");
+  const img = document.getElementById("profile-avatar-image");
+  const fallback = document.getElementById("profile-avatar-fallback");
+  const removeBtn = document.getElementById("profile-avatar-remove");
+  if (!avatar || !fallback) return;
+
+  const trimmed = String(name ?? localStorage.getItem(PROFILE_DISPLAY_NAME_KEY) ?? "").trim();
+  fallback.textContent = trimmed ? trimmed.charAt(0).toUpperCase() : "?";
+
+  const dataUrl = getStoredProfileAvatar();
+  if (img && dataUrl) {
+    img.src = dataUrl;
+    img.hidden = false;
+    avatar.classList.add("has-image");
+    if (removeBtn) removeBtn.hidden = false;
+    return;
+  }
+
+  if (img) {
+    img.hidden = true;
+    img.removeAttribute("src");
+  }
+  avatar.classList.remove("has-image");
+  if (removeBtn) removeBtn.hidden = true;
+}
+
+function syncProfilePreview(name) {
+  const nameEl = document.getElementById("profile-preview-name");
+  const trimmedName = String(name || "").trim();
+
+  if (nameEl) {
+    nameEl.textContent = trimmedName || "Your name";
+    nameEl.classList.toggle("is-empty", !trimmedName);
+  }
+
+  syncProfileOwnerPill(trimmedName);
+}
+
+function syncProfileBioCount(length) {
+  const countEl = document.getElementById("profile-bio-count");
+  if (countEl) countEl.textContent = `${length} / ${PROFILE_BIO_MAX}`;
+}
+
+function persistProfileFields({ name, bio } = {}) {
+  if (name != null) {
+    const value = String(name).trim().slice(0, PROFILE_DISPLAY_NAME_MAX);
+    if (!value) return getSavedDisplayName() || null;
+    localStorage.setItem(PROFILE_DISPLAY_NAME_KEY, value);
+    syncProfileAvatar(value);
+    syncProfilePreview(value);
+    return value;
+  }
+
+  if (bio != null) {
+    const value = String(bio).trim().slice(0, PROFILE_BIO_MAX);
+    localStorage.setItem(PROFILE_BIO_KEY, value);
+    syncProfileBioCount(value.length);
+    return value;
+  }
+
+  return null;
+}
+
+function syncProfileTabFromStorage() {
+  const nameInput = document.getElementById("profile-display-name");
+  const bioInput = document.getElementById("profile-bio");
+  if (!nameInput || !bioInput) return;
+
+  const savedName = getSavedDisplayName();
+  const savedBio = localStorage.getItem(PROFILE_BIO_KEY) || "";
+
+  nameInput.value = savedName;
+  bioInput.value = savedBio;
+  syncProfileAvatar(savedName);
+  syncProfilePreview(savedName);
+  syncProfileBioCount(savedBio.length);
+  syncProfileDisplayNameUi();
+  scheduleProfileDisplayNameCooldownRefresh();
+}
+
+function initProfileTab() {
+  const nameInput = document.getElementById("profile-display-name");
+  const bioInput = document.getElementById("profile-bio");
+  const avatarButton = document.getElementById("profile-avatar-button");
+  const avatarInput = document.getElementById("profile-avatar-input");
+  const avatarRemove = document.getElementById("profile-avatar-remove");
+  const nameSaveBtn = document.getElementById("profile-display-name-save");
+  const nameCancelBtn = document.getElementById("profile-display-name-cancel");
+  if (!nameInput || !bioInput || initProfileTab._init) return;
+  initProfileTab._init = true;
+
+  syncProfileTabFromStorage();
+
+  avatarButton?.addEventListener("click", () => {
+    avatarInput?.click();
+  });
+
+  avatarInput?.addEventListener("change", async () => {
+    const file = avatarInput.files?.[0];
+    avatarInput.value = "";
+    if (!file) return;
+
+    try {
+      const dataUrl = await prepareProfileAvatarFile(file);
+      persistProfileAvatar(dataUrl);
+      syncProfileAvatar(getSavedDisplayName());
+    } catch (error) {
+      Toast.notify({ message: error?.message || "Could not update profile picture", type: "error" });
+    }
+  });
+
+  avatarRemove?.addEventListener("click", () => {
+    persistProfileAvatar("");
+    syncProfileAvatar(getSavedDisplayName());
+  });
+
+  nameInput.addEventListener("input", () => {
+    syncProfileDisplayNameUi();
+    scheduleDisplayNameAvailabilityCheck(nameInput.value);
+  });
+
+  nameInput.addEventListener("blur", () => {
+    const saved = getSavedDisplayName();
+    const draft = String(nameInput.value || "").trim();
+    if (saved && !draft) {
+      nameInput.value = saved;
+      syncProfileDisplayNameUi();
+    }
+  });
+
+  nameInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || nameInput.readOnly) return;
+    event.preventDefault();
+    handleProfileDisplayNameSave();
+  });
+
+  nameSaveBtn?.addEventListener("click", handleProfileDisplayNameSave);
+  nameCancelBtn?.addEventListener("click", revertProfileDisplayNameDraft);
+
+  bioInput.addEventListener("input", () => {
+    persistProfileFields({ bio: bioInput.value });
+  });
+
+  bioInput.addEventListener("change", () => {
+    bioInput.value = persistProfileFields({ bio: bioInput.value }) ?? "";
+  });
+
+  bioInput.addEventListener("focus", () => {
+    bioInput.closest(".profile-field")?.classList.add("is-focused");
+  });
+
+  bioInput.addEventListener("blur", () => {
+    bioInput.closest(".profile-field")?.classList.remove("is-focused");
+  });
+
+  window.addEventListener("morning-roast:owners-config", () => {
+    syncProfileOwnerPill(getSavedDisplayName());
+  });
+
+  window.addEventListener("morning-roast:chat-presence", () => {
+    scheduleDisplayNameAvailabilityCheck(nameInput.value);
+  });
+
+  window.addEventListener("morning-roast:display-name-taken", () => {
+    setProfileDisplayNameTaken(true);
+  });
+}
+
+function openUsernameOnboarding() {
+  initUsernameOnboarding();
+  if (hasStoredDisplayName() || isUsernameOnboardingOpen()) return;
+
+  const overlay = document.getElementById("username-onboarding-overlay");
+  const input = document.getElementById("username-onboarding-input");
+  const submit = document.getElementById("username-onboarding-submit");
+  if (!overlay || !input) return;
+
+  overlay.classList.add("active");
+  overlay.setAttribute("aria-hidden", "false");
+  document.body.classList.add("username-onboarding-open");
+  syncBodyScrollLock();
+
+  input.value = "";
+  if (submit) submit.disabled = true;
+
+  requestAnimationFrame(() => {
+    input.focus();
+  });
+}
+
+function closeUsernameOnboarding() {
+  const overlay = document.getElementById("username-onboarding-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("active");
+  overlay.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("username-onboarding-open");
+  syncBodyScrollLock();
+}
+
+async function completeUsernameOnboarding(name) {
+  const trimmed = String(name || "").trim();
+  if (!trimmed) return false;
+
+  const available = await checkDisplayNameAvailability(trimmed);
+  if (!available) {
+    Toast.notify({ message: getDisplayNameTakenMessage(), type: "error" });
+    return false;
+  }
+
+  const value = persistProfileFields({ name: trimmed });
+  if (!value) return false;
+
+  const nameInput = document.getElementById("profile-display-name");
+  if (nameInput) nameInput.value = value;
+
+  window.MorningRoastChat?.initCommunityChat?.()?.refreshIdentity?.();
+  closeUsernameOnboarding();
+  return true;
+}
+
+function queueUsernameOnboardingAfterLoad() {
+  if (hasStoredDisplayName()) return;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => openUsernameOnboarding());
+  });
+}
+
+function initUsernameOnboarding() {
+  const overlay = document.getElementById("username-onboarding-overlay");
+  const form = document.getElementById("username-onboarding-form");
+  const input = document.getElementById("username-onboarding-input");
+  const submit = document.getElementById("username-onboarding-submit");
+  if (!overlay || !form || !input || initUsernameOnboarding._init) return;
+  initUsernameOnboarding._init = true;
+
+  const syncSubmitState = () => {
+    if (submit) submit.disabled = !input.value.trim();
+  };
+
+  input.addEventListener("input", syncSubmitState);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!(await completeUsernameOnboarding(input.value))) return;
+    input.value = "";
+    syncSubmitState();
+  });
+
+  overlay.addEventListener("click", (event) => {
+    event.stopPropagation();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (!isUsernameOnboardingOpen()) return;
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
 }
 
 const EDPI_TIER_COLORS = Object.freeze({
@@ -3597,15 +4085,37 @@ function positionToggleGlider(container) {
   glider.style.height = `calc(100% - ${padTop + padBottom}px)`;
 }
 
-const GLIDER_SELECTOR_CONTAINERS = ".trainer-timer-selector, .trainer-toggle-selector, .trainer-spread-selector, .trainer-mode-trigger, .profile-mode-selector, .profile-timer-selector, .crosshair-converter-zoom-selector";
+function syncToggleGlider(container) {
+  if (!container) return;
+  positionToggleGlider(container);
+  requestAnimationFrame(() => {
+    positionToggleGlider(container);
+    requestAnimationFrame(() => positionToggleGlider(container));
+  });
+  window.setTimeout(() => positionToggleGlider(container), 320);
+}
+
+const GLIDER_SELECTOR_CONTAINERS = ".trainer-timer-selector, .trainer-toggle-selector, .trainer-spread-selector, .trainer-mode-trigger, .profile-mode-selector, .profile-timer-selector, .crosshair-converter-zoom-selector, .trainer-settings-tab-selector";
+
+function collectToggleGliderContainers(root) {
+  if (!root) return [];
+  const containers = root.matches?.(GLIDER_SELECTOR_CONTAINERS) ? [root] : [];
+  root.querySelectorAll(GLIDER_SELECTOR_CONTAINERS).forEach((container) => {
+    if (!containers.includes(container)) containers.push(container);
+  });
+  return containers;
+}
 
 function updateAllToggleGliders() {
   document.querySelectorAll(GLIDER_SELECTOR_CONTAINERS).forEach(positionToggleGlider);
 }
 
 function updateToggleGlidersIn(root) {
-  if (!root) return;
-  root.querySelectorAll(GLIDER_SELECTOR_CONTAINERS).forEach(positionToggleGlider);
+  collectToggleGliderContainers(root).forEach(positionToggleGlider);
+}
+
+function syncToggleGlidersIn(root) {
+  collectToggleGliderContainers(root).forEach(syncToggleGlider);
 }
 
 function isSectionActive(section) {
@@ -3640,6 +4150,8 @@ function finishTabEnterAnimation(event) {
 }
 
 function runTabActivation(id) {
+  closeAllTabActionMenus();
+
   if (id === "aim-training-tab") {
     aimTrainer.handleResize();
     aimTrainer.updateAllGliders();
@@ -3667,6 +4179,9 @@ function runTabActivation(id) {
     aimTrainer.displayResultsOnProfile();
     updateToggleGlidersIn(document.getElementById("stats-tab"));
     toggleProfileSensConvButtons();
+  } else if (id === "profile-tab") {
+    syncProfileTabFromStorage();
+    window.MorningRoastChat?.initCommunityChat?.()?.refreshIdentity?.();
   } else if (id === "lineup-tab") {
     applyLineupVideoSources();
     syncLineupFiltersUiControls();
@@ -3890,8 +4405,15 @@ const aimTrainer = {
   },
 
   getSpawnTopMarginPx() {
-    const rootPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    return rootPx * 2;
+    return this.getRootFontPx() * 2;
+  },
+
+  getRootFontPx() {
+    return this._rootFontPx || 16;
+  },
+
+  syncLayoutMetricsCache() {
+    this._rootFontPx = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   },
 
   spawnTooCloseToTop(yaw, pitch, radius) {
@@ -3904,53 +4426,59 @@ const aimTrainer = {
     return p.y - r < this.getSpawnTopMarginPx();
   },
 
-  targetOverlapsAt(yaw, pitch, radius, gapPx = 16) {
-    if (!this.canvas || !this.targets.length) return false;
-    const cx = this.canvas.width / 2;
-    const cy = this.canvas.height / 2;
-    const focal = this.getFocalLength();
-    const p = this.project(yaw, pitch, cx, cy, focal);
-    const r = this.getTargetScreenRadius(radius);
-
-    for (const other of this.targets) {
-      const op = this.project(other.yaw, other.pitch, cx, cy, focal);
-      const or = this.getTargetScreenRadius(other.radius);
-      const dx = p.x - op.x;
-      const dy = p.y - op.y;
-      const minDist = r + or + gapPx;
-      if (dx * dx + dy * dy < minDist * minDist) return true;
-    }
-    return false;
-  },
-
-  findOpenSpawnAngles(radius, gapPx = 16) {
+  findOpenSpawnAngles(radius, gapPx = 16, { quick = false } = {}) {
     const band = this.getSpawnBand();
-    const maxAttempts = 160;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const yaw = (Math.random() - 0.5) * band.yaw * 2;
-      const pitch = (Math.random() - 0.5) * band.pitch * 2;
-      if (!this.targetOverlapsAt(yaw, pitch, radius, gapPx) && !this.spawnTooCloseToTop(yaw, pitch, radius)) {
-        return { yaw, pitch, valid: true };
-      }
-    }
-
-    const gridSteps = 10;
-    for (let gy = 0; gy < gridSteps; gy++) {
-      for (let gx = 0; gx < gridSteps; gx++) {
-        const yaw = -band.yaw + (gx / Math.max(1, gridSteps - 1)) * band.yaw * 2;
-        const pitch = -band.pitch + (gy / Math.max(1, gridSteps - 1)) * band.pitch * 2;
-        if (!this.targetOverlapsAt(yaw, pitch, radius, gapPx) && !this.spawnTooCloseToTop(yaw, pitch, radius)) {
-          return { yaw, pitch, valid: true };
-        }
-      }
-    }
-
     if (!this.canvas) return { yaw: 0, pitch: 0, valid: false };
 
     const cx = this.canvas.width / 2;
     const cy = this.canvas.height / 2;
     const focal = this.getFocalLength();
+    const aspectX = this.getAspectHorizontalScale();
+    const screenR = this.getTargetScreenRadius(radius);
+    const topMargin = this.getSpawnTopMarginPx();
+    const maxAttempts = quick ? 36 : 160;
+
+    const isValidSpawn = (yaw, pitch) => {
+      const px = cx + (yaw - this.camera.yaw) * focal * aspectX;
+      const py = cy - (pitch - this.camera.pitch) * focal;
+      if (py - screenR < topMargin) return false;
+
+      for (const other of this.targets) {
+        const ox = cx + (other.yaw - this.camera.yaw) * focal * aspectX;
+        const oy = cy - (other.pitch - this.camera.pitch) * focal;
+        const or = this.getTargetScreenRadius(other.radius);
+        const dx = px - ox;
+        const dy = py - oy;
+        const minDist = screenR + or + gapPx;
+        if (dx * dx + dy * dy < minDist * minDist) return false;
+      }
+      return true;
+    };
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const yaw = (Math.random() - 0.5) * band.yaw * 2;
+      const pitch = (Math.random() - 0.5) * band.pitch * 2;
+      if (isValidSpawn(yaw, pitch)) return { yaw, pitch, valid: true };
+    }
+
+    const gridSteps = quick ? 6 : 10;
+    for (let gy = 0; gy < gridSteps; gy++) {
+      for (let gx = 0; gx < gridSteps; gx++) {
+        const yaw = -band.yaw + (gx / Math.max(1, gridSteps - 1)) * band.yaw * 2;
+        const pitch = -band.pitch + (gy / Math.max(1, gridSteps - 1)) * band.pitch * 2;
+        if (isValidSpawn(yaw, pitch)) return { yaw, pitch, valid: true };
+      }
+    }
+
+    if (quick) {
+      for (let i = 0; i < 8; i++) {
+        const yaw = (Math.random() - 0.5) * band.yaw * 2;
+        const pitch = (Math.random() - 0.5) * band.pitch * 2;
+        if (!this.spawnTooCloseToTop(yaw, pitch, radius)) return { yaw, pitch, valid: true };
+      }
+      return { yaw: 0, pitch: 0, valid: false };
+    }
+
     let bestYaw = 0;
     let bestPitch = 0;
     let bestGap = -1;
@@ -3959,17 +4487,15 @@ const aimTrainer = {
       const yaw = (Math.random() - 0.5) * band.yaw * 2;
       const pitch = (Math.random() - 0.5) * band.pitch * 2;
       if (this.spawnTooCloseToTop(yaw, pitch, radius)) continue;
-      const p = this.project(yaw, pitch, cx, cy, focal);
-      const r = this.getTargetScreenRadius(radius);
+      const px = cx + (yaw - this.camera.yaw) * focal * aspectX;
+      const py = cy - (pitch - this.camera.pitch) * focal;
       let nearestGap = Infinity;
 
       for (const other of this.targets) {
-        const op = this.project(other.yaw, other.pitch, cx, cy, focal);
+        const ox = cx + (other.yaw - this.camera.yaw) * focal * aspectX;
+        const oy = cy - (other.pitch - this.camera.pitch) * focal;
         const or = this.getTargetScreenRadius(other.radius);
-        const dx = p.x - op.x;
-        const dy = p.y - op.y;
-        const dist = Math.hypot(dx, dy);
-        nearestGap = Math.min(nearestGap, dist - (r + or));
+        nearestGap = Math.min(nearestGap, Math.hypot(px - ox, py - oy) - (screenR + or));
       }
 
       if (nearestGap > bestGap) {
@@ -4633,6 +5159,7 @@ const aimTrainer = {
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext("2d");
     this.canvas.style.cursor = "default";
+    this.syncLayoutMetricsCache();
 
     const sensInput = document.getElementById("canvas-sens");
     const dpiInput = document.getElementById("canvas-dpi");
@@ -4749,6 +5276,7 @@ const aimTrainer = {
 
         setTimeout(() => {
           this.updateAllGliders();
+          syncToggleGlider(document.getElementById("trainer-settings-tab-selector"));
           drawTargetSpreadPreview(this.targetSpreadLevel, { instant: true });
         }, 50);
       });
@@ -5003,6 +5531,7 @@ const aimTrainer = {
     this.shareScoreCanvas = null;
     this.targets = [];
     this.hitMarkers = [];
+    this.cancelScheduledSpawn();
     this.isMouseDown = false;
     this.resetFlickTracking();
     this.startCountdown();
@@ -5050,17 +5579,22 @@ const aimTrainer = {
     if (peakGain <= 0) return;
     try {
       const ctx = this.getAudioCtx();
+      const t = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(peakGain, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(880, t);
+      osc.frequency.exponentialRampToValueAtTime(440, t + 0.06);
+      gain.gain.setValueAtTime(peakGain, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.1);
+      osc.onended = () => {
+        osc.disconnect();
+        gain.disconnect();
+      };
+      osc.start(t);
+      osc.stop(t + 0.07);
     } catch (e) {
       console.error("Audio failed:", e);
     }
@@ -5086,6 +5620,7 @@ const aimTrainer = {
 
   handleResize() {
     if (!this.canvas) return;
+    this.syncLayoutMetricsCache();
     const container = this.canvas.parentElement;
     if (!document.fullscreenElement && !container) return;
 
@@ -6076,7 +6611,7 @@ const aimTrainer = {
         if (this.targets[i].radius <= minRadius) {
           this.targets.splice(i, 1);
           this.totalClicks++;
-          this.spawnTarget();
+          this.scheduleSpawnTarget();
         }
       }
     } else if (getTrainerModeDef(this.mode).movement === "strafe") {
@@ -6194,7 +6729,7 @@ const aimTrainer = {
     const padY = 4;
     const outerW = innerW + padX * 2;
     const outerH = innerH + padY * 2;
-    const gap = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const gap = this.getRootFontPx();
     const textGap = 4;
     const outerX = x - outerW / 2;
     const outerY = y - radius - gap - outerH;
@@ -6429,6 +6964,7 @@ const aimTrainer = {
 
   endGame() {
     this.active = false;
+    this.cancelScheduledSpawn();
     this.showResults = true;
     this.showShareMenu = false;
     this.shareScoreCanvas = null;
@@ -6545,10 +7081,10 @@ const aimTrainer = {
     });
   },
 
-  spawnTarget() {
+  spawnTarget({ quick = false } = {}) {
     const modeDef = getTrainerModeDef(this.mode);
     const radius = this.getTargetRadius();
-    const { yaw, pitch, valid } = this.findOpenSpawnAngles(radius);
+    const { yaw, pitch, valid } = this.findOpenSpawnAngles(radius, 16, { quick });
     if (!valid) return;
 
     const target = {
@@ -6573,6 +7109,38 @@ const aimTrainer = {
     }
 
     this.targets.push(target);
+  },
+
+  scheduleSpawnTarget(trackingMotion = null) {
+    if (!this.active || this.showResults) return;
+    if (this.targets.length >= getModeMaxTargets(this.mode)) return;
+
+    if (this._spawnScheduleId != null) {
+      if (trackingMotion) this._spawnScheduleTracking = trackingMotion;
+      return;
+    }
+
+    this._spawnScheduleTracking = trackingMotion;
+    this._spawnScheduleId = nativeRequestAnimationFrame(() => {
+      this._spawnScheduleId = null;
+      const motion = this._spawnScheduleTracking;
+      this._spawnScheduleTracking = null;
+      if (!this.active || this.showResults) return;
+      if (this.targets.length >= getModeMaxTargets(this.mode)) return;
+
+      this.spawnTarget({ quick: true });
+      if (motion && this.targets[0]) {
+        this.initTrackingTargetMotion(this.targets[0], motion);
+      }
+    });
+  },
+
+  cancelScheduledSpawn() {
+    if (this._spawnScheduleId != null) {
+      nativeCancelAnimationFrame(this._spawnScheduleId);
+      this._spawnScheduleId = null;
+    }
+    this._spawnScheduleTracking = null;
   },
 
   fireShot() {
@@ -6629,10 +7197,9 @@ const aimTrainer = {
 
         if (isTrainerAccuracyMode(this.mode)) {
           this.isFlickingToNewTarget = true;
-          this.spawnTarget();
-          this.initTrackingTargetMotion(this.targets[0], { phaseX: killedPhaseX, phaseY: killedPhaseY });
+          this.scheduleSpawnTarget({ phaseX: killedPhaseX, phaseY: killedPhaseY });
         } else if (this.targets.length < getModeMaxTargets(this.mode)) {
-          this.spawnTarget();
+          this.scheduleSpawnTarget();
         }
       }
     } else {
@@ -7378,7 +7945,7 @@ function syncEdpiCompareModeUi(mode = edpiCompareMode) {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-selected", active ? "true" : "false");
   });
-  positionToggleGlider(selector);
+  syncToggleGlider(selector);
 
   if (sensLabel) {
     sensLabel.innerHTML = compare ? '<i class="ri-focus-3-line" aria-hidden="true"></i> Sensitivity A' : '<i class="ri-focus-3-line" aria-hidden="true"></i> Sensitivity';
@@ -7756,6 +8323,7 @@ function updateEDPI() {
     updateEdpiCompareSide(gameVal, boundsReady);
     toggleVisibility(copyBtn, false);
     toggleVisibility(shareBtn, false);
+    syncTabActionMenuStateByWrapId("edpi-action-menu-wrap");
     return;
   }
 
@@ -7765,6 +8333,7 @@ function updateEDPI() {
   setEdpiCm360Display(sensNum, dpiNum, gameVal);
   toggleVisibility(copyBtn, edpi !== 0);
   toggleVisibility(shareBtn, edpi !== 0);
+  syncTabActionMenuStateByWrapId("edpi-action-menu-wrap");
 
   let color, label;
   const bounds = getEdpiSpectrumBounds(gameVal);
@@ -7775,6 +8344,7 @@ function updateEDPI() {
     updateEdpiCompareSide(gameVal, null);
     toggleProfileSensConvButtons();
     updateGameInfoPanelVisibility();
+    syncTabActionMenuStateByWrapId("edpi-action-menu-wrap");
     return;
   }
 
@@ -7902,6 +8472,7 @@ const TAB_SLUGS = {
   "crosshair-converter-tab": "crosshair-converter",
   "settings-tab": "settings",
   "stats-tab": "stats",
+  "profile-tab": "profile",
   "lineup-tab": "lineups",
   "aim-training-tab": "aim-training",
   "keybinds-tab": "keybinds",
@@ -7983,23 +8554,49 @@ function initTabRouting() {
 
 const FOOTER_TAB_IDS = new Set(["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"]);
 
-const MISC_TAB_IDS = new Set(["crosshair-converter-tab", "settings-tab", "lineup-tab"]);
+const MISC_TAB_IDS = new Set([
+  "sensitivity-converter-tab",
+  "edpi-calculator-tab",
+  "aim-training-tab",
+  "crosshair-converter-tab",
+  "lineup-tab",
+  "stats-tab",
+]);
 
 const MORE_HOTKEY_TAB_ORDER = ["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
-const MISC_HOTKEY_TAB_ORDER = ["crosshair-converter-tab", "lineup-tab", "settings-tab"];
+const MISC_HOTKEY_TAB_ORDER = [
+  "sensitivity-converter-tab",
+  "edpi-calculator-tab",
+  "crosshair-converter-tab",
+  "lineup-tab",
+  "aim-training-tab",
+  "stats-tab",
+];
+
+const TOOLS_TAB_LABELS = {
+  "sensitivity-converter-tab": "Sensitivity",
+  "edpi-calculator-tab": "eDPI",
+  "crosshair-converter-tab": "Crosshair",
+  "lineup-tab": "Lineups",
+  "aim-training-tab": "Aim Trainer",
+  "stats-tab": "Aim stats",
+};
 
 const MAIN_TAB_HOTKEYS = {
   1: "home-tab",
-  2: "sensitivity-converter-tab",
-  3: "edpi-calculator-tab",
-  4: "aim-training-tab",
-  5: "stats-tab",
+  3: "profile-tab",
+  4: "settings-tab",
 };
 
 function getMiscHotkeyTabOrder() {
   if (!MISC_TAB_ENABLED) return [];
-  return MISC_HOTKEY_TAB_ORDER.filter((id) => id !== "lineup-tab" || LINEUP_TAB_ENABLED);
+  return MISC_HOTKEY_TAB_ORDER.filter((id) => {
+    if (id === "lineup-tab" && !LINEUP_TAB_ENABLED) return false;
+    if (id === "crosshair-converter-tab" && !MISC_TAB_ENABLED) return false;
+    if (id === "aim-training-tab" && isMobileViewport()) return false;
+    return true;
+  });
 }
 
 function getTabIdForNumberHotkey(key) {
@@ -8016,13 +8613,11 @@ const FOOTER_BUTTON_IDS = {
 
 const NAV_BUTTON_IDS = {
   "home-tab": "home-button",
-  "sensitivity-converter-tab": "sensitivity-converter-button",
-  "edpi-calculator-tab": "edpi-calculator-button",
-  "aim-training-tab": "aim-training-button",
-  "stats-tab": "stats-button",
+  "profile-tab": "profile-button",
+  "settings-tab": "settings-button",
 };
 
-const LOGO_CYCLE_TAB_IDS = ["home-tab", "sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
+const LOGO_CYCLE_TAB_IDS = ["home-tab", "sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "profile-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
 function getLogoCycleTabIds() {
   return LOGO_CYCLE_TAB_IDS.filter((id) => {
@@ -10677,17 +11272,18 @@ function formatLineupVideoTime(seconds) {
 const lineupVideoSeekState = {
   dragging: false,
   wasPlaying: false,
-  scrubCaptureId: 0,
   pendingScrubTime: null,
   lastScrubCaptureAt: 0,
   scrubCaptureTimer: 0,
   scrubDragTimer: 0,
+  scrubSeekInFlight: false,
   progressLoopId: 0,
   lastProgressTs: 0,
 };
 
 const LINEUP_VIDEO_SCRUB_CAPTURE_INTERVAL_MS = 1;
 const LINEUP_VIDEO_SCRUB_SEEK_EPSILON = 0.001;
+const LINEUP_VIDEO_SKIP_SECONDS = 5;
 
 const LINEUP_VIDEO_PROGRESS_THUMB_PX = 16;
 const LINEUP_VIDEO_PROGRESS_ANIM_RATE = HEALTH_BAR_ANIM_RATE;
@@ -10903,6 +11499,7 @@ function hideLineupVideoScrubPreview() {
     lineupVideoSeekState.scrubCaptureTimer = 0;
   }
   lineupVideoSeekState.pendingScrubTime = null;
+  lineupVideoSeekState.scrubSeekInFlight = false;
   document.getElementById("lineup-video-scrub-preview")?.classList.add("hidden");
   document.getElementById("lineup-video-progress-wrap")?.classList.remove("is-dragging");
 }
@@ -10963,15 +11560,13 @@ function flushLineupVideoScrubFrame() {
   const canvas = document.getElementById("lineup-video-scrub-canvas");
   if (!scrubPlayer || !canvas || !scrubPlayer.src) return;
 
-  const captureId = ++lineupVideoSeekState.scrubCaptureId;
-  lineupVideoSeekState.lastScrubCaptureAt = performance.now();
   const safeTime = Math.max(0, Math.min(captureTime, scrubPlayer.duration || captureTime));
 
   const drawFrame = () => {
-    if (captureId !== lineupVideoSeekState.scrubCaptureId) return;
     const ctx = canvas.getContext("2d");
     if (!ctx || !scrubPlayer.videoWidth) return;
     ctx.drawImage(scrubPlayer, 0, 0, canvas.width, canvas.height);
+    lineupVideoSeekState.lastScrubCaptureAt = performance.now();
   };
 
   if (Math.abs(scrubPlayer.currentTime - safeTime) <= LINEUP_VIDEO_SCRUB_SEEK_EPSILON && scrubPlayer.readyState >= 2) {
@@ -10979,29 +11574,32 @@ function flushLineupVideoScrubFrame() {
     return;
   }
 
-  const onSeeked = () => {
-    scrubPlayer.removeEventListener("seeked", onSeeked);
-    drawFrame();
-  };
+  if (lineupVideoSeekState.scrubSeekInFlight) return;
 
-  const scheduleDraw = () => {
-    if (typeof scrubPlayer.requestVideoFrameCallback === "function") {
-      scrubPlayer.requestVideoFrameCallback(() => drawFrame());
-      return;
+  lineupVideoSeekState.scrubSeekInFlight = true;
+
+  const finishSeek = () => {
+    lineupVideoSeekState.scrubSeekInFlight = false;
+    drawFrame();
+
+    const latest = lineupVideoSeekState.pendingScrubTime;
+    if (latest == null) return;
+    const latestSafe = Math.max(0, Math.min(latest, scrubPlayer.duration || latest));
+    if (Math.abs(latestSafe - scrubPlayer.currentTime) > LINEUP_VIDEO_SCRUB_SEEK_EPSILON) {
+      flushLineupVideoScrubFrame();
     }
-    scrubPlayer.addEventListener("seeked", onSeeked, { once: true });
   };
 
   try {
+    scrubPlayer.addEventListener("seeked", finishSeek, { once: true });
     if (typeof scrubPlayer.fastSeek === "function") {
       scrubPlayer.fastSeek(safeTime);
-      scheduleDraw();
     } else {
-      scrubPlayer.addEventListener("seeked", onSeeked, { once: true });
       scrubPlayer.currentTime = safeTime;
     }
   } catch {
-    scrubPlayer.removeEventListener("seeked", onSeeked);
+    scrubPlayer.removeEventListener("seeked", finishSeek);
+    lineupVideoSeekState.scrubSeekInFlight = false;
   }
 }
 
@@ -11014,20 +11612,11 @@ function requestLineupVideoScrubFrame(time) {
     return;
   }
 
-  const elapsed = performance.now() - (lineupVideoSeekState.lastScrubCaptureAt || 0);
-
-  if (elapsed >= LINEUP_VIDEO_SCRUB_CAPTURE_INTERVAL_MS) {
-    if (lineupVideoSeekState.scrubCaptureTimer) {
-      clearTimeout(lineupVideoSeekState.scrubCaptureTimer);
-      lineupVideoSeekState.scrubCaptureTimer = 0;
-    }
-    flushLineupVideoScrubFrame();
-    return;
+  if (lineupVideoSeekState.scrubCaptureTimer) {
+    clearTimeout(lineupVideoSeekState.scrubCaptureTimer);
+    lineupVideoSeekState.scrubCaptureTimer = 0;
   }
-
-  if (!lineupVideoSeekState.scrubCaptureTimer) {
-    lineupVideoSeekState.scrubCaptureTimer = window.setTimeout(flushLineupVideoScrubFrame, LINEUP_VIDEO_SCRUB_CAPTURE_INTERVAL_MS - elapsed);
-  }
+  flushLineupVideoScrubFrame();
 }
 
 function updateLineupVideoProgressFromPlayer(player) {
@@ -11118,6 +11707,14 @@ function handleLineupVideoVolumeWheel(event) {
   const next = Math.max(0, Math.min(1, player.volume + -direction * LINEUP_VIDEO_VOLUME_WHEEL_STEP));
   player.volume = next;
   player.muted = next === 0;
+  syncLineupVideoControlsUi();
+}
+
+function seekLineupVideoBySeconds(delta) {
+  const player = document.getElementById("lineup-video-modal-player");
+  if (!player || player.hidden || !Number.isFinite(player.duration)) return;
+
+  player.currentTime = Math.max(0, Math.min(player.duration, player.currentTime + delta));
   syncLineupVideoControlsUi();
 }
 
@@ -11291,6 +11888,8 @@ function initLineupVideoModal() {
   const player = document.getElementById("lineup-video-modal-player");
   const closeBtn = document.getElementById("lineup-video-modal-close");
   const playBtn = document.getElementById("lineup-video-play");
+  const skipBackBtn = document.getElementById("lineup-video-skip-back");
+  const skipForwardBtn = document.getElementById("lineup-video-skip-forward");
   const muteBtn = document.getElementById("lineup-video-mute");
   const progress = document.getElementById("lineup-video-progress");
   const volume = document.getElementById("lineup-video-volume");
@@ -11354,6 +11953,16 @@ function initLineupVideoModal() {
       player.pause();
     }
     syncLineupVideoControlsUi();
+  });
+
+  skipBackBtn?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    seekLineupVideoBySeconds(-LINEUP_VIDEO_SKIP_SECONDS);
+  });
+
+  skipForwardBtn?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    seekLineupVideoBySeconds(LINEUP_VIDEO_SKIP_SECONDS);
   });
 
   muteBtn?.addEventListener("click", (event) => {
@@ -11672,7 +12281,8 @@ const TAB_ACTIVITY_LABELS = {
   "aim-training-tab": "Aim Training",
   "crosshair-converter-tab": "Converting Crosshair",
   "lineup-tab": "Watching Lineups",
-  "stats-tab": "Viewing Stats",
+  "stats-tab": "Viewing Aim stats",
+  "profile-tab": "Viewing Profile",
 };
 const DEFAULT_ACTIVITY_LABEL = "Browsing";
 
@@ -11785,6 +12395,7 @@ function initPresenceActivityPopup() {
 }
 
 function switchTab(_evt, id, { updateHistory = true } = {}) {
+  if (isUsernameOnboardingOpen()) return;
   if (id === "lineup-tab" && !LINEUP_TAB_ENABLED) return;
   if (id === "crosshair-converter-tab" && !MISC_TAB_ENABLED) return;
 
@@ -11853,7 +12464,6 @@ function switchTab(_evt, id, { updateHistory = true } = {}) {
   closeMobileNavMenu();
   setAppMoreMenuOpen(false);
   setAppMiscMenuOpen(false);
-  if (id !== "settings-tab") closeSettingsAppStatusPanel();
 
   if (previousId === "aim-training-tab" && id !== "aim-training-tab") {
     aimTrainer.stopLoop?.();
@@ -11876,6 +12486,91 @@ function toggleResetButton() {
   if (!resetBtn) return;
   const isDefault = elements["from-search"].value === "" && elements["to-search"].value === "" && elements["base-sens"].value === "" && elements["from-dpi"].value === "800" && elements["to-dpi"].value === "800";
   toggleVisibility(resetBtn, !isDefault);
+  syncTabActionMenuStateByWrapId("sens-action-menu-wrap");
+}
+
+function isTabActionMenuOpen(wrap) {
+  const menu = wrap.querySelector(".tab-action-menu");
+  return !!menu && !menu.classList.contains("hidden");
+}
+
+function closeTabActionMenu(wrap) {
+  const menu = wrap.querySelector(".tab-action-menu");
+  const btn = wrap.querySelector(".tab-action-menu-trigger");
+  if (!menu || menu.classList.contains("hidden")) return false;
+
+  menu.classList.add("hidden");
+  btn?.setAttribute("aria-expanded", "false");
+  return true;
+}
+
+function closeAllTabActionMenus(exceptWrap = null) {
+  document.querySelectorAll(".tab-action-menu-wrap").forEach((wrap) => {
+    if (wrap !== exceptWrap) closeTabActionMenu(wrap);
+  });
+}
+
+function openTabActionMenu(wrap) {
+  const menu = wrap.querySelector(".tab-action-menu");
+  const btn = wrap.querySelector(".tab-action-menu-trigger");
+  if (!menu || !btn || btn.classList.contains("hidden-fade")) return;
+
+  closeAllTabActionMenus(wrap);
+  menu.classList.remove("hidden");
+  btn.setAttribute("aria-expanded", "true");
+}
+
+function syncTabActionMenuState(wrap) {
+  const btn = wrap.querySelector(".tab-action-menu-trigger");
+  const items = wrap.querySelectorAll(".tab-action-menu-item");
+  if (!btn) return;
+
+  const hasVisibleAction = [...items].some((item) => item.classList.contains("visible-fade"));
+  toggleVisibility(btn, hasVisibleAction);
+  if (!hasVisibleAction) closeTabActionMenu(wrap);
+}
+
+function syncTabActionMenuStateByWrapId(wrapId) {
+  const wrap = document.getElementById(wrapId);
+  if (wrap) syncTabActionMenuState(wrap);
+}
+
+function initTabActionMenus() {
+  if (!initTabActionMenus._listeners) {
+    initTabActionMenus._listeners = true;
+    document.addEventListener("click", () => closeAllTabActionMenus());
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeAllTabActionMenus();
+    });
+  }
+
+  document.querySelectorAll(".tab-action-menu-wrap").forEach((wrap) => {
+    if (wrap.dataset.init === "1") {
+      syncTabActionMenuState(wrap);
+      return;
+    }
+    wrap.dataset.init = "1";
+
+    const btn = wrap.querySelector(".tab-action-menu-trigger");
+    const menu = wrap.querySelector(".tab-action-menu");
+    if (!btn || !menu) return;
+
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (isTabActionMenuOpen(wrap)) closeTabActionMenu(wrap);
+      else openTabActionMenu(wrap);
+    });
+
+    wrap.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    menu.querySelectorAll(".tab-action-menu-item").forEach((item) => {
+      item.addEventListener("click", () => closeTabActionMenu(wrap));
+    });
+
+    syncTabActionMenuState(wrap);
+  });
 }
 
 function toggleEDPIResetButton() {
@@ -11893,6 +12588,7 @@ function toggleEDPIResetButton() {
     isDefault = isDefaultA && isDefaultB;
   }
   toggleVisibility(resetBtn, !isDefault);
+  syncTabActionMenuStateByWrapId("edpi-action-menu-wrap");
 }
 
 function clearEdpiGameDropdown() {
@@ -11923,6 +12619,9 @@ function toggleProfileSensConvButtons() {
 
   if (eResetBtn) toggleVisibility(eResetBtn, hasEdpi);
   if (eCopyBtn) toggleVisibility(eCopyBtn, hasEdpi);
+
+  syncTabActionMenuStateByWrapId("profile-sens-action-menu-wrap");
+  syncTabActionMenuStateByWrapId("profile-edpi-action-menu-wrap");
 
   const { game, mode, timer } = getProfileAimContext();
   if (!game) {
@@ -11986,6 +12685,7 @@ function updateConversion() {
     toggleVisibility(shareBtn, false);
     toggleProfileSensConvButtons();
     updateGameInfoPanelVisibility();
+    syncTabActionMenuStateByWrapId("sens-action-menu-wrap");
     return;
   }
 
@@ -12014,6 +12714,7 @@ function updateConversion() {
   const hasResult = parseFloat(result) > 0;
   toggleVisibility(copyBtn, hasResult);
   toggleVisibility(shareBtn, hasResult);
+  syncTabActionMenuStateByWrapId("sens-action-menu-wrap");
 }
 
 window.addEventListener("storage", (e) => {
@@ -13125,13 +13826,14 @@ function cycleHotkeyTab(tabOrder) {
 
 function initHotkeys() {
   document.addEventListener("keydown", (e) => {
+    if (isUsernameOnboardingOpen()) return;
     const tag = (e.target.tagName || "").toLowerCase();
     if (tag === "input" || tag === "textarea" || e.target.isContentEditable) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.repeat) return;
 
     const tabKey = Number(e.key);
-    if (tabKey >= 1 && tabKey <= 5) {
+    if (tabKey === 1 || tabKey === 3 || tabKey === 4) {
       const tabId = getTabIdForNumberHotkey(tabKey);
       if (tabId) {
         switchTab(null, tabId);
@@ -13140,7 +13842,7 @@ function initHotkeys() {
       return;
     }
 
-    if (e.key === "6") {
+    if (tabKey === 2) {
       const miscOrder = getMiscHotkeyTabOrder();
       if (miscOrder.length) {
         cycleHotkeyTab(miscOrder);
@@ -13149,7 +13851,7 @@ function initHotkeys() {
       return;
     }
 
-    if (e.key === "7") {
+    if (tabKey === 5) {
       cycleHotkeyTab(MORE_HOTKEY_TAB_ORDER);
       e.preventDefault();
       return;
@@ -13171,8 +13873,15 @@ function initHotkeys() {
 }
 
 function syncKeybindLabels() {
-  const key6Row = document.getElementById("keybind-6-row");
-  if (key6Row) key6Row.hidden = !MISC_TAB_ENABLED;
+  const key2Row = document.getElementById("keybind-2-row");
+  const key2Label = document.getElementById("keybind-2-label");
+  const miscOrder = getMiscHotkeyTabOrder();
+
+  if (key2Row) key2Row.hidden = miscOrder.length === 0;
+  if (key2Label && miscOrder.length) {
+    const names = miscOrder.map((id) => TOOLS_TAB_LABELS[id] || id).join(" / ");
+    key2Label.textContent = `Cycle Tools pages (${names})`;
+  }
 }
 
 function initLogoMask() {
@@ -14323,7 +15032,12 @@ function initSettingsModalSearch({ overlayId, searchId, clearId }) {
     if (!query) {
       blocks().forEach((block) => block.classList.remove("is-filtered-out"));
       sections().forEach((section) => section.classList.remove("is-filtered-out"));
-      if (SETTINGS_MODAL_OVERLAY_IDS.includes(overlayId)) resetTrainerSettingsDropdowns(overlayId);
+      if (SETTINGS_MODAL_TAB_CONFIG[overlayId]) {
+        syncSettingsModalSearchMode(overlay, false);
+        resetSettingsModalTabs(overlayId);
+      } else if (SETTINGS_MODAL_OVERLAY_IDS.includes(overlayId)) {
+        resetTrainerSettingsDropdowns(overlayId);
+      }
       return;
     }
 
@@ -14335,12 +15049,20 @@ function initSettingsModalSearch({ overlayId, searchId, clearId }) {
     sections().forEach((section) => {
       const hasVisible = section.querySelector(".setting-block:not(.is-filtered-out)");
       section.classList.toggle("is-filtered-out", !hasVisible);
-      if (SETTINGS_MODAL_OVERLAY_IDS.includes(overlayId) && hasVisible) {
-        openTrainerSettingsDropdownAncestors(section, overlay);
-      }
     });
 
-    if (SETTINGS_MODAL_OVERLAY_IDS.includes(overlayId)) {
+    if (SETTINGS_MODAL_TAB_CONFIG[overlayId]) {
+      syncSettingsModalSearchMode(overlay, true);
+      setTimeout(() => {
+        updateAllToggleGliders();
+        syncToggleGlider(getSettingsModalTabSelector(overlay));
+      }, 340);
+    } else if (SETTINGS_MODAL_OVERLAY_IDS.includes(overlayId)) {
+      sections().forEach((section) => {
+        if (!section.classList.contains("is-filtered-out")) {
+          openTrainerSettingsDropdownAncestors(section, overlay);
+        }
+      });
       blocks().forEach((block) => {
         if (!block.classList.contains("is-filtered-out")) {
           openTrainerSettingsDropdownAncestors(block, overlay);
@@ -14396,7 +15118,10 @@ function initThemeSettingsMenu() {
   const open = () => {
     overlay.classList.add("active");
     syncBodyScrollLock();
-    setTimeout(() => updateAllToggleGliders(), 50);
+    setTimeout(() => {
+      updateAllToggleGliders();
+      syncToggleGlider(getSettingsModalTabSelector(overlay));
+    }, 50);
   };
 
   openBtn?.addEventListener("click", open);
@@ -14460,7 +15185,10 @@ function initGeneralSettingsMenu() {
   const open = () => {
     overlay.classList.add("active");
     syncBodyScrollLock();
-    setTimeout(() => updateAllToggleGliders(), 50);
+    setTimeout(() => {
+      updateAllToggleGliders();
+      syncToggleGlider(getSettingsModalTabSelector(overlay));
+    }, 50);
   };
 
   openBtn?.addEventListener("click", open);
@@ -15159,7 +15887,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!presenceEl) return;
         presenceEl.classList.toggle("is-live", state === "live");
         presenceEl.classList.toggle("is-offline", state === "offline" || state === "disabled");
-        presenceEl.title = state === "live" ? "Live members online" : state === "connecting" ? "Connecting to live member count" : "Live member count unavailable";
       },
     }) || null;
   initPresenceActivityPopup();
@@ -15207,11 +15934,16 @@ document.addEventListener("DOMContentLoaded", () => {
   initThemeSettingsMenu();
   initGeneralSettingsMenu();
   initConfirmReset();
+  initProfileDisplayNameConfirm();
   window.MorningRoastAssistant?.initSiteAssistant?.();
-  initOfflineStatus();
+  initProfileTab();
+  initUsernameOnboarding();
+  window.MorningRoastChat?.initCommunityChat?.();
   initTrainerSettingsDropdowns();
+  initSettingsModalTabs();
   initProfileChartsWatcher();
   initShareButtons();
+  initTabActionMenus();
   window.addEventListener("load", () => requestProfileChartsRedraw());
   if (document.fonts?.ready) {
     document.fonts.ready.then(() => requestProfileChartsRedraw()).catch(() => {});
@@ -15456,17 +16188,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   const swapBtn = document.getElementById("swap-btn");
   let swapBtnRotation = 0;
-  if (swapBtn) {
-    initMagneticPull(swapBtn, {
-      pullRadius: 100,
-      followRadius: null,
-      maxOffset: 42,
-      pullXVar: "--swap-btn-pull-x",
-      pullYVar: "--swap-btn-pull-y",
-      buttonSizeFallback: 50,
-      isBlocked: isSiteAssistantPullBlocked,
-    });
-  }
   swapBtn?.addEventListener("click", () => {
     const el = {
       fG: document.getElementById("from-search"),
@@ -15655,6 +16376,7 @@ document.addEventListener("DOMContentLoaded", () => {
     syncScrollButton();
     requestProfileChartsRedraw();
     syncAimTrainerForViewport();
+    syncKeybindLabels();
   }
 
   window.addEventListener("resize", onWindowResize);

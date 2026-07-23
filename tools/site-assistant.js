@@ -1,8 +1,8 @@
-/** Site assistant — AI chat via Pollinations (no user accounts). */
+/** Site assistant — full AI chat via Pollinations (openai-fast). */
 (function (global) {
-  const AI_URL = "https://text.pollinations.ai/openai";
-  const AI_MODEL = "openai";
-  const MIN_REQUEST_GAP_MS = 15000;
+  const POLLINATIONS_AI_URL = "https://text.pollinations.ai/openai";
+  const AI_MODEL = "openai-fast";
+  const MIN_AI_GAP_MS = 12000;
   const MAX_PAGE_CONTEXT = 5000;
   const MAX_HISTORY = 16;
   const TYPEWRITER_MIN_MS = 1400;
@@ -10,7 +10,15 @@
   const MSG_EXIT_MS = 340;
 
   const conversation = [];
-  let lastRequestAt = 0;
+  let lastAiRequestAt = 0;
+
+  function readFieldValue(id) {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const raw = el.tagName === "INPUT" || el.tagName === "TEXTAREA" ? el.value : el.textContent;
+    const n = parseFloat(String(raw || "").replace(/[^\d.-]/g, ""));
+    return Number.isFinite(n) ? n : null;
+  }
 
   function buildSystemPrompt() {
     const pageText =
@@ -20,7 +28,43 @@
             .trim()
             .slice(0, MAX_PAGE_CONTEXT)
         : "";
-    return ["You are the Morning Roast site assistant. Answer clearly and make replies easy to scan.", "Format rules:", "- Open with one short summary sentence.", "- Put a blank line between sections.", '- Use bullet lines starting with "- " (one bullet per line).', "- Put key numbers on their own bullet (DPI, sens, eDPI, cm/360).", "- Use **bold** for important terms and `backticks` for values.", "- Keep answers concise (usually 4–8 bullets).", "- Only answer the visitor's question. Do not suggest tabs, links, or shortcuts unless they explicitly ask.", "", "SITE FACTS:", "Morning Roast: sensitivity converter, eDPI calculator, crosshair converter, aim trainer, lineups, stats.", "eDPI = DPI × sensitivity. cm/360 measures mouse travel per full turn.", "Recommended cm/360: tactical games ~40–60, arena ~25–35, battle royale ~30–45.", "Contact: Discord in More menu, email svitserk.morningstar@gmail.com.", pageText ? `PAGE EXCERPT:\n${pageText}` : ""].filter(Boolean).join("\n");
+    const dpi = readFieldValue("edpi-dpi") ?? readFieldValue("from-dpi") ?? readFieldValue("canvas-dpi");
+    const sens = readFieldValue("edpi-sens") ?? readFieldValue("base-sens") ?? readFieldValue("canvas-sens");
+    const edpi = readFieldValue("edpi-value");
+    const cm360 = readFieldValue("edpi-cm360");
+    const liveContext =
+      dpi != null || sens != null || edpi != null || cm360 != null
+        ? [
+            "CURRENT CALCULATOR INPUTS:",
+            dpi != null ? `- DPI: ${dpi}` : null,
+            sens != null ? `- Sensitivity: ${sens}` : null,
+            edpi != null ? `- eDPI: ${edpi}` : dpi != null && sens != null ? `- eDPI: ${Math.round(dpi * sens)}` : null,
+            cm360 != null ? `- cm/360: ${cm360}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n")
+        : "";
+    return [
+      "You are the Morning Roast site assistant. Answer clearly and make replies easy to scan.",
+      "Format rules:",
+      "- Open with one short summary sentence.",
+      "- Put a blank line between sections.",
+      '- Use bullet lines starting with "- " (one bullet per line).',
+      "- Put key numbers on their own bullet (DPI, sens, eDPI, cm/360).",
+      "- Use **bold** for important terms and `backticks` for values.",
+      "- Keep answers concise (usually 4–8 bullets).",
+      "- Only answer the visitor's question. Do not suggest tabs, links, or shortcuts unless they explicitly ask.",
+      "",
+      "SITE FACTS:",
+      "Morning Roast: sensitivity converter, eDPI calculator, crosshair converter, aim trainer, lineups, stats, profile, community chat.",
+      "eDPI = DPI × sensitivity. cm/360 measures mouse travel per full turn.",
+      "Recommended cm/360: tactical games ~40–60, arena ~25–35, battle royale ~30–45.",
+      "Contact: Discord in More menu, email svitserk.morningstar@gmail.com.",
+      liveContext,
+      pageText ? `PAGE EXCERPT:\n${pageText}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
 
   function ensureSystemMessage() {
@@ -43,54 +87,121 @@
     }
   }
 
-  async function throttleAi(signal) {
-    const now = Date.now();
-    const waitMs = MIN_REQUEST_GAP_MS - (now - lastRequestAt);
-    if (waitMs > 0) {
-      await new Promise((resolve, reject) => {
-        const timer = window.setTimeout(resolve, waitMs);
-        if (!signal) return;
-        if (signal.aborted) {
-          window.clearTimeout(timer);
-          reject(new DOMException("Aborted", "AbortError"));
-          return;
-        }
-        signal.addEventListener(
-          "abort",
-          () => {
-            window.clearTimeout(timer);
-            reject(new DOMException("Aborted", "AbortError"));
-          },
-          { once: true },
-        );
-      });
+  function resolveAssistantHttpUrl() {
+    const meta = document.querySelector('meta[name="morning-roast-assistant-url"]')?.content?.trim();
+    if (meta) return meta;
+
+    const presenceMeta = document.querySelector('meta[name="morning-roast-presence-ws"]')?.content?.trim();
+    if (presenceMeta) {
+      try {
+        const url = new URL(presenceMeta);
+        url.protocol = url.protocol === "wss:" ? "https:" : "http:";
+        url.pathname = "/assistant/chat";
+        url.search = "";
+        url.hash = "";
+        return url.toString();
+      } catch {
+        // fall through
+      }
     }
-    lastRequestAt = Date.now();
+
+    const host = global.location?.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      const protocol = global.location?.protocol === "https:" ? "https:" : "http:";
+      return `${protocol}//${host}:8080/assistant/chat`;
+    }
+
+    return "";
   }
 
-  async function callAi(messages, { maxTokens = 500, temperature = 0.7, signal } = {}) {
-    await throttleAi(signal);
+  async function throttleAi(signal) {
+    const now = Date.now();
+    const waitMs = MIN_AI_GAP_MS - (now - lastAiRequestAt);
+    if (waitMs <= 0) {
+      lastAiRequestAt = Date.now();
+      return;
+    }
+    await new Promise((resolve, reject) => {
+      const timer = window.setTimeout(resolve, waitMs);
+      if (!signal) return;
+      if (signal.aborted) {
+        window.clearTimeout(timer);
+        reject(new DOMException("Aborted", "AbortError"));
+        return;
+      }
+      signal.addEventListener(
+        "abort",
+        () => {
+          window.clearTimeout(timer);
+          reject(new DOMException("Aborted", "AbortError"));
+        },
+        { once: true },
+      );
+    });
+    lastAiRequestAt = Date.now();
+  }
 
-    const response = await fetch(AI_URL, {
+  async function requestAiCompletion(url, body, { signal } = {}) {
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       signal,
-      body: JSON.stringify({
-        model: AI_MODEL,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-      }),
+      body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-      throw new Error(response.status === 429 ? "Too many requests — wait a moment and try again." : `AI request failed (${response.status})`);
+    let data = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
     }
 
-    const data = await response.json();
+    if (!response.ok) {
+      const message =
+        data?.error ||
+        (response.status === 429
+          ? "Too many requests — wait a moment and try again."
+          : response.status === 402
+            ? "AI is unavailable right now — try again in a few seconds."
+            : `AI request failed (${response.status})`);
+      const error = new Error(typeof message === "string" ? message : "AI request failed");
+      error.status = response.status;
+      throw error;
+    }
+
     const answer = data?.choices?.[0]?.message?.content?.trim();
     if (!answer) throw new Error("Empty AI response");
     return answer;
+  }
+
+  async function callAi(messages, { maxTokens = 500, temperature = 0.7, signal, regenerate = false } = {}) {
+    await throttleAi(signal);
+    if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+
+    const payload = {
+      model: AI_MODEL,
+      messages,
+      temperature: regenerate ? 0.85 : temperature,
+      max_tokens: maxTokens,
+    };
+
+    const endpoints = [];
+    const proxyUrl = resolveAssistantHttpUrl();
+    if (proxyUrl) endpoints.push(proxyUrl);
+    if (!endpoints.includes(POLLINATIONS_AI_URL)) endpoints.push(POLLINATIONS_AI_URL);
+
+    let lastError = null;
+    for (const url of endpoints) {
+      try {
+        return await requestAiCompletion(url, payload, { signal });
+      } catch (error) {
+        if (error?.name === "AbortError") throw error;
+        lastError = error;
+        if (error.status === 429) throw error;
+      }
+    }
+
+    throw lastError || new Error("AI unavailable");
   }
 
   async function answerWithAi(userText, { signal } = {}) {
@@ -111,7 +222,7 @@
 
   async function regenerateAiReply({ signal } = {}) {
     ensureSystemMessage();
-    const answer = await callAi(conversation, { temperature: 0.85, signal });
+    const answer = await callAi(conversation, { signal, regenerate: true });
     conversation.push({ role: "assistant", content: answer });
     trimHistory();
     return answer;
@@ -617,26 +728,10 @@
     return { row, bubble };
   }
 
-  function initToggleMagnetism(dock, toggle, { isLocked }) {
-    if (typeof initMagneticPull !== "function") {
-      return { lock() {}, unlock() {} };
-    }
-    return initMagneticPull(dock, {
-      pullRadius: 100,
-      followRadius: null,
-      maxOffset: 42,
-      pullXVar: "--site-assistant-toggle-pull-x",
-      pullYVar: "--site-assistant-toggle-pull-y",
-      isLocked,
-      isBlocked: () => typeof isSiteAssistantPullBlocked === "function" && isSiteAssistantPullBlocked(),
-      buttonSizeFallback: 64,
-      hoverElement: toggle,
-    });
-  }
-
   function initSiteAssistant() {
     const root = document.getElementById("site-assistant");
     const dock = root?.querySelector(".site-assistant-dock");
+    const stack = root?.querySelector(".site-assistant-stack");
     const toggle = document.getElementById("site-assistant-toggle");
     const panel = document.getElementById("site-assistant-panel");
     const closeBtn = document.getElementById("site-assistant-close");
@@ -647,40 +742,16 @@
     const sendBtn = form?.querySelector(".site-assistant-send");
     const messages = document.getElementById("site-assistant-messages");
     const offlineNotice = document.getElementById("site-assistant-offline");
-    if (!root || !dock || !toggle || !panel || !form || !input || !messages) return;
+    if (!root || !dock || !stack || !toggle || !panel || !form || !input || !messages) return;
     if (initSiteAssistant._init) return;
     initSiteAssistant._init = true;
 
     let open = false;
-    let magnetHold = false;
-    let closeUnlockTimer = 0;
-    let closeTransitionHandler = null;
     let busy = false;
     let replyToken = 0;
     let stopping = false;
     let activeReply = null;
     let offline = !navigator.onLine;
-    const toggleMagnet = initToggleMagnetism(dock, toggle, {
-      isLocked: () => open || magnetHold,
-    });
-
-    const clearPendingCloseUnlock = () => {
-      if (closeUnlockTimer) {
-        clearTimeout(closeUnlockTimer);
-        closeUnlockTimer = 0;
-      }
-      if (closeTransitionHandler) {
-        panel.removeEventListener("transitionend", closeTransitionHandler);
-        closeTransitionHandler = null;
-      }
-    };
-
-    const releaseMagnetAfterClose = () => {
-      clearPendingCloseUnlock();
-      if (open) return;
-      magnetHold = false;
-      toggleMagnet.unlock();
-    };
 
     const hasChatMessages = () => messages.querySelector(".site-assistant-msg") != null;
     const hasMessageToSend = () => Boolean(String(input.value || "").trim());
@@ -783,37 +854,22 @@
     const setOpen = (next) => {
       const wasOpen = open;
       open = Boolean(next);
-      root.classList.toggle("is-open", open);
+      stack.classList.toggle("is-open", open);
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       toggle.setAttribute("aria-label", open ? "Close site helper" : "Open site helper");
       panel.setAttribute("aria-hidden", open ? "false" : "true");
       if (open && !wasOpen) {
-        clearPendingCloseUnlock();
-        magnetHold = false;
-        toggleMagnet.lock();
+        global.dispatchEvent(new CustomEvent("morning-roast:assistant-open"));
+        focusComposerInput();
       }
       if (!open && wasOpen) {
-        // Hold pull so the panel closes in place instead of following the dock retract.
-        magnetHold = true;
-        clearPendingCloseUnlock();
-        closeTransitionHandler = (event) => {
-          if (event.target !== panel) return;
-          if (event.propertyName !== "opacity" && event.propertyName !== "transform") return;
-          releaseMagnetAfterClose();
-        };
-        panel.addEventListener("transitionend", closeTransitionHandler);
-        closeUnlockTimer = window.setTimeout(releaseMagnetAfterClose, 350);
         const active = document.activeElement;
         if (active instanceof HTMLElement && (panel.contains(active) || active === toggle)) {
           active.blur();
         }
-        // Escape can hand focus to the toggle with :focus-visible still armed.
         requestAnimationFrame(() => {
           if (document.activeElement === toggle) toggle.blur();
         });
-      }
-      if (open && !wasOpen) {
-        focusComposerInput();
       }
     };
 
@@ -1029,7 +1085,10 @@
       await sendBotReply(trimmed);
     };
 
-    toggle.addEventListener("click", () => setOpen(!open));
+    toggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setOpen(!open);
+    });
     closeBtn?.addEventListener("click", () => setOpen(false));
     clearBtn?.addEventListener("click", clearChat);
     stopBtn?.addEventListener("click", stopResponse);
@@ -1117,6 +1176,7 @@
     syncComposerControls();
     window.addEventListener("online", syncConnection);
     window.addEventListener("offline", syncConnection);
+    window.addEventListener("morning-roast:chat-open", () => setOpen(false));
   }
 
   global.MorningRoastAssistant = Object.freeze({

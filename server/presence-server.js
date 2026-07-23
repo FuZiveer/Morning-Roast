@@ -1,18 +1,34 @@
 #!/usr/bin/env node
 const http = require("http");
 const { WebSocketServer, WebSocket } = require("ws");
+const { loadChatConfig, getPublicChatConfig } = require("./lib/chat-config");
+const { createChatRoom } = require("./lib/chat-room");
+const { createAssistantHandler } = require("./lib/assistant-handler");
 
+const chatConfigRoot = loadChatConfig();
+const chatSettings = chatConfigRoot.chat || {};
 const PORT = Number(process.env.PORT) || 8080;
 const PRESENCE_PATH = process.env.PRESENCE_PATH || "/presence";
+const CHAT_PATH = process.env.CHAT_PATH || chatSettings.websocket?.path || "/chat";
+const ASSISTANT_PATH = process.env.ASSISTANT_PATH || "/assistant/chat";
 const PING_INTERVAL_MS = 30000;
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "*")
   .split(",")
   .map((origin) => origin.trim().replace(/\/$/, ""))
   .filter(Boolean);
-const clients = new Set();
 
+const presenceClients = new Set();
 const DEFAULT_ACTIVITY = "Browsing";
-const ALLOWED_ACTIVITIES = new Set([DEFAULT_ACTIVITY, "Converting Sensitivity", "Calculating eDPI", "Aim Training", "Converting Crosshair", "Watching Lineups", "Viewing Stats"]);
+const ALLOWED_ACTIVITIES = new Set([
+  DEFAULT_ACTIVITY,
+  "Converting Sensitivity",
+  "Calculating eDPI",
+  "Aim Training",
+  "Converting Crosshair",
+  "Watching Lineups",
+  "Viewing Stats",
+  "Community Chat",
+]);
 
 function isOriginAllowed(origin) {
   if (ALLOWED_ORIGINS.includes("*")) return true;
@@ -21,56 +37,109 @@ function isOriginAllowed(origin) {
 
 function buildActivityBreakdown() {
   const activities = {};
-  for (const client of clients) {
+  for (const client of presenceClients) {
     const activity = client.activity || DEFAULT_ACTIVITY;
     activities[activity] = (activities[activity] || 0) + 1;
   }
   return activities;
 }
 
-function broadcastCount() {
+function broadcastPresenceCount() {
   const payload = JSON.stringify({
     type: "count",
-    count: clients.size,
+    count: presenceClients.size,
     activities: buildActivityBreakdown(),
   });
-  for (const client of clients) {
+  for (const client of presenceClients) {
     if (client.readyState === WebSocket.OPEN) client.send(payload);
   }
 }
 
+const chatRoom = chatSettings.enabled === false ? null : createChatRoom(chatConfigRoot);
+const publicChatConfig = getPublicChatConfig(chatConfigRoot);
+const handleAssistantRequest = createAssistantHandler({ isOriginAllowed });
+
 const server = http.createServer((req, res) => {
-  if (new URL(req.url || "/", "http://localhost").pathname === "/health") {
+  const pathname = new URL(req.url || "/", "http://localhost").pathname;
+  const corsOrigin = ALLOWED_ORIGINS.includes("*") ? "*" : ALLOWED_ORIGINS[0] || "*";
+
+  if (pathname === "/health") {
     res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" });
     res.end("ok");
     return;
   }
+
+  if (pathname === ASSISTANT_PATH) {
+    handleAssistantRequest(req, res);
+    return;
+  }
+
+  if (pathname === "/chat/config") {
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": corsOrigin,
+      "Cache-Control": "public, max-age=60",
+    });
+    res.end(JSON.stringify(publicChatConfig));
+    return;
+  }
+
+  if (pathname === "/chat/names/check") {
+    const url = new URL(req.url || "/", "http://localhost");
+    const name = url.searchParams.get("name") || "";
+    const exceptUserId = url.searchParams.get("except") || "";
+    const available = chatRoom
+      ? chatRoom.isDisplayNameAvailable(name, { exceptUserId: exceptUserId || null })
+      : true;
+
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": corsOrigin,
+      "Cache-Control": "no-store",
+    });
+    res.end(JSON.stringify({ available: Boolean(available) }));
+    return;
+  }
+
   res.writeHead(404);
   res.end("Not Found");
 });
 
-const wss = new WebSocketServer({ noServer: true });
+const presenceWss = new WebSocketServer({ noServer: true });
+const chatWss = chatRoom ? new WebSocketServer({ noServer: true }) : null;
 
 server.on("upgrade", (req, socket, head) => {
   const pathname = new URL(req.url || "/", "http://localhost").pathname;
-  if (pathname !== PRESENCE_PATH) {
-    socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
-    socket.destroy();
+
+  if (pathname === PRESENCE_PATH) {
+    if (!isOriginAllowed(req.headers.origin)) {
+      socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+    presenceWss.handleUpgrade(req, socket, head, (client) => presenceWss.emit("connection", client));
     return;
   }
-  if (!isOriginAllowed(req.headers.origin)) {
-    socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
-    socket.destroy();
+
+  if (chatWss && pathname === CHAT_PATH) {
+    if (!isOriginAllowed(req.headers.origin)) {
+      socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+    chatWss.handleUpgrade(req, socket, head, (client) => chatWss.emit("connection", client));
     return;
   }
-  wss.handleUpgrade(req, socket, head, (client) => wss.emit("connection", client));
+
+  socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+  socket.destroy();
 });
 
-wss.on("connection", (client) => {
+presenceWss.on("connection", (client) => {
   client.isAlive = true;
   client.activity = DEFAULT_ACTIVITY;
-  clients.add(client);
-  broadcastCount();
+  presenceClients.add(client);
+  broadcastPresenceCount();
 
   client.on("pong", () => {
     client.isAlive = true;
@@ -88,28 +157,41 @@ wss.on("connection", (client) => {
     const next = ALLOWED_ACTIVITIES.has(activity) ? activity : DEFAULT_ACTIVITY;
     if (next === client.activity) return;
     client.activity = next;
-    broadcastCount();
+    broadcastPresenceCount();
   });
+
   client.on("close", () => {
-    if (clients.delete(client)) broadcastCount();
+    if (presenceClients.delete(client)) broadcastPresenceCount();
   });
+
   client.on("error", () => {
-    if (clients.delete(client)) broadcastCount();
+    if (presenceClients.delete(client)) broadcastPresenceCount();
   });
 });
 
+if (chatWss && chatRoom) {
+  chatWss.on("connection", (client) => chatRoom.handleConnection(client));
+}
+
 const pingInterval = setInterval(() => {
-  for (const client of clients) {
+  for (const client of presenceClients) {
     if (!client.isAlive) {
       client.terminate();
-      clients.delete(client);
+      presenceClients.delete(client);
       continue;
     }
     client.isAlive = false;
     client.ping();
   }
-  broadcastCount();
+  broadcastPresenceCount();
+  chatRoom?.pingClients?.();
 }, PING_INTERVAL_MS);
 
-wss.on("close", () => clearInterval(pingInterval));
-server.listen(PORT, () => console.log(`Presence server listening on :${PORT}${PRESENCE_PATH}`));
+presenceWss.on("close", () => clearInterval(pingInterval));
+chatWss?.on("close", () => clearInterval(pingInterval));
+
+server.listen(PORT, () => {
+  console.log(`Presence server listening on :${PORT}${PRESENCE_PATH}`);
+  console.log(`Site assistant proxy listening on :${PORT}${ASSISTANT_PATH}`);
+  if (chatRoom) console.log(`Community chat listening on :${PORT}${CHAT_PATH}`);
+});

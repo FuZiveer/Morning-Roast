@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="morning-roast-presence-ws" content="wss://morning-roast-39ov.onrender.com/presence" />
+    <meta name="morning-roast-chat-ws" content="wss://morning-roast-39ov.onrender.com/chat" />
+    <meta name="morning-roast-owner-names" content="FuZiveer" />
     <title>Morning Roast</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -123,6 +125,7 @@
     <script defer src="tools/color-names.js"></script>
     <script defer src="tools/site-assistant.js"></script>
     <script defer src="tools/online-presence.js"></script>
+    <script defer src="tools/community-chat.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
@@ -163,11 +166,11 @@
         </span>
         <span class="app-sidebar-label app-sidebar-logo-label">Morning Roast</span>
       </div>
-      <button type="button" class="app-sidebar-presence" id="app-sidebar-presence" aria-live="polite" title="Connecting to live member count" aria-haspopup="dialog" aria-expanded="false">
+      <button type="button" class="app-sidebar-presence" id="app-sidebar-presence" aria-live="polite" aria-haspopup="dialog" aria-expanded="false">
         <strong class="app-sidebar-presence-count" id="online-member-count">—</strong>
         <span class="app-sidebar-presence-label">Members online</span>
       </button>
-      <nav class="app-sidebar-nav" aria-label="Tools">
+      <nav class="app-sidebar-nav" aria-label="Primary">
         <div class="app-sidebar-group">
           <button type="button" class="app-sidebar-item active" data-sidebar-tab="home-tab" onclick="switchTab(event, 'home-tab')" id="sidebar-home-button">
             <i class="ri-home-4-line" aria-hidden="true"></i>
@@ -176,34 +179,20 @@
         </div>
 
         <div class="app-sidebar-group">
-          <button type="button" class="app-sidebar-item" data-sidebar-tab="sensitivity-converter-tab" onclick="switchTab(event, 'sensitivity-converter-tab')" id="sidebar-sensitivity-converter-button">
-            <i class="ri-swap-2-line" aria-hidden="true"></i>
-            <span class="app-sidebar-label">Sensitivity</span>
-          </button>
-          <button type="button" class="app-sidebar-item" data-sidebar-tab="edpi-calculator-tab" onclick="switchTab(event, 'edpi-calculator-tab')" id="sidebar-edpi-calculator-button">
-            <i class="ri-pencil-ruler-2-line" aria-hidden="true"></i>
-            <span class="app-sidebar-label">eDPI</span>
-          </button>
-        </div>
-
-        <div class="app-sidebar-group">
-          <button type="button" class="app-sidebar-item app-sidebar-item-aim" data-sidebar-tab="aim-training-tab" onclick="switchTab(event, 'aim-training-tab')" id="sidebar-aim-training-button">
-            <i class="ri-focus-3-line" aria-hidden="true"></i>
-            <span class="app-sidebar-label">Aim Trainer</span>
-          </button>
-          <button type="button" class="app-sidebar-item" data-sidebar-tab="stats-tab" onclick="switchTab(event, 'stats-tab')" id="sidebar-stats-button">
-            <i class="ri-equalizer-2-line" aria-hidden="true"></i>
-            <span class="app-sidebar-label">Stats</span>
-          </button>
-        </div>
-
-        <div class="app-sidebar-group">
-          <div class="app-sidebar-misc" id="app-sidebar-misc" hidden>
+          <div class="app-sidebar-misc" id="app-sidebar-misc">
             <button type="button" class="app-sidebar-item app-sidebar-misc-toggle" id="sidebar-misc-button" aria-expanded="false" aria-haspopup="menu" aria-controls="sidebar-misc-menu">
-              <i class="ri-apps-2-line" aria-hidden="true"></i>
-              <span class="app-sidebar-label">Misc</span>
+              <i class="ri-tools-line" aria-hidden="true"></i>
+              <span class="app-sidebar-label">Tools</span>
             </button>
             <div class="app-sidebar-misc-menu" id="sidebar-misc-menu" role="menu" aria-labelledby="sidebar-misc-button" hidden>
+              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-sensitivity-converter-button" data-sidebar-tab="sensitivity-converter-tab" onclick="switchTab(event, 'sensitivity-converter-tab')">
+                <i class="ri-swap-2-line" aria-hidden="true"></i>
+                <span>Sensitivity</span>
+              </button>
+              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-edpi-calculator-button" data-sidebar-tab="edpi-calculator-tab" onclick="switchTab(event, 'edpi-calculator-tab')">
+                <i class="ri-pencil-ruler-2-line" aria-hidden="true"></i>
+                <span>eDPI</span>
+              </button>
               <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-crosshair-button" data-sidebar-tab="crosshair-converter-tab" onclick="switchTab(event, 'crosshair-converter-tab')">
                 <i class="ri-crosshair-2-line" aria-hidden="true"></i>
                 <span>Crosshair</span>
@@ -212,12 +201,28 @@
                 <i class="ri-video-line" aria-hidden="true"></i>
                 <span>Lineups</span>
               </button>
-              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-misc-settings-button" data-sidebar-tab="settings-tab" onclick="switchTab(event, 'settings-tab')">
-                <i class="ri-tools-line" aria-hidden="true"></i>
-                <span>Settings</span>
+              <div class="app-sidebar-tools-divider" role="separator" aria-hidden="true"></div>
+              <button type="button" role="menuitem" class="app-sidebar-misc-item app-sidebar-item-aim" id="sidebar-aim-training-button" data-sidebar-tab="aim-training-tab" onclick="switchTab(event, 'aim-training-tab')">
+                <i class="ri-focus-3-line" aria-hidden="true"></i>
+                <span>Aim Trainer</span>
+              </button>
+              <button type="button" role="menuitem" class="app-sidebar-misc-item" id="sidebar-stats-button" data-sidebar-tab="stats-tab" onclick="switchTab(event, 'stats-tab')">
+                <i class="ri-equalizer-2-line" aria-hidden="true"></i>
+                <span>Aim stats</span>
               </button>
             </div>
           </div>
+        </div>
+
+        <div class="app-sidebar-group">
+          <button type="button" class="app-sidebar-item" data-sidebar-tab="profile-tab" onclick="switchTab(event, 'profile-tab')" id="sidebar-profile-button">
+            <i class="ri-user-star-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Profile</span>
+          </button>
+          <button type="button" class="app-sidebar-item" data-sidebar-tab="settings-tab" onclick="switchTab(event, 'settings-tab')" id="sidebar-settings-button">
+            <i class="ri-settings-3-line" aria-hidden="true"></i>
+            <span class="app-sidebar-label">Settings</span>
+          </button>
         </div>
       </nav>
       <div class="app-sidebar-more" id="app-sidebar-more">
@@ -284,51 +289,27 @@
             <div class="nav-group-divider" aria-hidden="true"></div>
 
             <div class="button-container nav-group" data-group="Tools">
-              <button type="button" class="button" onclick="switchTab(event, 'sensitivity-converter-tab')" id="sensitivity-converter-button">
-                <div class="icon-container">
-                  <i class="ri-swap-2-line" aria-hidden="true"></i>
-                </div>
-                <span>Sensitivity Converter</span>
-              </button>
-
-              <button type="button" class="button" onclick="switchTab(event, 'edpi-calculator-tab')" id="edpi-calculator-button">
-                <div class="icon-container">
-                  <i class="ri-pencil-ruler-2-line" aria-hidden="true"></i>
-                </div>
-                <span>Edpi Calculator</span>
-              </button>
-            </div>
-
-            <div class="nav-group-divider" aria-hidden="true"></div>
-
-            <div class="button-container nav-group" data-group="Training">
-              <button type="button" class="button" onclick="switchTab(event, 'aim-training-tab')" id="aim-training-button">
-                <div class="icon-container">
-                  <i class="ri-focus-3-line" aria-hidden="true"></i>
-                </div>
-                <span>Aim Trainer</span>
-              </button>
-
-              <button type="button" class="button" onclick="switchTab(event, 'stats-tab')" id="stats-button">
-                <div class="icon-container">
-                  <i class="ri-equalizer-2-line" aria-hidden="true"></i>
-                </div>
-                <span>Stats</span>
-              </button>
-            </div>
-
-            <div class="nav-group-divider nav-group-divider--before-misc" aria-hidden="true"></div>
-
-            <div class="button-container nav-group" data-group="Misc">
-              <div class="nav-misc-dropdown" id="nav-misc-dropdown" hidden>
+              <div class="nav-misc-dropdown" id="nav-misc-dropdown">
                 <button type="button" class="button nav-misc-toggle" id="nav-misc-toggle" aria-expanded="false" aria-controls="nav-misc-menu">
                   <div class="icon-container">
-                    <i class="ri-apps-2-line" aria-hidden="true"></i>
+                    <i class="ri-tools-line" aria-hidden="true"></i>
                   </div>
-                  <span>Misc</span>
+                  <span>Tools</span>
                   <i class="ri-arrow-down-s-line nav-misc-chevron" aria-hidden="true"></i>
                 </button>
                 <div class="nav-misc-menu" id="nav-misc-menu" hidden>
+                  <button type="button" class="button nav-misc-button" data-nav-tab="sensitivity-converter-tab" onclick="switchTab(event, 'sensitivity-converter-tab')">
+                    <div class="icon-container">
+                      <i class="ri-swap-2-line" aria-hidden="true"></i>
+                    </div>
+                    <span>Sensitivity</span>
+                  </button>
+                  <button type="button" class="button nav-misc-button" data-nav-tab="edpi-calculator-tab" onclick="switchTab(event, 'edpi-calculator-tab')">
+                    <div class="icon-container">
+                      <i class="ri-pencil-ruler-2-line" aria-hidden="true"></i>
+                    </div>
+                    <span>eDPI</span>
+                  </button>
                   <button type="button" class="button nav-misc-button" data-nav-tab="crosshair-converter-tab" onclick="switchTab(event, 'crosshair-converter-tab')">
                     <div class="icon-container">
                       <i class="ri-crosshair-2-line" aria-hidden="true"></i>
@@ -341,14 +322,39 @@
                     </div>
                     <span>Lineups</span>
                   </button>
-                  <button type="button" class="button nav-misc-button" data-nav-tab="settings-tab" onclick="switchTab(event, 'settings-tab')">
+                  <div class="nav-tools-divider" aria-hidden="true"></div>
+                  <button type="button" class="button nav-misc-button" data-nav-tab="aim-training-tab" onclick="switchTab(event, 'aim-training-tab')">
                     <div class="icon-container">
-                      <i class="ri-tools-line" aria-hidden="true"></i>
+                      <i class="ri-focus-3-line" aria-hidden="true"></i>
                     </div>
-                    <span>Settings</span>
+                    <span>Aim Trainer</span>
+                  </button>
+                  <button type="button" class="button nav-misc-button" data-nav-tab="stats-tab" onclick="switchTab(event, 'stats-tab')">
+                    <div class="icon-container">
+                      <i class="ri-equalizer-2-line" aria-hidden="true"></i>
+                    </div>
+                    <span>Aim stats</span>
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div class="nav-group-divider" aria-hidden="true"></div>
+
+            <div class="button-container nav-group" data-group="Account">
+              <button type="button" class="button" onclick="switchTab(event, 'profile-tab')" id="profile-button">
+                <div class="icon-container">
+                  <i class="ri-user-star-line" aria-hidden="true"></i>
+                </div>
+                <span>Profile</span>
+              </button>
+
+              <button type="button" class="button" onclick="switchTab(event, 'settings-tab')" id="settings-button">
+                <div class="icon-container">
+                  <i class="ri-settings-3-line" aria-hidden="true"></i>
+                </div>
+                <span>Settings</span>
+              </button>
             </div>
 
             <div class="nav-group-divider nav-group-divider--before-more" aria-hidden="true"></div>
@@ -530,10 +536,20 @@
                     <span class="home-feature-card-bg" aria-hidden="true"></span>
                     <span class="home-feature-icon" aria-hidden="true"><i class="ri-equalizer-2-line"></i></span>
                     <span class="home-feature-body">
-                      <span class="home-feature-title">Stats &amp; Profile</span>
-                      <span class="home-feature-text">Review your last conversion, eDPI calculation, aim-trainer personal bests, and performance charts in one profile view.</span>
+                      <span class="home-feature-title">Aim stats</span>
+                      <span class="home-feature-text">Review your last conversion, eDPI calculation, aim-trainer personal bests, and performance charts.</span>
                     </span>
                     <span class="home-feature-cta">View stats <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                  </button>
+
+                  <button type="button" class="home-feature-card home-feature-card--profile" onclick="switchTab(event, 'profile-tab')">
+                    <span class="home-feature-card-bg" aria-hidden="true"></span>
+                    <span class="home-feature-icon" aria-hidden="true"><i class="ri-user-star-line"></i></span>
+                    <span class="home-feature-body">
+                      <span class="home-feature-title">Profile</span>
+                      <span class="home-feature-text">Set your display name and write a short bio — stored locally on your device.</span>
+                    </span>
+                    <span class="home-feature-cta">Open profile <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
                   </button>
 
                   <button type="button" class="home-feature-card home-feature-card--lineups" onclick="switchTab(event, 'lineup-tab')">
@@ -582,7 +598,7 @@
 
               <fieldset class="fieldset-style home-details">
                 <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(121, 54%, 82%)">Keyboard shortcuts</legend>
-                <p class="policy-intro">Power users can jump around without touching the mouse. Press <kbd>1</kbd>–<kbd>5</kbd> for main tabs, <kbd>6</kbd> to cycle Misc pages, <kbd>7</kbd> to cycle footer pages, and <kbd>C</kbd> to copy on supported tabs.</p>
+                <p class="policy-intro">Power users can jump around without touching the mouse. Press <kbd>1</kbd> for Home, <kbd>2</kbd> to cycle Tools, <kbd>3</kbd> for Profile, <kbd>4</kbd> for Settings, <kbd>5</kbd> to cycle More pages, and <kbd>C</kbd> to copy on supported tabs.</p>
                 <div class="home-link-row">
                   <button type="button" class="home-inline-link" onclick="switchTab(event, 'keybinds-tab')">
                     <i class="ri-keyboard-box-line" aria-hidden="true"></i>
@@ -733,27 +749,30 @@
                 <div class="value" id="new-sens-value">0.00</div>
               </div>
 
-              <div class="tab-action-bar">
-                <button id="reset-btn" class="reset-button fade-element visible-fade">
-                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  <span>RESET</span>
-                </button>
-
-                <div class="tab-action-bar-end">
-                  <button id="sens-share-btn" class="share-button fade-element hidden-fade" data-share="sens">
-                    <i class="ri-share-line"></i>
-                    <span>SHARE</span>
+              <div class="tab-action-bar tab-action-bar--end">
+                <div class="tab-action-menu-wrap" id="sens-action-menu-wrap">
+                  <button type="button" id="sens-action-menu-btn" class="tab-action-menu-trigger fade-element hidden-fade" aria-label="Result actions" aria-haspopup="menu" aria-expanded="false" aria-controls="sens-action-menu">
+                    <i class="ri-more-2-line" aria-hidden="true"></i>
                   </button>
-
-                  <button type="button" id="copy-btn" class="copy-button fade-element visible-fade">
-                    <i class="ri-file-copy-line" aria-hidden="true"></i>
-                    <span>COPY</span>
-                  </button>
+                  <div class="tab-action-menu hidden" id="sens-action-menu" role="menu" aria-labelledby="sens-action-menu-btn">
+                    <button type="button" id="reset-btn" class="tab-action-menu-item reset-button fade-element visible-fade" role="menuitem">
+                      <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      <span>Reset</span>
+                    </button>
+                    <button type="button" id="sens-share-btn" class="tab-action-menu-item share-button fade-element hidden-fade" data-share="sens" role="menuitem">
+                      <i class="ri-share-line" aria-hidden="true"></i>
+                      <span>Share</span>
+                    </button>
+                    <button type="button" id="copy-btn" class="tab-action-menu-item copy-button fade-element hidden-fade" role="menuitem">
+                      <i class="ri-file-copy-line" aria-hidden="true"></i>
+                      <span>Copy</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -935,27 +954,30 @@
                 <div id="spectrum-pointer-b" class="spectrum-pointer spectrum-pointer--b" role="slider" aria-label="eDPI setup B" aria-valuemin="0" aria-valuenow="0" tabindex="0" hidden aria-hidden="true"></div>
               </div>
 
-              <div class="tab-action-bar">
-                <button id="edpi-reset" class="reset-button fade-element visible-fade">
-                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  <span>RESET</span>
-                </button>
-
-                <div class="tab-action-bar-end">
-                  <button id="edpi-share-btn" data-share="edpi" class="share-button fade-element hidden-fade">
-                    <i class="ri-share-line"></i>
-                    <span>SHARE</span>
+              <div class="tab-action-bar tab-action-bar--end">
+                <div class="tab-action-menu-wrap" id="edpi-action-menu-wrap">
+                  <button type="button" id="edpi-action-menu-btn" class="tab-action-menu-trigger fade-element hidden-fade" aria-label="Result actions" aria-haspopup="menu" aria-expanded="false" aria-controls="edpi-action-menu">
+                    <i class="ri-more-2-line" aria-hidden="true"></i>
                   </button>
-
-                  <button type="button" id="edpi-copy" class="copy-button fade-element visible-fade">
-                    <i class="ri-file-copy-line" aria-hidden="true"></i>
-                    <span>COPY</span>
-                  </button>
+                  <div class="tab-action-menu hidden" id="edpi-action-menu" role="menu" aria-labelledby="edpi-action-menu-btn">
+                    <button type="button" id="edpi-reset" class="tab-action-menu-item reset-button fade-element visible-fade" role="menuitem">
+                      <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      <span>Reset</span>
+                    </button>
+                    <button type="button" id="edpi-share-btn" class="tab-action-menu-item share-button fade-element hidden-fade" data-share="edpi" role="menuitem">
+                      <i class="ri-share-line" aria-hidden="true"></i>
+                      <span>Share</span>
+                    </button>
+                    <button type="button" id="edpi-copy" class="tab-action-menu-item copy-button fade-element hidden-fade" role="menuitem">
+                      <i class="ri-file-copy-line" aria-hidden="true"></i>
+                      <span>Copy</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1112,39 +1134,6 @@
 
         <div class="box-container-holder">
           <div class="box-container">
-            <div class="box-holder app-status-dropdown">
-              <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="app-status-panel">
-                <span class="preset-title app-status-title"><i class="ri-cloud-off-line" style="font-size: 1.25rem"></i>APP STATUS</span>
-                <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-              </button>
-              <div class="app-status-panel" id="app-status-panel">
-                <div class="app-status-panel-inner">
-                  <div class="offline-status" id="offline-status">
-                    <div class="offline-status-row">
-                      <span>Connection</span>
-                      <strong id="offline-connection">Checking…</strong>
-                    </div>
-                    <div class="offline-status-row">
-                      <span>Service worker</span>
-                      <strong id="offline-sw">Checking…</strong>
-                    </div>
-                    <div class="offline-status-row">
-                      <span>Cache version</span>
-                      <strong id="offline-cache-version">—</strong>
-                    </div>
-                    <div class="offline-status-row">
-                      <span>Offline ready</span>
-                      <strong id="offline-ready">Checking…</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="box-container-holder">
-          <div class="box-container">
             <div class="box-holder">
               <div class="settings-sections">
                 <section class="settings-section">
@@ -1219,22 +1208,26 @@
                 <span id="last-sens-conv" class="value">0.00</span>
               </div>
 
-              <div class="tab-action-bar">
-                <button id="profile-sens-conv-reset" class="reset-button fade-element visible-fade">
-                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  <span>RESET</span>
-                </button>
-
-                <div class="tab-action-bar-end">
-                  <button type="button" id="profile-sens-conv-copy" class="copy-button fade-element visible-fade">
-                    <i class="ri-file-copy-line" aria-hidden="true"></i>
-                    <span>COPY</span>
+              <div class="tab-action-bar tab-action-bar--end">
+                <div class="tab-action-menu-wrap" id="profile-sens-action-menu-wrap">
+                  <button type="button" id="profile-sens-action-menu-btn" class="tab-action-menu-trigger fade-element hidden-fade" aria-label="Result actions" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-sens-action-menu">
+                    <i class="ri-more-2-line" aria-hidden="true"></i>
                   </button>
+                  <div class="tab-action-menu hidden" id="profile-sens-action-menu" role="menu" aria-labelledby="profile-sens-action-menu-btn">
+                    <button type="button" id="profile-sens-conv-reset" class="tab-action-menu-item reset-button fade-element hidden-fade" role="menuitem">
+                      <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      <span>Reset</span>
+                    </button>
+                    <button type="button" id="profile-sens-conv-copy" class="tab-action-menu-item copy-button fade-element hidden-fade" role="menuitem">
+                      <i class="ri-file-copy-line" aria-hidden="true"></i>
+                      <span>Copy</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1263,22 +1256,26 @@
                 <span id="last-edpi-calc" class="value">0.00</span>
               </div>
 
-              <div class="tab-action-bar">
-                <button id="profile-edpi-calc-reset" class="reset-button fade-element visible-fade">
-                  <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                    <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  <span>RESET</span>
-                </button>
-
-                <div class="tab-action-bar-end">
-                  <button type="button" id="profile-edpi-calc-copy" class="copy-button fade-element visible-fade">
-                    <i class="ri-file-copy-line" aria-hidden="true"></i>
-                    <span>COPY</span>
+              <div class="tab-action-bar tab-action-bar--end">
+                <div class="tab-action-menu-wrap" id="profile-edpi-action-menu-wrap">
+                  <button type="button" id="profile-edpi-action-menu-btn" class="tab-action-menu-trigger fade-element hidden-fade" aria-label="Result actions" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-edpi-action-menu">
+                    <i class="ri-more-2-line" aria-hidden="true"></i>
                   </button>
+                  <div class="tab-action-menu hidden" id="profile-edpi-action-menu" role="menu" aria-labelledby="profile-edpi-action-menu-btn">
+                    <button type="button" id="profile-edpi-calc-reset" class="tab-action-menu-item reset-button fade-element hidden-fade" role="menuitem">
+                      <svg class="icon-reset" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M9 11V17M15 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M3 7H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                        <path d="M9 7L9.55556 4H14.4444L15 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                      <span>Reset</span>
+                    </button>
+                    <button type="button" id="profile-edpi-calc-copy" class="tab-action-menu-item copy-button fade-element hidden-fade" role="menuitem">
+                      <i class="ri-file-copy-line" aria-hidden="true"></i>
+                      <span>Copy</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1437,6 +1434,62 @@
                   </svg>
                   <span>Reset</span>
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="profile-tab">
+        <div class="title-description-container">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-user-star-line"></i>
+            </div>
+            <span>Profile</span>
+          </div>
+          <div class="description">Shape how you show up. Set your name and write a short bio.</div>
+        </div>
+
+        <div class="box-container-holder profile-page-layout">
+          <div class="box-container">
+            <div class="box-holder profile-card">
+              <div class="profile-card-header">
+                <div class="profile-card-identity">
+                  <div class="profile-avatar-wrap">
+                    <button type="button" class="profile-avatar-button" id="profile-avatar-button" aria-label="Change profile picture">
+                      <span class="profile-avatar" id="profile-avatar">
+                        <img id="profile-avatar-image" class="profile-avatar-image" alt="" hidden />
+                        <span class="profile-avatar-fallback" id="profile-avatar-fallback">?</span>
+                      </span>
+                      <span class="profile-avatar-edit" aria-hidden="true"><i class="ri-camera-line"></i></span>
+                    </button>
+                    <input type="file" id="profile-avatar-input" class="profile-avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+                    <button type="button" class="profile-avatar-remove" id="profile-avatar-remove" hidden>Remove photo</button>
+                  </div>
+                  <div class="profile-preview-name-row">
+                    <h2 class="profile-preview-name" id="profile-preview-name">Your name</h2>
+                    <span class="owner-pill" id="profile-owner-pill" hidden>Owner</span>
+                  </div>
+                </div>
+              </div>
+              <div class="profile-card-main">
+                <div class="profile-card-form">
+                  <div class="profile-field profile-field--display-name">
+                    <label class="profile-field-label" for="profile-display-name">Display name</label>
+                    <input type="text" id="profile-display-name" class="profile-field-input" placeholder="How should we call you?" autocomplete="nickname" maxlength="32" required aria-describedby="profile-display-name-hint" />
+                    <p class="profile-display-name-hint" id="profile-display-name-hint" hidden aria-live="polite"></p>
+                    <div class="profile-display-name-actions" id="profile-display-name-actions">
+                      <button type="button" class="profile-display-name-btn profile-display-name-cancel" id="profile-display-name-cancel" disabled>Cancel</button>
+                      <button type="button" class="profile-display-name-btn profile-display-name-save" id="profile-display-name-save" disabled>Save</button>
+                    </div>
+                  </div>
+                  <div class="profile-field">
+                    <label class="profile-field-label" for="profile-bio">Bio</label>
+                    <textarea id="profile-bio" class="profile-field-textarea" placeholder="Tell us about yourself." maxlength="160" rows="4" spellcheck="true"></textarea>
+                    <span class="profile-bio-count" id="profile-bio-count" aria-live="polite">0 / 160</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1955,12 +2008,10 @@
               <h4 class="settings-section-title"><i class="ri-layout-grid-line" aria-hidden="true"></i> Tabs</h4>
               <div class="keybinds-list">
                 <div class="keybind-row"><kbd>1</kbd><span>Open Home</span></div>
-                <div class="keybind-row"><kbd>2</kbd><span>Open Sensitivity Converter</span></div>
-                <div class="keybind-row"><kbd>3</kbd><span>Open eDPI Calculator</span></div>
-                <div class="keybind-row"><kbd>4</kbd><span>Open Aim Trainer</span></div>
-                <div class="keybind-row"><kbd>5</kbd><span>Open Stats</span></div>
-                <div class="keybind-row" id="keybind-6-row"><kbd>6</kbd><span id="keybind-6-label">Cycle Misc pages (Crosshair / Lineups / Settings)</span></div>
-                <div class="keybind-row"><kbd>7</kbd><span id="keybind-7-label">Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)</span></div>
+                <div class="keybind-row" id="keybind-2-row"><kbd>2</kbd><span id="keybind-2-label">Cycle Tools pages</span></div>
+                <div class="keybind-row"><kbd>3</kbd><span>Open Profile</span></div>
+                <div class="keybind-row"><kbd>4</kbd><span>Open Settings</span></div>
+                <div class="keybind-row"><kbd>5</kbd><span id="keybind-5-label">Cycle More pages (Keybinds / Patch Notes / Privacy / Terms / Credit)</span></div>
               </div>
 
               <h4 class="settings-section-title keybinds-section-title"><i class="ri-flashlight-line" aria-hidden="true"></i> Actions</h4>
@@ -2618,13 +2669,19 @@
         </div>
         <div class="settings-modal-body">
           <div class="trainer-settings-sections">
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-session-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-time-line" aria-hidden="true"></i> Session</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="trainer-settings-session-panel">
+            <div class="trainer-settings-tab-bar">
+              <div class="trainer-toggle-selector trainer-settings-tab-selector" id="trainer-settings-tab-selector" role="tablist" aria-label="Advanced settings sections">
+                <div class="glider"></div>
+                <button type="button" class="toggle-btn active" data-settings-tab="session" role="tab" aria-selected="true" aria-controls="trainer-settings-section-session" id="trainer-settings-tab-session">Session</button>
+                <button type="button" class="toggle-btn" data-settings-tab="display" role="tab" aria-selected="false" aria-controls="trainer-settings-section-display" id="trainer-settings-tab-display">Display</button>
+                <button type="button" class="toggle-btn" data-settings-tab="target" role="tab" aria-selected="false" aria-controls="trainer-settings-section-target" id="trainer-settings-tab-target">Target</button>
+                <button type="button" class="toggle-btn" data-settings-tab="sensitivity" role="tab" aria-selected="false" aria-controls="trainer-settings-section-sensitivity" id="trainer-settings-tab-sensitivity">Sens</button>
+                <button type="button" class="toggle-btn" data-settings-tab="crosshair" role="tab" aria-selected="false" aria-controls="trainer-settings-section-crosshair" id="trainer-settings-tab-crosshair">Crosshair</button>
+              </div>
+            </div>
+
+            <section class="trainer-settings-section is-active" data-settings-tab="session" id="trainer-settings-section-session" role="tabpanel" aria-labelledby="trainer-settings-tab-session">
+              <div class="trainer-settings-panel">
                   <div class="app-status-panel-inner">
                     <div class="toggles-row">
                       <div class="setting-block">
@@ -2680,17 +2737,11 @@
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
             </section>
 
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-display-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-computer-line" aria-hidden="true"></i> Display</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="trainer-settings-display-panel">
+            <section class="trainer-settings-section" data-settings-tab="display" id="trainer-settings-section-display" role="tabpanel" aria-labelledby="trainer-settings-tab-display" hidden>
+              <div class="trainer-settings-panel">
                   <div class="app-status-panel-inner">
                     <div class="toggles-row">
                       <div class="setting-block">
@@ -2713,17 +2764,11 @@
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
             </section>
 
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-target-timer-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-focus-3-line" aria-hidden="true"></i> Target</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="trainer-settings-target-timer-panel">
+            <section class="trainer-settings-section" data-settings-tab="target" id="trainer-settings-section-target" role="tabpanel" aria-labelledby="trainer-settings-tab-target" hidden>
+              <div class="trainer-settings-panel">
                   <div class="app-status-panel-inner">
                     <div class="toggles-row">
                       <div class="setting-block">
@@ -2846,17 +2891,11 @@
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
             </section>
 
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-sensitivity-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-drag-move-2-line" aria-hidden="true"></i> Sensitivity</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="trainer-settings-sensitivity-panel">
+            <section class="trainer-settings-section" data-settings-tab="sensitivity" id="trainer-settings-section-sensitivity" role="tabpanel" aria-labelledby="trainer-settings-tab-sensitivity" hidden>
+              <div class="trainer-settings-panel">
                   <div class="app-status-panel-inner">
                     <div class="toggles-row">
                       <div class="setting-block">
@@ -2889,17 +2928,11 @@
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
             </section>
 
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-settings-crosshair-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-crosshair-2-line" aria-hidden="true"></i> Crosshair</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="trainer-settings-crosshair-panel">
+            <section class="trainer-settings-section" data-settings-tab="crosshair" id="trainer-settings-section-crosshair" role="tabpanel" aria-labelledby="trainer-settings-tab-crosshair" hidden>
+              <div class="trainer-settings-panel">
                   <div class="app-status-panel-inner">
                     <div class="toggles-row">
                       <div class="setting-block crosshair-setting-block">
@@ -3020,7 +3053,6 @@
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
             </section>
           </div>
@@ -3048,15 +3080,17 @@
         </div>
         <div class="settings-modal-body">
           <div class="trainer-settings-sections">
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="theme-settings-appearance-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-paint-line" aria-hidden="true"></i> Appearance</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="theme-settings-appearance-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
+            <div class="trainer-settings-tab-bar">
+              <div class="trainer-toggle-selector trainer-settings-tab-selector" id="theme-settings-tab-selector" role="tablist" aria-label="Theme settings sections">
+                <div class="glider"></div>
+                <button type="button" class="toggle-btn active" data-settings-tab="appearance" role="tab" aria-selected="true" aria-controls="theme-settings-section-appearance" id="theme-settings-tab-appearance">Appearance</button>
+              </div>
+            </div>
+
+            <section class="trainer-settings-section is-active" data-settings-tab="appearance" id="theme-settings-section-appearance" role="tabpanel" aria-labelledby="theme-settings-tab-appearance">
+              <div class="trainer-settings-panel">
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
                       <div class="setting-block theme-accent-block">
                         <div class="setting-text">
                           <span>Accent Theme</span>
@@ -3175,7 +3209,6 @@
                       </div>
                     </div>
                   </div>
-                </div>
               </div>
             </section>
           </div>
@@ -3203,15 +3236,20 @@
         </div>
         <div class="settings-modal-body">
           <div class="trainer-settings-sections">
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="general-settings-performance-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-speed-line" aria-hidden="true"></i> Performance</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="general-settings-performance-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
+            <div class="trainer-settings-tab-bar">
+              <div class="trainer-toggle-selector trainer-settings-tab-selector" id="general-settings-tab-selector" role="tablist" aria-label="General settings sections">
+                <div class="glider"></div>
+                <button type="button" class="toggle-btn active" data-settings-tab="performance" role="tab" aria-selected="true" aria-controls="general-settings-section-performance" id="general-settings-tab-performance">Performance</button>
+                <button type="button" class="toggle-btn" data-settings-tab="display" role="tab" aria-selected="false" aria-controls="general-settings-section-display" id="general-settings-tab-display">Display</button>
+                <button type="button" class="toggle-btn" data-settings-tab="audio" role="tab" aria-selected="false" aria-controls="general-settings-section-audio" id="general-settings-tab-audio">Audio</button>
+                <button type="button" class="toggle-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="general-settings-section-data" id="general-settings-tab-data">Data</button>
+              </div>
+            </div>
+
+            <section class="trainer-settings-section is-active" data-settings-tab="performance" id="general-settings-section-performance" role="tabpanel" aria-labelledby="general-settings-tab-performance">
+              <div class="trainer-settings-panel">
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
                       <div class="setting-block">
                         <div class="setting-text">
                           <span>UI Refresh Rate</span>
@@ -3227,20 +3265,14 @@
                         </div>
                       </div>
                     </div>
-                  </div>
                 </div>
               </div>
             </section>
 
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="general-settings-display-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-eye-line" aria-hidden="true"></i> Display &amp; Accessibility</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="general-settings-display-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
+            <section class="trainer-settings-section" data-settings-tab="display" id="general-settings-section-display" role="tabpanel" aria-labelledby="general-settings-tab-display" hidden>
+              <div class="trainer-settings-panel">
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
                       <div class="setting-block">
                         <div class="setting-text">
                           <span>UI Size</span>
@@ -3284,20 +3316,14 @@
                         </div>
                       </div>
                     </div>
-                  </div>
                 </div>
               </div>
             </section>
 
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="general-settings-audio-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-volume-up-line" aria-hidden="true"></i> Audio</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="general-settings-audio-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
+            <section class="trainer-settings-section" data-settings-tab="audio" id="general-settings-section-audio" role="tabpanel" aria-labelledby="general-settings-tab-audio" hidden>
+              <div class="trainer-settings-panel">
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
                       <div class="setting-block">
                         <div class="setting-text">
                           <span>Master Volume</span>
@@ -3324,20 +3350,14 @@
                         </div>
                       </div>
                     </div>
-                  </div>
                 </div>
               </div>
             </section>
 
-            <section class="trainer-settings-section">
-              <div class="app-status-dropdown trainer-settings-dropdown">
-                <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="general-settings-data-panel">
-                  <span class="preset-title app-status-title trainer-settings-dropdown-title"><i class="ri-shield-check-line" aria-hidden="true"></i> Data &amp; Reset</span>
-                  <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                </button>
-                <div class="app-status-panel" id="general-settings-data-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
+            <section class="trainer-settings-section" data-settings-tab="data" id="general-settings-section-data" role="tabpanel" aria-labelledby="general-settings-tab-data" hidden>
+              <div class="trainer-settings-panel">
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
                       <div class="setting-block">
                         <div class="setting-text">
                           <span>Confirm Before Reset</span>
@@ -3366,7 +3386,6 @@
                         </div>
                       </div>
                     </div>
-                  </div>
                 </div>
               </div>
             </section>
@@ -3429,6 +3448,12 @@
           <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-play" aria-label="Play">
             <i class="ri-play-fill" aria-hidden="true"></i>
           </button>
+          <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-skip-back" aria-label="Back 5 seconds">
+            <i class="ri-replay-5-line" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-skip-forward" aria-label="Forward 5 seconds">
+            <i class="ri-forward-5-line" aria-hidden="true"></i>
+          </button>
           <span class="lineup-video-time" id="lineup-video-time-current">0:00</span>
           <div class="lineup-video-progress-wrap" id="lineup-video-progress-wrap">
             <div class="lineup-video-scrub-preview hidden" id="lineup-video-scrub-preview" aria-hidden="true">
@@ -3468,6 +3493,22 @@
       </div>
     </div>
 
+    <div id="username-onboarding-overlay" class="username-onboarding-overlay trainer-settings-overlay" aria-hidden="true">
+      <div class="username-onboarding-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="username-onboarding-lead">
+        <div class="username-onboarding-icon" aria-hidden="true"><i class="ri-user-smile-line"></i></div>
+        <p class="username-onboarding-lead" id="username-onboarding-lead">Before you jump in, pick a display name. It shows on your profile and in community chat.</p>
+        <form id="username-onboarding-form" class="username-onboarding-form" autocomplete="off">
+          <div class="username-onboarding-field">
+            <span class="username-onboarding-label" id="username-onboarding-label">Username</span>
+            <input id="username-onboarding-input" class="username-onboarding-input" type="text" maxlength="32" placeholder="How should we call you?" autocomplete="username" aria-labelledby="username-onboarding-label" required />
+          </div>
+          <div class="username-onboarding-actions">
+            <button type="submit" class="username-onboarding-submit" id="username-onboarding-submit" disabled>Continue</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div id="confirm-reset-overlay" class="confirm-reset-overlay trainer-settings-overlay">
       <div class="confirm-reset-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="confirm-reset-title">
         <h3 id="confirm-reset-title">Confirm reset</h3>
@@ -3475,6 +3516,17 @@
         <div class="confirm-reset-actions">
           <button type="button" class="confirm-reset-btn confirm-reset-cancel" id="confirm-reset-cancel">Cancel</button>
           <button type="button" class="confirm-reset-btn confirm-reset-ok" id="confirm-reset-ok">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="profile-display-name-overlay" class="confirm-reset-overlay trainer-settings-overlay" aria-hidden="true">
+      <div class="confirm-reset-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="profile-display-name-overlay-title">
+        <h3 id="profile-display-name-overlay-title">Save display name?</h3>
+        <p id="profile-display-name-overlay-message">After saving, your display name will be locked for 2 hours. You'll see a countdown timer before you can change it again.</p>
+        <div class="confirm-reset-actions">
+          <button type="button" class="confirm-reset-btn confirm-reset-cancel" id="profile-display-name-overlay-cancel">Cancel</button>
+          <button type="button" class="confirm-reset-btn confirm-reset-ok" id="profile-display-name-overlay-confirm">Save</button>
         </div>
       </div>
     </div>
@@ -3489,6 +3541,44 @@
 
     <div id="site-assistant" class="site-assistant">
       <div class="site-assistant-dock">
+        <div id="community-chat-dock" class="community-chat-dock">
+          <div id="community-chat-panel" class="site-assistant-panel community-chat-panel" role="dialog" aria-modal="false" aria-labelledby="community-chat-title" aria-hidden="true" data-chat-state="connecting">
+            <div class="site-assistant-header">
+              <div class="site-assistant-header-copy">
+                <span class="community-chat-status-dot site-assistant-status" aria-hidden="true"></span>
+                <div>
+                  <h3 id="community-chat-title">Community Chat</h3>
+                  <p class="site-assistant-subtitle"><span id="community-chat-status">Connecting…</span> · <strong id="community-chat-online">0</strong> online</p>
+                </div>
+              </div>
+              <div class="site-assistant-header-actions">
+                <button type="button" id="community-chat-close" class="site-assistant-close" aria-label="Close community chat">
+                  <i class="ri-close-line" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="community-chat-users-wrap">
+              <div class="community-chat-users" id="community-chat-users" aria-label="Online users"></div>
+            </div>
+
+            <div id="community-chat-messages" class="site-assistant-messages" aria-live="polite" aria-relevant="additions"></div>
+
+            <form id="community-chat-form" class="site-assistant-form community-chat-form" autocomplete="off">
+              <label class="visually-hidden" for="community-chat-input">Chat message</label>
+              <input id="community-chat-input" class="site-assistant-input community-chat-input" type="text" maxlength="500" placeholder="Message the lobby…" />
+              <button type="submit" class="site-assistant-send community-chat-send" id="community-chat-send" aria-label="Send message" disabled>
+                <i class="ri-send-plane-2-line" aria-hidden="true"></i>
+              </button>
+            </form>
+          </div>
+          <button type="button" id="community-chat-toggle" class="site-assistant-toggle community-chat-toggle" aria-controls="community-chat-panel" aria-expanded="false" aria-label="Open community chat">
+            <i class="ri-chat-1-line community-chat-toggle-open" aria-hidden="true"></i>
+            <i class="ri-close-line community-chat-toggle-close" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="site-assistant-stack">
         <div id="site-assistant-panel" class="site-assistant-panel" role="dialog" aria-modal="false" aria-labelledby="site-assistant-title" aria-hidden="true">
           <div class="site-assistant-header">
             <div class="site-assistant-header-copy">
@@ -3523,9 +3613,10 @@
           </form>
         </div>
         <button type="button" id="site-assistant-toggle" class="site-assistant-toggle" aria-controls="site-assistant-panel" aria-expanded="false" aria-label="Open site helper">
-          <i class="ri-chat-3-line site-assistant-toggle-open" aria-hidden="true"></i>
+          <i class="ri-robot-2-line site-assistant-toggle-open" aria-hidden="true"></i>
           <i class="ri-close-line site-assistant-toggle-close" aria-hidden="true"></i>
         </button>
+        </div>
       </div>
     </div>
   </body>

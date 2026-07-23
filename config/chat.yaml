@@ -1,0 +1,41 @@
+# Morning Roast community chat configuration
+# Used by the Node server (WebSocket) and exposed to the browser via GET /chat/config
+
+chat:
+  enabled: true
+
+  websocket:
+    path: /chat
+    # Production URL — also set in index.html meta tag morning-roast-chat-ws
+    production_url: wss://morning-roast-39ov.onrender.com/chat
+
+  limits:
+    max_message_length: 500
+    max_display_name_length: 32
+    max_bio_length: 160
+    history_size: 100
+    rate_limit_ms: 1500
+    max_messages_per_minute: 20
+    max_online_users_shown: 24
+
+  requirements:
+    display_name_required: true
+    bio_required: false
+
+  ui:
+    title: Community Chat
+    description: Talk with other Morning Roast visitors in real time.
+    placeholder: Message the lobby…
+    empty_state: No messages yet. Say hi!
+    offline_message: Chat is offline. Try again in a moment.
+    name_required_message: Set a display name on your Profile before chatting.
+    name_taken_message: That display name is already in use. Choose another one.
+    reconnecting_message: Reconnecting to chat…
+
+  moderation:
+    strip_urls: true
+    blocked_words: []
+
+  owners:
+    display_names:
+      - FuZiveer

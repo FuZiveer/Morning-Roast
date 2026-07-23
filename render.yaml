@@ -3,9 +3,9 @@ services:
     name: morning-roast-presence
     runtime: node
     plan: free
-    rootDir: server
-    buildCommand: npm install
-    startCommand: npm start
+    rootDir: .
+    buildCommand: npm install --prefix server
+    startCommand: node server/presence-server.js
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -13,5 +13,13 @@ services:
         value: "20"
       - key: PRESENCE_PATH
         value: /presence
+      - key: CHAT_PATH
+        value: /chat
+      - key: CHAT_CONFIG_PATH
+        value: config/chat.yaml
+      - key: ASSISTANT_PATH
+        value: /assistant/chat
+      - key: POLLINATIONS_MODEL
+        value: openai-fast
       - key: ALLOWED_ORIGINS
         value: https://fuziveer.github.io,http://localhost:5500,http://127.0.0.1:5500
