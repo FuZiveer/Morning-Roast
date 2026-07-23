@@ -17,6 +17,8 @@ services:
         value: /chat
       - key: CHAT_CONFIG_PATH
         value: config/chat.yaml
+      - key: CHAT_HISTORY_PATH
+        value: data/chat-history.json
       - key: ASSISTANT_PATH
         value: /assistant/chat
       - key: POLLINATIONS_MODEL
