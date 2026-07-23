@@ -88,16 +88,16 @@ const server = http.createServer((req, res) => {
     const url = new URL(req.url || "/", "http://localhost");
     const name = url.searchParams.get("name") || "";
     const exceptUserId = url.searchParams.get("except") || "";
-    const available = chatRoom
-      ? chatRoom.isDisplayNameAvailable(name, { exceptUserId: exceptUserId || null })
-      : true;
+    const result = chatRoom
+      ? chatRoom.checkDisplayName(name, { exceptUserId: exceptUserId || null })
+      : { available: true };
 
     res.writeHead(200, {
       "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": corsOrigin,
       "Cache-Control": "no-store",
     });
-    res.end(JSON.stringify({ available: Boolean(available) }));
+    res.end(JSON.stringify(result));
     return;
   }
 

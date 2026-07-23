@@ -2,6 +2,7 @@
 (function (global) {
   const PROFILE_DISPLAY_NAME_KEY = "profileDisplayName";
   const PROFILE_BIO_KEY = "profileBio";
+  const PROFILE_AVATAR_KEY = "profileAvatarImage";
   const RECONNECT_BASE_MS = 1500;
   const RECONNECT_MAX_MS = 30000;
   const CHAT_OPEN_EVENT = "morning-roast:chat-open";
@@ -21,6 +22,7 @@
       offline_message: "Chat is offline. Try again in a moment.",
       name_required_message: "Set a display name on your Profile before chatting.",
       name_taken_message: "That display name is already in use. Choose another one.",
+      name_blocked_message: "That display name is not allowed.",
       reconnecting_message: "Reconnecting to chat…",
     },
   };
@@ -31,6 +33,7 @@
   let onlineDisplayNames = new Set();
   let userProfiles = new Map();
   let pendingProfileUserId = "";
+  let lastNameCheckReason = "";
   let ownerDisplayNames = parseOwnerDisplayNames(
     document.querySelector('meta[name="morning-roast-owner-names"]')?.content,
   );
@@ -86,6 +89,7 @@
         const response = await fetch(checkUrl, { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
+          lastNameCheckReason = data.available ? "" : String(data.reason || "taken");
           return Boolean(data.available);
         }
       } catch {
@@ -120,16 +124,39 @@
     return pill;
   }
 
+  function createMemberPill() {
+    const pill = document.createElement("span");
+    pill.className = "member-pill";
+    pill.textContent = "Member";
+    return pill;
+  }
+
   function getDisplayInitial(name) {
     const trimmed = String(name || "").trim();
     return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
   }
 
-  function createChatAvatar(name) {
+  function applyAvatarToElement(el, name, avatarUrl) {
+    if (!el) return;
+    el.replaceChildren();
+    if (avatarUrl && String(avatarUrl).startsWith("data:image/")) {
+      const img = document.createElement("img");
+      img.src = avatarUrl;
+      img.alt = "";
+      img.className = "community-chat-avatar-image";
+      el.classList.add("has-image");
+      el.appendChild(img);
+      return;
+    }
+    el.classList.remove("has-image");
+    el.textContent = getDisplayInitial(name);
+  }
+
+  function createChatAvatar(name, avatarUrl) {
     const avatar = document.createElement("span");
     avatar.className = "community-chat-avatar";
     avatar.setAttribute("aria-hidden", "true");
-    avatar.textContent = getDisplayInitial(name);
+    applyAvatarToElement(avatar, name, avatarUrl);
     return avatar;
   }
 
@@ -153,6 +180,7 @@
     return {
       name: String(global.localStorage?.getItem(PROFILE_DISPLAY_NAME_KEY) || "").trim(),
       bio: String(global.localStorage?.getItem(PROFILE_BIO_KEY) || "").trim(),
+      avatar: String(global.localStorage?.getItem(PROFILE_AVATAR_KEY) || "").trim(),
     };
   }
 
@@ -233,7 +261,7 @@
     const profileCloseBtn = root.querySelector("#community-chat-profile-close");
     const profileAvatarEl = root.querySelector("#community-chat-profile-avatar");
     const profileNameEl = root.querySelector("#community-chat-profile-name");
-    const profileBadgesEl = root.querySelector("#community-chat-profile-badges");
+    const profileTagsEl = root.querySelector("#community-chat-profile-tags");
     const profileBioEl = root.querySelector("#community-chat-profile-bio");
 
     if (!panel || !messagesEl || !formEl || !inputEl) return null;
@@ -263,7 +291,30 @@
         userId: id,
         name: String(profile.name ?? userProfiles.get(id)?.name ?? "").trim(),
         bio: String(profile.bio ?? userProfiles.get(id)?.bio ?? "").trim(),
+        avatar: String(profile.avatar ?? userProfiles.get(id)?.avatar ?? "").trim(),
         isOwner: Boolean(profile.isOwner ?? userProfiles.get(id)?.isOwner),
+      });
+    };
+
+    const resolveMessageAvatar = (message) => {
+      if (message?.avatar) return message.avatar;
+      if (message?.userId) return userProfiles.get(message.userId)?.avatar || "";
+      return "";
+    };
+
+    const isSelfMessage = (message) => {
+      if (message?.userId && session.selfId && message.userId === session.selfId) return true;
+      const savedName = readProfileIdentity().name;
+      if (!savedName || !message?.name) return false;
+      return normalizeDisplayNameKey(message.name) === normalizeDisplayNameKey(savedName);
+    };
+
+    const syncMessageAvatars = () => {
+      messagesEl.querySelectorAll(".community-chat-msg[data-user-id]").forEach((item) => {
+        const profile = userProfiles.get(item.dataset.userId || "");
+        const avatarEl = item.querySelector(".community-chat-avatar");
+        if (!avatarEl || !profile) return;
+        applyAvatarToElement(avatarEl, profile.name, profile.avatar);
       });
     };
 
@@ -293,11 +344,12 @@
       const isOwner = Boolean(profile.isOwner);
       const loading = Boolean(profile.loading);
 
-      profileAvatarEl.textContent = getDisplayInitial(name);
+      applyAvatarToElement(profileAvatarEl, name, profile.avatar);
       profileNameEl.textContent = name;
-      if (profileBadgesEl) {
-        profileBadgesEl.replaceChildren();
-        if (isOwner) profileBadgesEl.appendChild(createOwnerPill());
+      if (profileTagsEl) {
+        profileTagsEl.replaceChildren();
+        profileTagsEl.appendChild(createMemberPill());
+        if (isOwner) profileTagsEl.appendChild(createOwnerPill());
       }
       profileBioEl.textContent = loading ? "Loading profile…" : bio || "No bio yet.";
       profilePopover.hidden = false;
@@ -360,16 +412,21 @@
       if (!message?.id || session.messageIds.has(message.id)) return;
       session.messageIds.add(message.id);
 
+      const self = isSelf || isSelfMessage(message);
+      const avatarUrl = resolveMessageAvatar(message);
+
       if (message.userId) {
         upsertUserProfile(message.userId, {
           name: message.name,
+          avatar: avatarUrl,
           isOwner: Boolean(message.isOwner),
         });
       }
 
       const item = document.createElement("div");
-      item.className = `community-chat-msg community-chat-msg--${isSelf ? "self" : "other"}`;
+      item.className = `community-chat-msg community-chat-msg--${self ? "self" : "other"}`;
       item.dataset.messageId = message.id;
+      if (message.userId) item.dataset.userId = message.userId;
 
       const head = document.createElement("div");
       head.className = "community-chat-msg-head";
@@ -378,7 +435,7 @@
       time.dateTime = new Date(message.at).toISOString();
       time.textContent = formatTime(message.at);
 
-      const avatar = createChatAvatar(message.name);
+      const avatar = createChatAvatar(message.name, avatarUrl);
       const nameWrap = document.createElement("span");
       nameWrap.className = "community-chat-name-wrap";
       const nameLabel = document.createElement("strong");
@@ -386,7 +443,7 @@
       nameWrap.appendChild(nameLabel);
       if (message.isOwner) nameWrap.appendChild(createOwnerPill());
 
-      if (isSelf) {
+      if (self) {
         const identity = document.createElement("div");
         identity.className = "community-chat-msg-identity";
         identity.appendChild(avatar);
@@ -425,8 +482,9 @@
       messagesEl.querySelectorAll(".community-chat-msg").forEach((node) => node.remove());
       session.messageIds.clear();
       (history || []).forEach((message) => {
-        renderMessage(message, { isSelf: message.userId === session.selfId });
+        renderMessage(message, { isSelf: isSelfMessage(message) });
       });
+      syncMessageAvatars();
       updateUi();
     };
 
@@ -441,17 +499,21 @@
                 userId: user?.userId || user?.id || "",
                 name: user?.name || "",
                 bio: user?.bio || "",
+                avatar: user?.avatar || "",
                 isOwner: Boolean(user?.isOwner),
               };
         if (entry.userId) upsertUserProfile(entry.userId, entry);
       });
+      syncMessageAvatars();
     };
 
     const sendJoin = () => {
       if (!session.socket || session.socket.readyState !== WebSocket.OPEN) return;
       const identity = readProfileIdentity();
       try {
-        session.socket.send(JSON.stringify({ type: "join", name: identity.name, bio: identity.bio }));
+        session.socket.send(
+          JSON.stringify({ type: "join", name: identity.name, bio: identity.bio, avatar: identity.avatar }),
+        );
       } catch {
         // ignore
       }
@@ -539,13 +601,15 @@
               upsertUserProfile(session.selfId, {
                 name: message.you?.name || readProfileIdentity().name,
                 bio: message.you?.bio || readProfileIdentity().bio,
+                avatar: message.you?.avatar || readProfileIdentity().avatar,
                 isOwner: Boolean(message.you?.isOwner),
               });
             }
+            syncMessageAvatars();
             updateUi();
             break;
           case "message":
-            renderMessage(message, { isSelf: message.userId === session.selfId });
+            renderMessage(message, { isSelf: isSelfMessage(message) });
             updateUi();
             break;
           case "presence":
@@ -566,6 +630,13 @@
                 type: "error",
               });
               global.dispatchEvent(new CustomEvent("morning-roast:display-name-taken"));
+            }
+            if (message.code === "name_blocked") {
+              global.Toast?.notify?.({
+                message: message.message || session.config.ui?.name_blocked_message || DEFAULT_CONFIG.ui.name_blocked_message,
+                type: "error",
+              });
+              global.dispatchEvent(new CustomEvent("morning-roast:display-name-blocked"));
             }
             break;
           default:
@@ -596,7 +667,11 @@
     });
 
     global.addEventListener("storage", (event) => {
-      if (event.key === PROFILE_DISPLAY_NAME_KEY || event.key === PROFILE_BIO_KEY) {
+      if (
+        event.key === PROFILE_DISPLAY_NAME_KEY ||
+        event.key === PROFILE_BIO_KEY ||
+        event.key === PROFILE_AVATAR_KEY
+      ) {
         sendJoin();
         updateUi();
       }
@@ -768,5 +843,8 @@
     checkDisplayNameAvailability,
     getDisplayNameTakenMessage: () =>
       activeSession?.config?.ui?.name_taken_message || DEFAULT_CONFIG.ui.name_taken_message,
+    getDisplayNameBlockedMessage: () =>
+      activeSession?.config?.ui?.name_blocked_message || DEFAULT_CONFIG.ui.name_blocked_message,
+    getLastNameCheckReason: () => lastNameCheckReason,
   };
 })(window);

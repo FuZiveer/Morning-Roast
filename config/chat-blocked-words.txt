@@ -1,0 +1,2 @@
+# Optional extra English blocked words (one per line).
+# The server already includes a built-in English profanity list.

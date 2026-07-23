@@ -2867,7 +2867,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v195";
+const APP_CACHE_VERSION = "morning-roast-v196";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -3154,6 +3154,17 @@ function getDisplayNameTakenMessage() {
   return window.MorningRoastChat?.getDisplayNameTakenMessage?.() || "That display name is already in use. Choose another one.";
 }
 
+function getDisplayNameBlockedMessage() {
+  return window.MorningRoastChat?.getDisplayNameBlockedMessage?.() || "That display name is not allowed.";
+}
+
+function getDisplayNameValidationMessage() {
+  if (window.MorningRoastChat?.getLastNameCheckReason?.() === "blocked") {
+    return getDisplayNameBlockedMessage();
+  }
+  return getDisplayNameTakenMessage();
+}
+
 async function checkDisplayNameAvailability(name) {
   if (typeof window.MorningRoastChat?.checkDisplayNameAvailability === "function") {
     return window.MorningRoastChat.checkDisplayNameAvailability(name);
@@ -3288,7 +3299,7 @@ function syncProfileDisplayNameUi() {
     } else if (profileDisplayNameTaken && hasDraft && !missingName) {
       hintEl.hidden = false;
       hintEl.classList.add("is-error");
-      hintEl.textContent = getDisplayNameTakenMessage();
+      hintEl.textContent = getDisplayNameValidationMessage();
     } else {
       hintEl.hidden = true;
       hintEl.textContent = "";
@@ -3380,7 +3391,7 @@ async function handleProfileDisplayNameSave() {
   const available = await checkDisplayNameAvailability(draft);
   if (!available) {
     setProfileDisplayNameTaken(true);
-    Toast.notify({ message: getDisplayNameTakenMessage(), type: "error" });
+    Toast.notify({ message: getDisplayNameValidationMessage(), type: "error" });
     return;
   }
 
@@ -3406,7 +3417,7 @@ function initProfileDisplayNameConfirm() {
     const available = await checkDisplayNameAvailability(name);
     if (!available) {
       setProfileDisplayNameTaken(true);
-      Toast.notify({ message: getDisplayNameTakenMessage(), type: "error" });
+      Toast.notify({ message: getDisplayNameValidationMessage(), type: "error" });
       return;
     }
 
@@ -3627,6 +3638,7 @@ function initProfileTab() {
       const dataUrl = await prepareProfileAvatarFile(file);
       persistProfileAvatar(dataUrl);
       syncProfileAvatar(getSavedDisplayName());
+      window.MorningRoastChat?.initCommunityChat?.()?.refreshIdentity?.();
     } catch (error) {
       Toast.notify({ message: error?.message || "Could not update profile picture", type: "error" });
     }
@@ -3635,6 +3647,7 @@ function initProfileTab() {
   avatarRemove?.addEventListener("click", () => {
     persistProfileAvatar("");
     syncProfileAvatar(getSavedDisplayName());
+    window.MorningRoastChat?.initCommunityChat?.()?.refreshIdentity?.();
   });
 
   nameInput.addEventListener("input", () => {
@@ -3726,7 +3739,7 @@ async function completeUsernameOnboarding(name) {
 
   const available = await checkDisplayNameAvailability(trimmed);
   if (!available) {
-    Toast.notify({ message: getDisplayNameTakenMessage(), type: "error" });
+    Toast.notify({ message: getDisplayNameValidationMessage(), type: "error" });
     return false;
   }
 

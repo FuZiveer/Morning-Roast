@@ -24,6 +24,7 @@ const DEFAULT_CONFIG = {
       offline_message: "Chat is offline. Try again in a moment.",
       name_required_message: "Set a display name on your Profile before chatting.",
       name_taken_message: "That display name is already in use. Choose another one.",
+      name_blocked_message: "That display name is not allowed.",
       reconnecting_message: "Reconnecting to chat…",
     },
     moderation: { strip_urls: true, blocked_words: [] },

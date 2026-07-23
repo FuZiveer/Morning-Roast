@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const { WebSocket } = require("ws");
+const { createChatModeration } = require("./chat-moderation");
 
 function sanitizeText(value, maxLength) {
   return String(value || "")
@@ -9,18 +10,11 @@ function sanitizeText(value, maxLength) {
     .slice(0, maxLength);
 }
 
-function escapeRegExp(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function containsBlockedWord(text, blockedWords) {
-  if (!Array.isArray(blockedWords) || !blockedWords.length) return false;
-  const haystack = String(text || "").toLowerCase();
-  return blockedWords.some((word) => {
-    const token = String(word || "").trim().toLowerCase();
-    if (!token) return false;
-    return new RegExp(`\\b${escapeRegExp(token)}\\b`, "i").test(haystack);
-  });
+function sanitizeAvatar(value, maxLength) {
+  const next = String(value || "").trim();
+  if (!next.startsWith("data:image/")) return "";
+  if (next.length > maxLength) return "";
+  return next;
 }
 
 function stripUrls(text) {
@@ -33,11 +27,12 @@ function createChatRoom(config) {
   const chatConfig = config.chat || {};
   const limits = chatConfig.limits || {};
   const requirements = chatConfig.requirements || {};
-  const moderation = chatConfig.moderation || {};
+  const moderationConfig = chatConfig.moderation || {};
 
   const MAX_MESSAGE_LENGTH = Number(limits.max_message_length) || 500;
   const MAX_NAME_LENGTH = Number(limits.max_display_name_length) || 32;
   const MAX_BIO_LENGTH = Number(limits.max_bio_length) || 160;
+  const MAX_AVATAR_LENGTH = Number(limits.max_avatar_length) || 130000;
   const HISTORY_SIZE = Number(limits.history_size) || 100;
   const RATE_LIMIT_MS = Number(limits.rate_limit_ms) || 1500;
   const MAX_MESSAGES_PER_MINUTE = Number(limits.max_messages_per_minute) || 20;
@@ -46,6 +41,7 @@ function createChatRoom(config) {
     .map((name) => String(name || "").trim().toLowerCase())
     .filter(Boolean);
 
+  const moderation = createChatModeration(moderationConfig.blocked_words || []);
   const clients = new Set();
   const history = [];
 
@@ -63,17 +59,27 @@ function createChatRoom(config) {
     return sanitizeText(name, MAX_NAME_LENGTH).toLowerCase();
   }
 
-  function isDisplayNameAvailable(name, { exceptClient = null, exceptUserId = null } = {}) {
+  function isDisplayNameTaken(name, { exceptClient = null, exceptUserId = null } = {}) {
     const key = normalizeDisplayNameKey(name);
     if (!key) return false;
 
     for (const peer of clients) {
       if (peer === exceptClient) continue;
       if (exceptUserId && peer.userId === exceptUserId) continue;
-      if (peer.displayName && normalizeDisplayNameKey(peer.displayName) === key) return false;
+      if (peer.displayName && normalizeDisplayNameKey(peer.displayName) === key) return true;
     }
 
-    return true;
+    return false;
+  }
+
+  function checkDisplayName(name, { exceptClient = null, exceptUserId = null } = {}) {
+    const displayName = sanitizeText(name, MAX_NAME_LENGTH);
+    if (!displayName) return { available: false, reason: "empty" };
+    if (moderation.isBlockedName(displayName)) return { available: false, reason: "blocked" };
+    if (isDisplayNameTaken(displayName, { exceptClient, exceptUserId })) {
+      return { available: false, reason: "taken" };
+    }
+    return { available: true };
   }
 
   function serializeMessage(message) {
@@ -104,6 +110,7 @@ function createChatRoom(config) {
       users.push({
         userId: client.userId,
         name: client.displayName,
+        avatar: client.avatar || "",
         isOwner: isOwnerDisplayName(client.displayName),
       });
     }
@@ -124,11 +131,8 @@ function createChatRoom(config) {
   function normalizeMessageText(text) {
     let next = sanitizeText(text, MAX_MESSAGE_LENGTH);
     if (!next) return "";
-    if (moderation.strip_urls) next = stripUrls(next);
-    if (containsBlockedWord(next, moderation.blocked_words)) {
-      return null;
-    }
-    return next;
+    if (moderationConfig.strip_urls !== false) next = stripUrls(next);
+    return moderation.censorText(next);
   }
 
   function canSendMessage(client) {
@@ -159,6 +163,7 @@ function createChatRoom(config) {
       you: {
         id: client.userId,
         name: client.displayName || "",
+        avatar: client.avatar || "",
         isOwner: isOwnerDisplayName(client.displayName),
       },
       config: {
@@ -166,6 +171,7 @@ function createChatRoom(config) {
           max_message_length: MAX_MESSAGE_LENGTH,
           max_display_name_length: MAX_NAME_LENGTH,
           max_bio_length: MAX_BIO_LENGTH,
+          max_avatar_length: MAX_AVATAR_LENGTH,
         },
         requirements: { ...requirements },
         ui: { ...chatConfig.ui },
@@ -179,6 +185,7 @@ function createChatRoom(config) {
   function handleJoin(client, message) {
     const displayName = sanitizeText(message.name, MAX_NAME_LENGTH);
     const bio = sanitizeText(message.bio, MAX_BIO_LENGTH);
+    const avatar = sanitizeAvatar(message.avatar, MAX_AVATAR_LENGTH);
 
     if (requirements.display_name_required && !displayName) {
       sendError(client, "name_required", chatConfig.ui?.name_required_message || "Display name required.");
@@ -190,7 +197,17 @@ function createChatRoom(config) {
       return;
     }
 
-    if (displayName && !isDisplayNameAvailable(displayName, { exceptClient: client })) {
+    if (displayName && moderation.isBlockedName(displayName)) {
+      sendError(
+        client,
+        "name_blocked",
+        chatConfig.ui?.name_blocked_message || "That display name is not allowed.",
+      );
+      return;
+    }
+
+    const nameCheck = checkDisplayName(displayName, { exceptClient: client });
+    if (displayName && !nameCheck.available && nameCheck.reason === "taken") {
       sendError(
         client,
         "name_taken",
@@ -200,8 +217,10 @@ function createChatRoom(config) {
     }
 
     const previousName = client.displayName;
+    const previousAvatar = client.avatar;
     client.displayName = displayName;
     client.bio = bio;
+    client.avatar = avatar;
 
     send(client, {
       type: "joined",
@@ -209,11 +228,12 @@ function createChatRoom(config) {
         id: client.userId,
         name: client.displayName,
         bio: client.bio,
+        avatar: client.avatar,
         isOwner: isOwnerDisplayName(client.displayName),
       },
     });
 
-    if (previousName !== client.displayName) {
+    if (previousName !== client.displayName || previousAvatar !== client.avatar) {
       broadcastPresence();
     }
   }
@@ -229,6 +249,7 @@ function createChatRoom(config) {
         userId: peer.userId,
         name: peer.displayName,
         bio: peer.bio || "",
+        avatar: peer.avatar || "",
         isOwner: isOwnerDisplayName(peer.displayName),
       });
       return;
@@ -250,10 +271,6 @@ function createChatRoom(config) {
     }
 
     const text = normalizeMessageText(message.text);
-    if (text === null) {
-      sendError(client, "blocked", "Message blocked by moderation rules.");
-      return;
-    }
     if (!text) {
       sendError(client, "invalid_message", "Message cannot be empty.");
       return;
@@ -272,7 +289,7 @@ function createChatRoom(config) {
       at: now,
     });
 
-    const payload = withOwnerFlag({ type: "message", ...entry });
+    const payload = withOwnerFlag({ type: "message", ...entry, avatar: client.avatar || "" });
     for (const peer of clients) {
       if (peer.readyState === WebSocket.OPEN) peer.send(serializeMessage(payload));
     }
@@ -283,6 +300,7 @@ function createChatRoom(config) {
     client.userId = crypto.randomUUID();
     client.displayName = "";
     client.bio = "";
+    client.avatar = "";
     client.lastMessageAt = 0;
     client.recentMessageTimes = [];
     clients.add(client);
@@ -344,8 +362,11 @@ function createChatRoom(config) {
     pingClients,
     getOnlineCount: () => clients.size,
     getHistorySize: () => history.length,
+    checkDisplayName(name, options = {}) {
+      return checkDisplayName(name, options);
+    },
     isDisplayNameAvailable(name, options = {}) {
-      return isDisplayNameAvailable(name, options);
+      return checkDisplayName(name, options).available;
     },
   };
 }
