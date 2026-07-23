@@ -2682,377 +2682,377 @@
 
             <section class="trainer-settings-section is-active" data-settings-tab="session" id="trainer-settings-section-session" role="tabpanel" aria-labelledby="trainer-settings-tab-session">
               <div class="trainer-settings-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Training Mode</span>
-                          <p>Pick the drill that matches what you want to train. Static and Micro build precision, Shrink rewards fast clicks before targets shrink, Track follows a moving target, Flick gives one at a time, Switch jumps between two random spots, and Strafe uses side-to-side motion.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="pref-dropdown" id="trainer-mode-dropdown">
-                            <button type="button" class="pref-dropdown-trigger" id="trainer-mode-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="trainer-mode-list">
-                              <span class="pref-dropdown-value">
-                                <i class="ri-focus-3-line pref-dropdown-icon" id="trainer-mode-icon" aria-hidden="true"></i>
-                                <span id="trainer-mode-label">Static</span>
-                              </span>
-                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
-                            </button>
-                            <div class="pref-dropdown-list hidden" id="trainer-mode-list" role="listbox" aria-labelledby="trainer-mode-trigger"></div>
-                          </div>
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Training Mode</span>
+                        <p>Pick the drill that matches what you want to train. Static and Micro build precision, Shrink rewards fast clicks before targets shrink, Track follows a moving target, Flick gives one at a time, Switch jumps between two random spots, and Strafe uses side-to-side motion.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="pref-dropdown" id="trainer-mode-dropdown">
+                          <button type="button" class="pref-dropdown-trigger" id="trainer-mode-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="trainer-mode-list">
+                            <span class="pref-dropdown-value">
+                              <i class="ri-focus-3-line pref-dropdown-icon" id="trainer-mode-icon" aria-hidden="true"></i>
+                              <span id="trainer-mode-label">Static</span>
+                            </span>
+                            <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                          </button>
+                          <div class="pref-dropdown-list hidden" id="trainer-mode-list" role="listbox" aria-labelledby="trainer-mode-trigger"></div>
                         </div>
                       </div>
+                    </div>
 
-                      <div class="setting-block hidden" id="tracking-hp-setting" hidden>
-                        <div class="setting-text">
-                          <span>Track Target HP</span>
-                          <p>Limited HP lets the target die after 250 damage and respawn. Unlimited keeps one target alive for pure tracking practice.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector" id="tracking-hp-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-value="limited">LIMITED</button>
-                            <button class="toggle-btn" data-value="unlimited">UNLIMITED</button>
-                          </div>
+                    <div class="setting-block hidden" id="tracking-hp-setting" hidden>
+                      <div class="setting-text">
+                        <span>Track Target HP</span>
+                        <p>Limited HP lets the target die after 250 damage and respawn. Unlimited keeps one target alive for pure tracking practice.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector" id="tracking-hp-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-value="limited">LIMITED</button>
+                          <button class="toggle-btn" data-value="unlimited">UNLIMITED</button>
                         </div>
                       </div>
+                    </div>
 
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Session Timer</span>
-                          <p>How long each run lasts before your score is recorded. Shorter sessions are great for quick warm-ups; longer ones give a more reliable read on your accuracy and consistency.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="pref-dropdown" id="trainer-timer-dropdown">
-                            <button type="button" class="pref-dropdown-trigger" id="trainer-timer-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="trainer-timer-list">
-                              <span class="pref-dropdown-value">
-                                <i class="ri-time-line pref-dropdown-icon" id="trainer-timer-icon" aria-hidden="true"></i>
-                                <span id="trainer-timer-label">15s</span>
-                              </span>
-                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
-                            </button>
-                            <div class="pref-dropdown-list hidden" id="trainer-timer-list" role="listbox" aria-labelledby="trainer-timer-trigger"></div>
-                          </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Session Timer</span>
+                        <p>How long each run lasts before your score is recorded. Shorter sessions are great for quick warm-ups; longer ones give a more reliable read on your accuracy and consistency.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="pref-dropdown" id="trainer-timer-dropdown">
+                          <button type="button" class="pref-dropdown-trigger" id="trainer-timer-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="trainer-timer-list">
+                            <span class="pref-dropdown-value">
+                              <i class="ri-time-line pref-dropdown-icon" id="trainer-timer-icon" aria-hidden="true"></i>
+                              <span id="trainer-timer-label">15s</span>
+                            </span>
+                            <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                          </button>
+                          <div class="pref-dropdown-list hidden" id="trainer-timer-list" role="listbox" aria-labelledby="trainer-timer-trigger"></div>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
               </div>
             </section>
 
             <section class="trainer-settings-section" data-settings-tab="display" id="trainer-settings-section-display" role="tabpanel" aria-labelledby="trainer-settings-tab-display" hidden>
               <div class="trainer-settings-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Aspect Ratio</span>
-                          <p>Pick a canvas shape that matches how you play. Taller ratios like 4:3 and 5:4 feel wider in the trainer; ultrawide 21:9 feels narrower. Fullscreen expands to your whole screen.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="pref-dropdown" id="trainer-aspect-dropdown">
-                            <button type="button" class="pref-dropdown-trigger" id="trainer-aspect-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="trainer-aspect-list">
-                              <span class="pref-dropdown-value">
-                                <i class="ri-aspect-ratio-line pref-dropdown-icon" id="trainer-aspect-icon" aria-hidden="true"></i>
-                                <span id="trainer-aspect-label">16:9</span>
-                              </span>
-                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
-                            </button>
-                            <div class="pref-dropdown-list hidden" id="trainer-aspect-list" role="listbox" aria-labelledby="trainer-aspect-trigger"></div>
-                          </div>
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Aspect Ratio</span>
+                        <p>Pick a canvas shape that matches how you play. Taller ratios like 4:3 and 5:4 feel wider in the trainer; ultrawide 21:9 feels narrower. Fullscreen expands to your whole screen.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="pref-dropdown" id="trainer-aspect-dropdown">
+                          <button type="button" class="pref-dropdown-trigger" id="trainer-aspect-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="trainer-aspect-list">
+                            <span class="pref-dropdown-value">
+                              <i class="ri-aspect-ratio-line pref-dropdown-icon" id="trainer-aspect-icon" aria-hidden="true"></i>
+                              <span id="trainer-aspect-label">16:9</span>
+                            </span>
+                            <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                          </button>
+                          <div class="pref-dropdown-list hidden" id="trainer-aspect-list" role="listbox" aria-labelledby="trainer-aspect-trigger"></div>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
               </div>
             </section>
 
             <section class="trainer-settings-section" data-settings-tab="target" id="trainer-settings-section-target" role="tabpanel" aria-labelledby="trainer-settings-tab-target" hidden>
               <div class="trainer-settings-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Target Color</span>
-                          <p>Switch between red, yellow, and purple targets. Use whichever color is easiest to spot while you train.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector" id="target-color-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-value="red">RED</button>
-                            <button class="toggle-btn" data-value="yellow">YELLOW</button>
-                            <button class="toggle-btn" data-value="purple">PURPLE</button>
-                          </div>
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Target Color</span>
+                        <p>Switch between red, yellow, and purple targets. Use whichever color is easiest to spot while you train.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector" id="target-color-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-value="red">RED</button>
+                          <button class="toggle-btn" data-value="yellow">YELLOW</button>
+                          <button class="toggle-btn" data-value="purple">PURPLE</button>
                         </div>
                       </div>
+                    </div>
 
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Target Size</span>
-                          <p>Set how big targets appear on screen. Easy targets are larger, hard targets are smaller — size stays consistent across every game.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector" id="target-difficulty-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-value="easy">EASY</button>
-                            <button class="toggle-btn" data-value="medium">MEDIUM</button>
-                            <button class="toggle-btn" data-value="hard">HARD</button>
-                          </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Target Size</span>
+                        <p>Set how big targets appear on screen. Easy targets are larger, hard targets are smaller — size stays consistent across every game.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector" id="target-difficulty-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-value="easy">EASY</button>
+                          <button class="toggle-btn" data-value="medium">MEDIUM</button>
+                          <button class="toggle-btn" data-value="hard">HARD</button>
                         </div>
                       </div>
+                    </div>
 
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Health Bar</span>
-                          <p>Show a small bar above each target that shrinks as its health drops. Turn it off for a cleaner screen when you do not need HP feedback.</p>
-                        </div>
-                        <div class="control-group health-bar-control">
-                          <div class="health-bar-settings-panel">
-                            <div class="health-bar-picker" id="health-bar-color-picker">
-                              <div class="health-bar-showcase">
-                                <div class="health-bar-preview-fill" id="health-bar-preview-fill" aria-hidden="true"></div>
-                              </div>
-                              <div class="trainer-toggle-selector accent-selector health-bar-color-options" id="health-bar-color-selector" role="radiogroup" aria-label="Health bar color">
-                                <button type="button" class="accent-swatch" data-health-bar-color="green" style="--swatch: #8ecc51" aria-label="Green" role="radio" aria-checked="false"></button>
-                                <button type="button" class="accent-swatch" data-health-bar-color="yellow" style="--swatch: #ccbc51" aria-label="Yellow" role="radio" aria-checked="false"></button>
-                                <button type="button" class="accent-swatch active" data-health-bar-color="red" style="--swatch: #cc5151" aria-label="Red" role="radio" aria-checked="true"></button>
-                                <button type="button" class="accent-swatch" data-health-bar-color="blue" style="--swatch: #5180cc" aria-label="Blue" role="radio" aria-checked="false"></button>
-                                <button type="button" class="accent-swatch" data-health-bar-color="purple" style="--swatch: #a351cc" aria-label="Purple" role="radio" aria-checked="false"></button>
-                              </div>
-                              <div class="accent-picker-nav health-bar-picker-nav">
-                                <button type="button" class="accent-picker-arrow" id="health-bar-color-prev" aria-label="Previous health bar color">
-                                  <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
-                                </button>
-                                <span class="accent-picker-label" id="health-bar-color-label">Red</span>
-                                <button type="button" class="accent-picker-arrow" id="health-bar-color-next" aria-label="Next health bar color">
-                                  <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
-                                </button>
-                              </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Health Bar</span>
+                        <p>Show a small bar above each target that shrinks as its health drops. Turn it off for a cleaner screen when you do not need HP feedback.</p>
+                      </div>
+                      <div class="control-group health-bar-control">
+                        <div class="health-bar-settings-panel">
+                          <div class="health-bar-picker" id="health-bar-color-picker">
+                            <div class="health-bar-showcase">
+                              <div class="health-bar-preview-fill" id="health-bar-preview-fill" aria-hidden="true"></div>
+                            </div>
+                            <div class="trainer-toggle-selector accent-selector health-bar-color-options" id="health-bar-color-selector" role="radiogroup" aria-label="Health bar color">
+                              <button type="button" class="accent-swatch" data-health-bar-color="green" style="--swatch: #8ecc51" aria-label="Green" role="radio" aria-checked="false"></button>
+                              <button type="button" class="accent-swatch" data-health-bar-color="yellow" style="--swatch: #ccbc51" aria-label="Yellow" role="radio" aria-checked="false"></button>
+                              <button type="button" class="accent-swatch active" data-health-bar-color="red" style="--swatch: #cc5151" aria-label="Red" role="radio" aria-checked="true"></button>
+                              <button type="button" class="accent-swatch" data-health-bar-color="blue" style="--swatch: #5180cc" aria-label="Blue" role="radio" aria-checked="false"></button>
+                              <button type="button" class="accent-swatch" data-health-bar-color="purple" style="--swatch: #a351cc" aria-label="Purple" role="radio" aria-checked="false"></button>
+                            </div>
+                            <div class="accent-picker-nav health-bar-picker-nav">
+                              <button type="button" class="accent-picker-arrow" id="health-bar-color-prev" aria-label="Previous health bar color">
+                                <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+                              </button>
+                              <span class="accent-picker-label" id="health-bar-color-label">Red</span>
+                              <button type="button" class="accent-picker-arrow" id="health-bar-color-next" aria-label="Next health bar color">
+                                <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                              </button>
                             </div>
                           </div>
-                          <div class="trainer-toggle-selector" id="target-healthbar-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-value="false">OFF</button>
-                            <button class="toggle-btn" data-value="true">ON</button>
-                          </div>
+                        </div>
+                        <div class="trainer-toggle-selector" id="target-healthbar-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-value="false">OFF</button>
+                          <button class="toggle-btn" data-value="true">ON</button>
                         </div>
                       </div>
+                    </div>
 
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Health Text</span>
-                          <p>Show or hide the numeric health above targets. When the bar is off, the number sits in the bar slot.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector" id="target-health-text-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-value="false">OFF</button>
-                            <button class="toggle-btn" data-value="true">ON</button>
-                          </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Health Text</span>
+                        <p>Show or hide the numeric health above targets. When the bar is off, the number sits in the bar slot.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector" id="target-health-text-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-value="false">OFF</button>
+                          <button class="toggle-btn" data-value="true">ON</button>
                         </div>
                       </div>
+                    </div>
 
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Hitmarker</span>
-                          <p>Flash an X on the target when you finish it off. Only appears on eliminations — not on partial hits or misses.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector" id="target-hitmarker-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-value="false">OFF</button>
-                            <button class="toggle-btn" data-value="true">ON</button>
-                          </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Hitmarker</span>
+                        <p>Flash an X on the target when you finish it off. Only appears on eliminations — not on partial hits or misses.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector" id="target-hitmarker-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-value="false">OFF</button>
+                          <button class="toggle-btn" data-value="true">ON</button>
                         </div>
                       </div>
+                    </div>
 
-                      <div class="setting-block" id="target-spread-control">
-                        <div class="setting-text">
-                          <span>Target Spread</span>
-                          <p>Control how far from the center targets can spawn. Tighter keeps them near your crosshair; wider pushes them toward the edges of the screen.</p>
+                    <div class="setting-block" id="target-spread-control">
+                      <div class="setting-text">
+                        <span>Target Spread</span>
+                        <p>Control how far from the center targets can spawn. Tighter keeps them near your crosshair; wider pushes them toward the edges of the screen.</p>
+                      </div>
+                      <div class="control-group trainer-spread-control">
+                        <div class="trainer-spread-preview-wrap">
+                          <canvas id="target-spread-preview" class="trainer-spread-preview" width="240" height="112" aria-hidden="true"></canvas>
                         </div>
-                        <div class="control-group trainer-spread-control">
-                          <div class="trainer-spread-preview-wrap">
-                            <canvas id="target-spread-preview" class="trainer-spread-preview" width="240" height="112" aria-hidden="true"></canvas>
-                          </div>
-                          <div class="trainer-spread-header">
-                            <span id="target-spread-label">Balanced</span>
-                            <span class="trainer-spread-hint" id="target-spread-hint">Recommended</span>
-                          </div>
-                          <div class="trainer-spread-selector" id="target-spread-selector" role="group" aria-label="Target spread">
-                            <div class="glider"></div>
-                            <button type="button" class="spread-btn" data-spread="0">Tight</button>
-                            <button type="button" class="spread-btn" data-spread="1">Close</button>
-                            <button type="button" class="spread-btn active" data-spread="2">Balanced</button>
-                            <button type="button" class="spread-btn" data-spread="3">Wide</button>
-                            <button type="button" class="spread-btn" data-spread="4">Far</button>
-                          </div>
+                        <div class="trainer-spread-header">
+                          <span id="target-spread-label">Balanced</span>
+                          <span class="trainer-spread-hint" id="target-spread-hint">Recommended</span>
+                        </div>
+                        <div class="trainer-spread-selector" id="target-spread-selector" role="group" aria-label="Target spread">
+                          <div class="glider"></div>
+                          <button type="button" class="spread-btn" data-spread="0">Tight</button>
+                          <button type="button" class="spread-btn" data-spread="1">Close</button>
+                          <button type="button" class="spread-btn active" data-spread="2">Balanced</button>
+                          <button type="button" class="spread-btn" data-spread="3">Wide</button>
+                          <button type="button" class="spread-btn" data-spread="4">Far</button>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
               </div>
             </section>
 
             <section class="trainer-settings-section" data-settings-tab="sensitivity" id="trainer-settings-section-sensitivity" role="tabpanel" aria-labelledby="trainer-settings-tab-sensitivity" hidden>
               <div class="trainer-settings-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Sensitivity Finder</span>
-                          <p>Runs a guided series of 10 sessions at slightly different sensitivities, then compares your scores to suggest the setting where you perform best. Use the reset icon to start the search over.</p>
-                        </div>
-                        <div class="control-group">
-                          <button id="finder-reset-btn" class="finder-reset-icon"><i class="ri-refresh-line"></i></button>
-                          <div class="trainer-toggle-selector" id="finder-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-value="false">NO</button>
-                            <button class="toggle-btn" data-value="true">YES</button>
-                          </div>
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Sensitivity Finder</span>
+                        <p>Runs a guided series of 10 sessions at slightly different sensitivities, then compares your scores to suggest the setting where you perform best. Use the reset icon to start the search over.</p>
+                      </div>
+                      <div class="control-group">
+                        <button id="finder-reset-btn" class="finder-reset-icon"><i class="ri-refresh-line"></i></button>
+                        <div class="trainer-toggle-selector" id="finder-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-value="false">NO</button>
+                          <button class="toggle-btn" data-value="true">YES</button>
                         </div>
                       </div>
+                    </div>
 
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Sensitivity Randomizer</span>
-                          <p>Slightly varies your sensitivity each session so you can't rely on autopilot muscle memory, training your brain to adapt and aim reactively. Best left off when chasing personal-best scores.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector" id="randomizer-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-value="false">NO</button>
-                            <button class="toggle-btn" data-value="true">YES</button>
-                          </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Sensitivity Randomizer</span>
+                        <p>Slightly varies your sensitivity each session so you can't rely on autopilot muscle memory, training your brain to adapt and aim reactively. Best left off when chasing personal-best scores.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector" id="randomizer-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-value="false">NO</button>
+                          <button class="toggle-btn" data-value="true">YES</button>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
               </div>
             </section>
 
             <section class="trainer-settings-section" data-settings-tab="crosshair" id="trainer-settings-section-crosshair" role="tabpanel" aria-labelledby="trainer-settings-tab-crosshair" hidden>
               <div class="trainer-settings-panel">
-                  <div class="app-status-panel-inner">
-                    <div class="toggles-row">
-                      <div class="setting-block crosshair-setting-block">
-                        <div class="setting-text">
-                          <p>Set up a crosshair that feels familiar — adjust color, size, gap, thickness, dot, outline, and hit flash to match your in-game setup.</p>
+                <div class="app-status-panel-inner">
+                  <div class="toggles-row">
+                    <div class="setting-block crosshair-setting-block">
+                      <div class="setting-text">
+                        <p>Set up a crosshair that feels familiar — adjust color, size, gap, thickness, dot, outline, and hit flash to match your in-game setup.</p>
+                      </div>
+                      <div class="control-group crosshair-controls">
+                        <div class="crosshair-preview-wrap">
+                          <canvas id="crosshair-preview" width="140" height="140"></canvas>
                         </div>
-                        <div class="control-group crosshair-controls">
-                          <div class="crosshair-preview-wrap">
-                            <canvas id="crosshair-preview" width="140" height="140"></canvas>
+                        <div class="crosshair-options-grid">
+                          <div class="crosshair-options-row crosshair-row-colors">
+                            <div class="crosshair-option crosshair-option-colors">
+                              <label>Color</label>
+                              <div class="accent-picker" id="crosshair-color-picker">
+                                <div class="trainer-toggle-selector accent-selector" id="crosshair-color-options" role="radiogroup" aria-label="Crosshair color">
+                                  <button type="button" class="accent-swatch active" data-color="#00ff00" style="--swatch: #00ff00" aria-label="Green" role="radio" aria-checked="true"></button>
+                                  <button type="button" class="accent-swatch" data-color="#ffffff" style="--swatch: #ffffff" aria-label="White" role="radio" aria-checked="false"></button>
+                                  <button type="button" class="accent-swatch" data-color="#00e5ff" style="--swatch: #00e5ff" aria-label="Cyan" role="radio" aria-checked="false"></button>
+                                  <button type="button" class="accent-swatch" data-color="#ff00d4" style="--swatch: #ff00d4" aria-label="Magenta" role="radio" aria-checked="false"></button>
+                                  <button type="button" class="accent-swatch" data-color="#ffea00" style="--swatch: #ffea00" aria-label="Yellow" role="radio" aria-checked="false"></button>
+                                </div>
+                                <div class="accent-picker-nav">
+                                  <button type="button" class="accent-picker-arrow" id="crosshair-color-prev" aria-label="Previous crosshair color">
+                                    <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+                                  </button>
+                                  <span class="accent-picker-label" id="crosshair-color-label">Green</span>
+                                  <button type="button" class="accent-picker-arrow" id="crosshair-color-next" aria-label="Next crosshair color">
+                                    <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div class="crosshair-options-grid">
-                            <div class="crosshair-options-row crosshair-row-colors">
-                              <div class="crosshair-option crosshair-option-colors">
-                                <label>Color</label>
-                                <div class="accent-picker" id="crosshair-color-picker">
-                                  <div class="trainer-toggle-selector accent-selector" id="crosshair-color-options" role="radiogroup" aria-label="Crosshair color">
-                                    <button type="button" class="accent-swatch active" data-color="#00ff00" style="--swatch: #00ff00" aria-label="Green" role="radio" aria-checked="true"></button>
-                                    <button type="button" class="accent-swatch" data-color="#ffffff" style="--swatch: #ffffff" aria-label="White" role="radio" aria-checked="false"></button>
-                                    <button type="button" class="accent-swatch" data-color="#00e5ff" style="--swatch: #00e5ff" aria-label="Cyan" role="radio" aria-checked="false"></button>
-                                    <button type="button" class="accent-swatch" data-color="#ff00d4" style="--swatch: #ff00d4" aria-label="Magenta" role="radio" aria-checked="false"></button>
-                                    <button type="button" class="accent-swatch" data-color="#ffea00" style="--swatch: #ffea00" aria-label="Yellow" role="radio" aria-checked="false"></button>
-                                  </div>
-                                  <div class="accent-picker-nav">
-                                    <button type="button" class="accent-picker-arrow" id="crosshair-color-prev" aria-label="Previous crosshair color">
-                                      <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
-                                    </button>
-                                    <span class="accent-picker-label" id="crosshair-color-label">Green</span>
-                                    <button type="button" class="accent-picker-arrow" id="crosshair-color-next" aria-label="Next crosshair color">
-                                      <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
-                                    </button>
-                                  </div>
-                                </div>
+                          <div class="crosshair-options-divider" aria-hidden="true"></div>
+                          <div class="crosshair-options-row crosshair-row-toggles">
+                            <div class="crosshair-option crosshair-option-toggle">
+                              <label>Lines</label>
+                              <div class="trainer-toggle-selector crosshair-toggle" id="ch-lines-selector">
+                                <div class="glider"></div>
+                                <button class="toggle-btn active" data-value="true">ON</button>
+                                <button class="toggle-btn" data-value="false">OFF</button>
                               </div>
                             </div>
-                            <div class="crosshair-options-divider" aria-hidden="true"></div>
-                            <div class="crosshair-options-row crosshair-row-toggles">
-                              <div class="crosshair-option crosshair-option-toggle">
-                                <label>Lines</label>
-                                <div class="trainer-toggle-selector crosshair-toggle" id="ch-lines-selector">
-                                  <div class="glider"></div>
-                                  <button class="toggle-btn active" data-value="true">ON</button>
-                                  <button class="toggle-btn" data-value="false">OFF</button>
-                                </div>
-                              </div>
-                              <div class="crosshair-option crosshair-option-toggle">
-                                <label>Center Dot</label>
-                                <div class="trainer-toggle-selector crosshair-toggle" id="ch-dot-selector">
-                                  <div class="glider"></div>
-                                  <button class="toggle-btn" data-value="false">OFF</button>
-                                  <button class="toggle-btn active" data-value="true">ON</button>
-                                </div>
-                              </div>
-                              <div class="crosshair-option crosshair-option-toggle">
-                                <label>Outline</label>
-                                <div class="trainer-toggle-selector crosshair-toggle" id="ch-outline-selector">
-                                  <div class="glider"></div>
-                                  <button class="toggle-btn active" data-value="false">OFF</button>
-                                  <button class="toggle-btn" data-value="true">ON</button>
-                                </div>
-                              </div>
-                              <div class="crosshair-option crosshair-option-toggle">
-                                <label>Hit Flash</label>
-                                <div class="trainer-toggle-selector crosshair-toggle" id="ch-flash-selector">
-                                  <div class="glider"></div>
-                                  <button class="toggle-btn" data-value="false">OFF</button>
-                                  <button class="toggle-btn active" data-value="true">ON</button>
-                                </div>
+                            <div class="crosshair-option crosshair-option-toggle">
+                              <label>Center Dot</label>
+                              <div class="trainer-toggle-selector crosshair-toggle" id="ch-dot-selector">
+                                <div class="glider"></div>
+                                <button class="toggle-btn" data-value="false">OFF</button>
+                                <button class="toggle-btn active" data-value="true">ON</button>
                               </div>
                             </div>
-                            <div class="crosshair-options-divider" aria-hidden="true"></div>
-                            <div class="crosshair-options-row crosshair-row-sizing">
-                              <div class="crosshair-option">
-                                <label>Size <span id="ch-size-val">10</span></label>
-                                <input type="range" id="ch-size" min="2" max="30" step="1" value="10" />
-                              </div>
-                              <div class="crosshair-option">
-                                <label>Gap <span id="ch-gap-val">4</span></label>
-                                <input type="range" id="ch-gap" min="0" max="20" step="1" value="4" />
-                              </div>
-                              <div class="crosshair-option">
-                                <label>Thickness <span id="ch-thickness-val">2</span></label>
-                                <input type="range" id="ch-thickness" min="1" max="8" step="1" value="2" />
-                              </div>
-                              <div class="crosshair-option">
-                                <label>Outline <span id="ch-outline-thickness-val">2</span></label>
-                                <input type="range" id="ch-outline-thickness" min="1" max="8" step="1" value="2" />
+                            <div class="crosshair-option crosshair-option-toggle">
+                              <label>Outline</label>
+                              <div class="trainer-toggle-selector crosshair-toggle" id="ch-outline-selector">
+                                <div class="glider"></div>
+                                <button class="toggle-btn active" data-value="false">OFF</button>
+                                <button class="toggle-btn" data-value="true">ON</button>
                               </div>
                             </div>
-                            <div class="crosshair-options-divider" aria-hidden="true"></div>
-                            <div class="crosshair-presets" id="crosshair-presets" role="group" aria-label="Crosshair presets">
-                              <button class="crosshair-preset-btn" type="button" data-preset="classic">
-                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                                <span>Classic</span>
-                              </button>
-                              <button class="crosshair-preset-btn" type="button" data-preset="valorant">
-                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                                <span>Valorant</span>
-                              </button>
-                              <button class="crosshair-preset-btn" type="button" data-preset="cs2">
-                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                                <span>CS2</span>
-                              </button>
-                              <button class="crosshair-preset-btn" type="button" data-preset="minimal">
-                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                                <span>Minimal</span>
-                              </button>
-                              <button class="crosshair-preset-btn" type="button" data-preset="bold">
-                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                                <span>Bold</span>
-                              </button>
-                              <button class="crosshair-preset-btn" type="button" data-preset="dotOnly">
-                                <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                                <span>Dot</span>
-                              </button>
+                            <div class="crosshair-option crosshair-option-toggle">
+                              <label>Hit Flash</label>
+                              <div class="trainer-toggle-selector crosshair-toggle" id="ch-flash-selector">
+                                <div class="glider"></div>
+                                <button class="toggle-btn" data-value="false">OFF</button>
+                                <button class="toggle-btn active" data-value="true">ON</button>
+                              </div>
                             </div>
+                          </div>
+                          <div class="crosshair-options-divider" aria-hidden="true"></div>
+                          <div class="crosshair-options-row crosshair-row-sizing">
+                            <div class="crosshair-option">
+                              <label>Size <span id="ch-size-val">10</span></label>
+                              <input type="range" id="ch-size" min="2" max="30" step="1" value="10" />
+                            </div>
+                            <div class="crosshair-option">
+                              <label>Gap <span id="ch-gap-val">4</span></label>
+                              <input type="range" id="ch-gap" min="0" max="20" step="1" value="4" />
+                            </div>
+                            <div class="crosshair-option">
+                              <label>Thickness <span id="ch-thickness-val">2</span></label>
+                              <input type="range" id="ch-thickness" min="1" max="8" step="1" value="2" />
+                            </div>
+                            <div class="crosshair-option">
+                              <label>Outline <span id="ch-outline-thickness-val">2</span></label>
+                              <input type="range" id="ch-outline-thickness" min="1" max="8" step="1" value="2" />
+                            </div>
+                          </div>
+                          <div class="crosshair-options-divider" aria-hidden="true"></div>
+                          <div class="crosshair-presets" id="crosshair-presets" role="group" aria-label="Crosshair presets">
+                            <button class="crosshair-preset-btn" type="button" data-preset="classic">
+                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                              <span>Classic</span>
+                            </button>
+                            <button class="crosshair-preset-btn" type="button" data-preset="valorant">
+                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                              <span>Valorant</span>
+                            </button>
+                            <button class="crosshair-preset-btn" type="button" data-preset="cs2">
+                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                              <span>CS2</span>
+                            </button>
+                            <button class="crosshair-preset-btn" type="button" data-preset="minimal">
+                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                              <span>Minimal</span>
+                            </button>
+                            <button class="crosshair-preset-btn" type="button" data-preset="bold">
+                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                              <span>Bold</span>
+                            </button>
+                            <button class="crosshair-preset-btn" type="button" data-preset="dotOnly">
+                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                              <span>Dot</span>
+                            </button>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
               </div>
             </section>
           </div>
@@ -3091,124 +3091,124 @@
               <div class="trainer-settings-panel">
                 <div class="app-status-panel-inner">
                   <div class="toggles-row">
-                      <div class="setting-block theme-accent-block">
-                        <div class="setting-text">
-                          <span>Accent Theme</span>
-                          <p>Change the highlight color used across the app.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="accent-picker" id="accent-picker">
-                            <div class="trainer-toggle-selector pref-toggle accent-selector" id="accent-grid" role="radiogroup" aria-label="Accent theme">
-                              <button type="button" class="accent-swatch" data-accent="344 99% 47%" style="--swatch: hsl(344 99% 47%)" aria-label="Red" role="radio" aria-checked="false"></button>
-                              <button type="button" class="accent-swatch" data-accent="25 95% 53%" style="--swatch: hsl(25 95% 53%)" aria-label="Orange" role="radio" aria-checked="false"></button>
-                              <button type="button" class="accent-swatch" data-accent="45 93% 53%" style="--swatch: hsl(45 93% 53%)" aria-label="Yellow" role="radio" aria-checked="false"></button>
-                              <button type="button" class="accent-swatch" data-accent="142 71% 45%" style="--swatch: hsl(142 71% 45%)" aria-label="Green" role="radio" aria-checked="false"></button>
-                              <button type="button" class="accent-swatch" data-accent="190 90% 50%" style="--swatch: hsl(190 90% 50%)" aria-label="Cyan" role="radio" aria-checked="false"></button>
-                              <button type="button" class="accent-swatch" data-accent="217 91% 60%" style="--swatch: hsl(217 91% 60%)" aria-label="Blue" role="radio" aria-checked="false"></button>
-                              <button type="button" class="accent-swatch" data-accent="265 84% 64%" style="--swatch: hsl(265 84% 64%)" aria-label="Purple" role="radio" aria-checked="false"></button>
-                              <button type="button" class="accent-swatch" data-accent="330 81% 60%" style="--swatch: hsl(330 81% 60%)" aria-label="Pink" role="radio" aria-checked="false"></button>
-                              <button type="button" class="accent-swatch accent-custom-swatch active" id="accent-custom-color" style="--swatch: #ea0177; --swatch-on-color: hsl(0, 0%, 100%)" aria-label="Custom color" role="radio" aria-checked="true" aria-expanded="false" aria-controls="accent-custom-panel">
-                                <span class="accent-custom-swatch-preview" aria-hidden="true"></span>
-                                <i class="ri-palette-line accent-custom-swatch-icon" aria-hidden="true"></i>
-                              </button>
-                            </div>
-                            <input type="color" id="accent-color-input" class="accent-color-input-native" value="#ea0177" tabindex="-1" aria-hidden="true" />
-                            <div class="accent-custom-panel pref-dropdown-list hidden" id="accent-custom-panel" hidden>
-                              <div class="accent-custom-spectrum" id="accent-custom-spectrum" role="slider" aria-label="Saturation and brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="47" tabindex="0">
-                                <div class="accent-custom-spectrum-cursor" id="accent-custom-spectrum-cursor"></div>
-                              </div>
-                              <label class="accent-custom-hue-label" for="accent-custom-hue">
-                                <span class="accent-custom-hue-text">Hue</span>
-                                <input type="range" class="accent-custom-hue" id="accent-custom-hue" min="0" max="360" value="330" />
-                              </label>
-                              <div class="accent-custom-hex-row">
-                                <span class="accent-custom-hex-swatch" id="accent-custom-hex-swatch" aria-hidden="true"></span>
-                                <input type="text" class="accent-custom-hex" id="accent-custom-hex" value="#EA0177" spellcheck="false" autocapitalize="characters" autocomplete="off" maxlength="7" aria-label="Hex color" />
-                              </div>
-                            </div>
-                            <div class="accent-picker-nav">
-                              <button type="button" class="accent-picker-arrow" id="accent-prev" aria-label="Previous accent color">
-                                <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
-                              </button>
-                              <span class="accent-picker-label" id="accent-picker-label">Red</span>
-                              <button type="button" class="accent-picker-arrow" id="accent-next" aria-label="Next accent color">
-                                <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                    <div class="setting-block theme-accent-block">
+                      <div class="setting-text">
+                        <span>Accent Theme</span>
+                        <p>Change the highlight color used across the app.</p>
                       </div>
-
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Font Family</span>
-                          <p>Choose the typeface used across the app.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="pref-dropdown" id="font-family-dropdown">
-                            <button type="button" class="pref-dropdown-trigger" id="font-family-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="font-family-list">
-                              <span class="pref-dropdown-value">
-                                <i class="ri-font-size-2 pref-dropdown-icon" id="font-family-icon" aria-hidden="true"></i>
-                                <span id="font-family-label">Inter <span class="font-family-default-tag">(default)</span></span>
-                              </span>
-                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                      <div class="control-group">
+                        <div class="accent-picker" id="accent-picker">
+                          <div class="trainer-toggle-selector pref-toggle accent-selector" id="accent-grid" role="radiogroup" aria-label="Accent theme">
+                            <button type="button" class="accent-swatch" data-accent="344 99% 47%" style="--swatch: hsl(344 99% 47%)" aria-label="Red" role="radio" aria-checked="false"></button>
+                            <button type="button" class="accent-swatch" data-accent="25 95% 53%" style="--swatch: hsl(25 95% 53%)" aria-label="Orange" role="radio" aria-checked="false"></button>
+                            <button type="button" class="accent-swatch" data-accent="45 93% 53%" style="--swatch: hsl(45 93% 53%)" aria-label="Yellow" role="radio" aria-checked="false"></button>
+                            <button type="button" class="accent-swatch" data-accent="142 71% 45%" style="--swatch: hsl(142 71% 45%)" aria-label="Green" role="radio" aria-checked="false"></button>
+                            <button type="button" class="accent-swatch" data-accent="190 90% 50%" style="--swatch: hsl(190 90% 50%)" aria-label="Cyan" role="radio" aria-checked="false"></button>
+                            <button type="button" class="accent-swatch" data-accent="217 91% 60%" style="--swatch: hsl(217 91% 60%)" aria-label="Blue" role="radio" aria-checked="false"></button>
+                            <button type="button" class="accent-swatch" data-accent="265 84% 64%" style="--swatch: hsl(265 84% 64%)" aria-label="Purple" role="radio" aria-checked="false"></button>
+                            <button type="button" class="accent-swatch" data-accent="330 81% 60%" style="--swatch: hsl(330 81% 60%)" aria-label="Pink" role="radio" aria-checked="false"></button>
+                            <button type="button" class="accent-swatch accent-custom-swatch active" id="accent-custom-color" style="--swatch: #ea0177; --swatch-on-color: hsl(0, 0%, 100%)" aria-label="Custom color" role="radio" aria-checked="true" aria-expanded="false" aria-controls="accent-custom-panel">
+                              <span class="accent-custom-swatch-preview" aria-hidden="true"></span>
+                              <i class="ri-palette-line accent-custom-swatch-icon" aria-hidden="true"></i>
                             </button>
-                            <div class="pref-dropdown-list hidden" id="font-family-list" role="listbox" aria-labelledby="font-family-trigger">
-                              <button type="button" class="pref-dropdown-option active" data-font-family="inter" role="option">
-                                <span>Inter <span class="font-family-default-tag">(default)</span></span>
-                              </button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="roboto" role="option"><span>Roboto</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="poppins" role="option"><span>Poppins</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="space-grotesk" role="option"><span>Space Grotesk</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="dm-sans" role="option"><span>DM Sans</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="montserrat" role="option"><span>Montserrat</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="open-sans" role="option"><span>Open Sans</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="lato" role="option"><span>Lato</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="nunito" role="option"><span>Nunito</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="raleway" role="option"><span>Raleway</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="ubuntu" role="option"><span>Ubuntu</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="source-sans-3" role="option"><span>Source Sans 3</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="work-sans" role="option"><span>Work Sans</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="outfit" role="option"><span>Outfit</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="manrope" role="option"><span>Manrope</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="oswald" role="option"><span>Oswald</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="rubik" role="option"><span>Rubik</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="lexend" role="option"><span>Lexend</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="plus-jakarta-sans" role="option"><span>Plus Jakarta Sans</span></button>
-                              <button type="button" class="pref-dropdown-option" data-font-family="figtree" role="option"><span>Figtree</span></button>
+                          </div>
+                          <input type="color" id="accent-color-input" class="accent-color-input-native" value="#ea0177" tabindex="-1" aria-hidden="true" />
+                          <div class="accent-custom-panel pref-dropdown-list hidden" id="accent-custom-panel" hidden>
+                            <div class="accent-custom-spectrum" id="accent-custom-spectrum" role="slider" aria-label="Saturation and brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="47" tabindex="0">
+                              <div class="accent-custom-spectrum-cursor" id="accent-custom-spectrum-cursor"></div>
+                            </div>
+                            <label class="accent-custom-hue-label" for="accent-custom-hue">
+                              <span class="accent-custom-hue-text">Hue</span>
+                              <input type="range" class="accent-custom-hue" id="accent-custom-hue" min="0" max="360" value="330" />
+                            </label>
+                            <div class="accent-custom-hex-row">
+                              <span class="accent-custom-hex-swatch" id="accent-custom-hex-swatch" aria-hidden="true"></span>
+                              <input type="text" class="accent-custom-hex" id="accent-custom-hex" value="#EA0177" spellcheck="false" autocapitalize="characters" autocomplete="off" maxlength="7" aria-label="Hex color" />
                             </div>
                           </div>
-                        </div>
-                      </div>
-
-                      <div class="settings-row-divider" aria-hidden="true"></div>
-
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Background</span>
-                          <p>Choose a pattern, wallpaper image with glass panels, or no backdrop.</p>
-                        </div>
-                        <div class="control-group bg-backdrop-control">
-                          <div class="trainer-toggle-selector pref-toggle" id="bg-backdrop-mode-selector">
-                            <div class="glider"></div>
-                            <button type="button" class="toggle-btn" data-bg-backdrop-mode="none">NONE</button>
-                            <button type="button" class="toggle-btn active" data-bg-backdrop-mode="pattern">PATTERN</button>
-                            <button type="button" class="toggle-btn" data-bg-backdrop-mode="image">IMAGE</button>
-                          </div>
-                          <div class="pref-dropdown" id="bg-backdrop-dropdown">
-                            <button type="button" class="pref-dropdown-trigger" id="bg-backdrop-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="bg-backdrop-list">
-                              <span class="pref-dropdown-value">
-                                <i class="ri-pulse-line pref-dropdown-icon" id="bg-backdrop-icon" aria-hidden="true"></i>
-                                <span id="bg-backdrop-label">Waves</span>
-                              </span>
-                              <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                          <div class="accent-picker-nav">
+                            <button type="button" class="accent-picker-arrow" id="accent-prev" aria-label="Previous accent color">
+                              <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
                             </button>
-                            <div class="pref-dropdown-list hidden" id="bg-backdrop-list" role="listbox" aria-labelledby="bg-backdrop-trigger"></div>
+                            <span class="accent-picker-label" id="accent-picker-label">Red</span>
+                            <button type="button" class="accent-picker-arrow" id="accent-next" aria-label="Next accent color">
+                              <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                            </button>
                           </div>
                         </div>
                       </div>
                     </div>
+
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Font Family</span>
+                        <p>Choose the typeface used across the app.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="pref-dropdown" id="font-family-dropdown">
+                          <button type="button" class="pref-dropdown-trigger" id="font-family-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="font-family-list">
+                            <span class="pref-dropdown-value">
+                              <i class="ri-font-size-2 pref-dropdown-icon" id="font-family-icon" aria-hidden="true"></i>
+                              <span id="font-family-label">Inter <span class="font-family-default-tag">(default)</span></span>
+                            </span>
+                            <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                          </button>
+                          <div class="pref-dropdown-list hidden" id="font-family-list" role="listbox" aria-labelledby="font-family-trigger">
+                            <button type="button" class="pref-dropdown-option active" data-font-family="inter" role="option">
+                              <span>Inter <span class="font-family-default-tag">(default)</span></span>
+                            </button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="roboto" role="option"><span>Roboto</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="poppins" role="option"><span>Poppins</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="space-grotesk" role="option"><span>Space Grotesk</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="dm-sans" role="option"><span>DM Sans</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="montserrat" role="option"><span>Montserrat</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="open-sans" role="option"><span>Open Sans</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="lato" role="option"><span>Lato</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="nunito" role="option"><span>Nunito</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="raleway" role="option"><span>Raleway</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="ubuntu" role="option"><span>Ubuntu</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="source-sans-3" role="option"><span>Source Sans 3</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="work-sans" role="option"><span>Work Sans</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="outfit" role="option"><span>Outfit</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="manrope" role="option"><span>Manrope</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="oswald" role="option"><span>Oswald</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="rubik" role="option"><span>Rubik</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="lexend" role="option"><span>Lexend</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="plus-jakarta-sans" role="option"><span>Plus Jakarta Sans</span></button>
+                            <button type="button" class="pref-dropdown-option" data-font-family="figtree" role="option"><span>Figtree</span></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="settings-row-divider" aria-hidden="true"></div>
+
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Background</span>
+                        <p>Choose a pattern, wallpaper image with glass panels, or no backdrop.</p>
+                      </div>
+                      <div class="control-group bg-backdrop-control">
+                        <div class="trainer-toggle-selector pref-toggle" id="bg-backdrop-mode-selector">
+                          <div class="glider"></div>
+                          <button type="button" class="toggle-btn" data-bg-backdrop-mode="none">NONE</button>
+                          <button type="button" class="toggle-btn active" data-bg-backdrop-mode="pattern">PATTERN</button>
+                          <button type="button" class="toggle-btn" data-bg-backdrop-mode="image">IMAGE</button>
+                        </div>
+                        <div class="pref-dropdown" id="bg-backdrop-dropdown">
+                          <button type="button" class="pref-dropdown-trigger" id="bg-backdrop-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="bg-backdrop-list">
+                            <span class="pref-dropdown-value">
+                              <i class="ri-pulse-line pref-dropdown-icon" id="bg-backdrop-icon" aria-hidden="true"></i>
+                              <span id="bg-backdrop-label">Waves</span>
+                            </span>
+                            <i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>
+                          </button>
+                          <div class="pref-dropdown-list hidden" id="bg-backdrop-list" role="listbox" aria-labelledby="bg-backdrop-trigger"></div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                </div>
               </div>
             </section>
           </div>
@@ -3250,21 +3250,21 @@
               <div class="trainer-settings-panel">
                 <div class="app-status-panel-inner">
                   <div class="toggles-row">
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>UI Refresh Rate</span>
-                          <p>Limit how often the site refreshes each second. Use a lower cap on weaker PCs, or Max for no limit.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector pref-toggle" id="refresh-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn" data-refresh="60">60HZ</button>
-                            <button class="toggle-btn" data-refresh="144">144HZ</button>
-                            <button class="toggle-btn active" data-refresh="max">MAX</button>
-                          </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>UI Refresh Rate</span>
+                        <p>Limit how often the site refreshes each second. Use a lower cap on weaker PCs, or Max for no limit.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector pref-toggle" id="refresh-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn" data-refresh="60">60HZ</button>
+                          <button class="toggle-btn" data-refresh="144">144HZ</button>
+                          <button class="toggle-btn active" data-refresh="max">MAX</button>
                         </div>
                       </div>
                     </div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -3273,49 +3273,49 @@
               <div class="trainer-settings-panel">
                 <div class="app-status-panel-inner">
                   <div class="toggles-row">
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>UI Size</span>
-                          <p>Scale the interface for readability.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector pref-toggle ui-size-selector" id="fontsize-selector">
-                            <div class="glider"></div>
-                            <button type="button" class="toggle-btn" data-fontsize="0.9">SMALL</button>
-                            <button type="button" class="toggle-btn active" data-fontsize="1">NORMAL</button>
-                            <button type="button" class="toggle-btn" data-fontsize="1.12">LARGE</button>
-                          </div>
-                        </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>UI Size</span>
+                        <p>Scale the interface for readability.</p>
                       </div>
-
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>High Contrast</span>
-                          <p>Boost contrast and borders for better visibility.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector pref-toggle" id="contrast-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-contrast="false">OFF</button>
-                            <button class="toggle-btn" data-contrast="true">ON</button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Reduce Motion</span>
-                          <p>Minimize animations and transitions.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector pref-toggle" id="motion-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-motion="false">OFF</button>
-                            <button class="toggle-btn" data-motion="true">ON</button>
-                          </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector pref-toggle ui-size-selector" id="fontsize-selector">
+                          <div class="glider"></div>
+                          <button type="button" class="toggle-btn" data-fontsize="0.9">SMALL</button>
+                          <button type="button" class="toggle-btn active" data-fontsize="1">NORMAL</button>
+                          <button type="button" class="toggle-btn" data-fontsize="1.12">LARGE</button>
                         </div>
                       </div>
                     </div>
+
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>High Contrast</span>
+                        <p>Boost contrast and borders for better visibility.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector pref-toggle" id="contrast-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-contrast="false">OFF</button>
+                          <button class="toggle-btn" data-contrast="true">ON</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Reduce Motion</span>
+                        <p>Minimize animations and transitions.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector pref-toggle" id="motion-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-motion="false">OFF</button>
+                          <button class="toggle-btn" data-motion="true">ON</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -3324,32 +3324,32 @@
               <div class="trainer-settings-panel">
                 <div class="app-status-panel-inner">
                   <div class="toggles-row">
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Master Volume</span>
-                          <p>Controls overall app volume for all sounds.</p>
-                        </div>
-                        <div class="control-group master-audio-control" id="master-audio-control">
-                          <div class="aim-trainer-volume-row">
-                            <input type="range" id="master-volume" min="0" max="100" step="1" value="100" aria-label="Master volume" />
-                            <span class="aim-trainer-volume-label" id="master-volume-label">100%</span>
-                          </div>
-                        </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Master Volume</span>
+                        <p>Controls overall app volume for all sounds.</p>
                       </div>
-
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Aim Trainer Volume</span>
-                          <p>Adjust aim trainer hit and countdown sounds relative to master volume.</p>
-                        </div>
-                        <div class="control-group aim-trainer-audio-control" id="aim-trainer-audio-control">
-                          <div class="aim-trainer-volume-row">
-                            <input type="range" id="aim-trainer-volume" min="0" max="100" step="1" value="100" aria-label="Aim trainer volume" />
-                            <span class="aim-trainer-volume-label" id="aim-trainer-volume-label">100%</span>
-                          </div>
+                      <div class="control-group master-audio-control" id="master-audio-control">
+                        <div class="aim-trainer-volume-row">
+                          <input type="range" id="master-volume" min="0" max="100" step="1" value="100" aria-label="Master volume" />
+                          <span class="aim-trainer-volume-label" id="master-volume-label">100%</span>
                         </div>
                       </div>
                     </div>
+
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Aim Trainer Volume</span>
+                        <p>Adjust aim trainer hit and countdown sounds relative to master volume.</p>
+                      </div>
+                      <div class="control-group aim-trainer-audio-control" id="aim-trainer-audio-control">
+                        <div class="aim-trainer-volume-row">
+                          <input type="range" id="aim-trainer-volume" min="0" max="100" step="1" value="100" aria-label="Aim trainer volume" />
+                          <span class="aim-trainer-volume-label" id="aim-trainer-volume-label">100%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -3358,34 +3358,34 @@
               <div class="trainer-settings-panel">
                 <div class="app-status-panel-inner">
                   <div class="toggles-row">
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>Confirm Before Reset</span>
-                          <p>Ask for confirmation before clearing forms or saved stats.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector pref-toggle" id="confirm-reset-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn" data-confirm-reset="false">OFF</button>
-                            <button class="toggle-btn active" data-confirm-reset="true">ON</button>
-                          </div>
-                        </div>
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Confirm Before Reset</span>
+                        <p>Ask for confirmation before clearing forms or saved stats.</p>
                       </div>
-
-                      <div class="setting-block">
-                        <div class="setting-text">
-                          <span>360° Distance Unit</span>
-                          <p>Show mouse travel per full turn in centimeters or inches.</p>
-                        </div>
-                        <div class="control-group">
-                          <div class="trainer-toggle-selector pref-toggle" id="distance360-unit-selector">
-                            <div class="glider"></div>
-                            <button class="toggle-btn active" data-distance360-unit="cm">CM</button>
-                            <button class="toggle-btn" data-distance360-unit="in">IN</button>
-                          </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector pref-toggle" id="confirm-reset-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn" data-confirm-reset="false">OFF</button>
+                          <button class="toggle-btn active" data-confirm-reset="true">ON</button>
                         </div>
                       </div>
                     </div>
+
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>360° Distance Unit</span>
+                        <p>Show mouse travel per full turn in centimeters or inches.</p>
+                      </div>
+                      <div class="control-group">
+                        <div class="trainer-toggle-selector pref-toggle" id="distance360-unit-selector">
+                          <div class="glider"></div>
+                          <button class="toggle-btn active" data-distance360-unit="cm">CM</button>
+                          <button class="toggle-btn" data-distance360-unit="in">IN</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
@@ -3548,7 +3548,7 @@
                 <span class="community-chat-status-dot site-assistant-status" aria-hidden="true"></span>
                 <div>
                   <h3 id="community-chat-title">Community Chat</h3>
-                  <p class="site-assistant-subtitle"><span id="community-chat-status">Connecting…</span> · <strong id="community-chat-online">0</strong> online</p>
+                  <p class="site-assistant-subtitle"><span id="community-chat-status">Offline</span> · <strong id="community-chat-online">0</strong> online</p>
                 </div>
               </div>
               <div class="site-assistant-header-actions">
@@ -3558,11 +3558,23 @@
               </div>
             </div>
 
-            <div class="community-chat-users-wrap">
-              <div class="community-chat-users" id="community-chat-users" aria-label="Online users"></div>
-            </div>
-
             <div id="community-chat-messages" class="site-assistant-messages" aria-live="polite" aria-relevant="additions"></div>
+
+            <div id="community-chat-profile-popover" class="community-chat-profile-popover" hidden role="dialog" aria-modal="true" aria-labelledby="community-chat-profile-name">
+              <div class="community-chat-profile-card">
+                <button type="button" id="community-chat-profile-close" class="community-chat-profile-close" aria-label="Close profile">
+                  <i class="ri-close-line" aria-hidden="true"></i>
+                </button>
+                <div class="community-chat-profile-head">
+                  <span class="community-chat-avatar community-chat-avatar--lg" id="community-chat-profile-avatar" aria-hidden="true"></span>
+                  <div class="community-chat-profile-meta">
+                    <h4 id="community-chat-profile-name"></h4>
+                    <div id="community-chat-profile-badges"></div>
+                  </div>
+                </div>
+                <p id="community-chat-profile-bio" class="community-chat-profile-bio"></p>
+              </div>
+            </div>
 
             <form id="community-chat-form" class="site-assistant-form community-chat-form" autocomplete="off">
               <label class="visually-hidden" for="community-chat-input">Chat message</label>
@@ -3579,43 +3591,43 @@
         </div>
 
         <div class="site-assistant-stack">
-        <div id="site-assistant-panel" class="site-assistant-panel" role="dialog" aria-modal="false" aria-labelledby="site-assistant-title" aria-hidden="true">
-          <div class="site-assistant-header">
-            <div class="site-assistant-header-copy">
-              <span class="site-assistant-status" aria-hidden="true"></span>
-              <div>
-                <h3 id="site-assistant-title">Morning Roast AI</h3>
-                <p class="site-assistant-subtitle">Ask a question</p>
+          <div id="site-assistant-panel" class="site-assistant-panel" role="dialog" aria-modal="false" aria-labelledby="site-assistant-title" aria-hidden="true">
+            <div class="site-assistant-header">
+              <div class="site-assistant-header-copy">
+                <span class="site-assistant-status" aria-hidden="true"></span>
+                <div>
+                  <h3 id="site-assistant-title">Morning Roast AI</h3>
+                  <p class="site-assistant-subtitle">Ask a question</p>
+                </div>
+              </div>
+              <div class="site-assistant-header-actions">
+                <button type="button" id="site-assistant-clear" class="site-assistant-clear" aria-label="Clear chat" disabled>
+                  <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                </button>
+                <button type="button" id="site-assistant-close" class="site-assistant-close" aria-label="Close helper">
+                  <i class="ri-close-line" aria-hidden="true"></i>
+                </button>
               </div>
             </div>
-            <div class="site-assistant-header-actions">
-              <button type="button" id="site-assistant-clear" class="site-assistant-clear" aria-label="Clear chat" disabled>
-                <i class="ri-delete-bin-line" aria-hidden="true"></i>
-              </button>
-              <button type="button" id="site-assistant-close" class="site-assistant-close" aria-label="Close helper">
-                <i class="ri-close-line" aria-hidden="true"></i>
-              </button>
+            <div id="site-assistant-offline" class="site-assistant-offline" hidden>
+              <p>You are offline, try again</p>
             </div>
+            <div id="site-assistant-messages" class="site-assistant-messages" aria-live="polite"></div>
+            <form id="site-assistant-form" class="site-assistant-form" autocomplete="off">
+              <label class="visually-hidden" for="site-assistant-input">Ask a question</label>
+              <input id="site-assistant-input" class="site-assistant-input" type="text" maxlength="280" placeholder="Ask anything" />
+              <button type="submit" class="site-assistant-send" aria-label="Send question" disabled>
+                <i class="ri-send-plane-2-line" aria-hidden="true"></i>
+              </button>
+              <button type="button" id="site-assistant-stop" class="site-assistant-stop" aria-label="Stop response" hidden>
+                <i class="ri-stop-fill" aria-hidden="true"></i>
+              </button>
+            </form>
           </div>
-          <div id="site-assistant-offline" class="site-assistant-offline" hidden>
-            <p>You are offline, try again</p>
-          </div>
-          <div id="site-assistant-messages" class="site-assistant-messages" aria-live="polite"></div>
-          <form id="site-assistant-form" class="site-assistant-form" autocomplete="off">
-            <label class="visually-hidden" for="site-assistant-input">Ask a question</label>
-            <input id="site-assistant-input" class="site-assistant-input" type="text" maxlength="280" placeholder="Ask anything" />
-            <button type="submit" class="site-assistant-send" aria-label="Send question" disabled>
-              <i class="ri-send-plane-2-line" aria-hidden="true"></i>
-            </button>
-            <button type="button" id="site-assistant-stop" class="site-assistant-stop" aria-label="Stop response" hidden>
-              <i class="ri-stop-fill" aria-hidden="true"></i>
-            </button>
-          </form>
-        </div>
-        <button type="button" id="site-assistant-toggle" class="site-assistant-toggle" aria-controls="site-assistant-panel" aria-expanded="false" aria-label="Open site helper">
-          <i class="ri-robot-2-line site-assistant-toggle-open" aria-hidden="true"></i>
-          <i class="ri-close-line site-assistant-toggle-close" aria-hidden="true"></i>
-        </button>
+          <button type="button" id="site-assistant-toggle" class="site-assistant-toggle" aria-controls="site-assistant-panel" aria-expanded="false" aria-label="Open site helper">
+            <i class="ri-robot-2-line site-assistant-toggle-open" aria-hidden="true"></i>
+            <i class="ri-close-line site-assistant-toggle-close" aria-hidden="true"></i>
+          </button>
         </div>
       </div>
     </div>

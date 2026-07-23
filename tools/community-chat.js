@@ -29,6 +29,8 @@
   let dockApi = null;
   let chatSelfUserId = "";
   let onlineDisplayNames = new Set();
+  let userProfiles = new Map();
+  let pendingProfileUserId = "";
   let ownerDisplayNames = parseOwnerDisplayNames(
     document.querySelector('meta[name="morning-roast-owner-names"]')?.content,
   );
@@ -118,16 +120,17 @@
     return pill;
   }
 
-  function appendNameWithOwnerBadge(parent, name, isOwner) {
-    const wrap = document.createElement("span");
-    wrap.className = "community-chat-name-wrap";
+  function getDisplayInitial(name) {
+    const trimmed = String(name || "").trim();
+    return trimmed ? trimmed.charAt(0).toUpperCase() : "?";
+  }
 
-    const label = document.createElement("strong");
-    label.textContent = name || "Guest";
-    wrap.appendChild(label);
-
-    if (isOwner) wrap.appendChild(createOwnerPill());
-    parent.appendChild(wrap);
+  function createChatAvatar(name) {
+    const avatar = document.createElement("span");
+    avatar.className = "community-chat-avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    avatar.textContent = getDisplayInitial(name);
+    return avatar;
   }
 
   function escapeHtml(text) {
@@ -225,8 +228,13 @@
     const sendBtn = root.querySelector("#community-chat-send");
     const statusEl = root.querySelector("#community-chat-status");
     const onlineEl = root.querySelector("#community-chat-online");
-    const usersEl = root.querySelector("#community-chat-users");
     const titleEl = root.querySelector("#community-chat-title");
+    const profilePopover = root.querySelector("#community-chat-profile-popover");
+    const profileCloseBtn = root.querySelector("#community-chat-profile-close");
+    const profileAvatarEl = root.querySelector("#community-chat-profile-avatar");
+    const profileNameEl = root.querySelector("#community-chat-profile-name");
+    const profileBadgesEl = root.querySelector("#community-chat-profile-badges");
+    const profileBioEl = root.querySelector("#community-chat-profile-bio");
 
     if (!panel || !messagesEl || !formEl || !inputEl) return null;
 
@@ -244,6 +252,72 @@
       selfId: "",
       messageIds: new Set(),
       api: null,
+    };
+
+    const upsertUserProfile = (userId, profile = {}) => {
+      const id = String(userId || "").trim();
+      if (!id) return;
+      userProfiles.set(id, {
+        ...userProfiles.get(id),
+        ...profile,
+        userId: id,
+        name: String(profile.name ?? userProfiles.get(id)?.name ?? "").trim(),
+        bio: String(profile.bio ?? userProfiles.get(id)?.bio ?? "").trim(),
+        isOwner: Boolean(profile.isOwner ?? userProfiles.get(id)?.isOwner),
+      });
+    };
+
+    const requestUserProfile = (userId) => {
+      if (!userId || userId === session.selfId) return;
+      if (!session.socket || session.socket.readyState !== WebSocket.OPEN) return;
+      pendingProfileUserId = userId;
+      try {
+        session.socket.send(JSON.stringify({ type: "get_profile", userId }));
+      } catch {
+        pendingProfileUserId = "";
+      }
+    };
+
+    const closeProfilePopover = () => {
+      if (!profilePopover) return;
+      profilePopover.hidden = true;
+      profilePopover.setAttribute("aria-hidden", "true");
+      pendingProfileUserId = "";
+    };
+
+    const showProfilePopover = (profile = {}) => {
+      if (!profilePopover || !profileNameEl || !profileBioEl || !profileAvatarEl) return;
+
+      const name = String(profile.name || "Guest").trim() || "Guest";
+      const bio = String(profile.bio || "").trim();
+      const isOwner = Boolean(profile.isOwner);
+      const loading = Boolean(profile.loading);
+
+      profileAvatarEl.textContent = getDisplayInitial(name);
+      profileNameEl.textContent = name;
+      if (profileBadgesEl) {
+        profileBadgesEl.replaceChildren();
+        if (isOwner) profileBadgesEl.appendChild(createOwnerPill());
+      }
+      profileBioEl.textContent = loading ? "Loading profile…" : bio || "No bio yet.";
+      profilePopover.hidden = false;
+      profilePopover.setAttribute("aria-hidden", "false");
+      profileCloseBtn?.focus({ preventScroll: true });
+    };
+
+    const openUserProfile = (userId, fallback = {}) => {
+      const id = String(userId || "").trim();
+      if (!id || id === session.selfId) return;
+
+      const cached = userProfiles.get(id);
+      showProfilePopover({
+        userId: id,
+        name: cached?.name || fallback.name || "Guest",
+        bio: cached?.bio || "",
+        isOwner: Boolean(cached?.isOwner ?? fallback.isOwner),
+        loading: session.state === "live",
+      });
+      if (session.state === "live") requestUserProfile(id);
     };
 
     const setState = (state) => {
@@ -274,13 +348,7 @@
       if (titleEl && session.config.ui?.title) titleEl.textContent = session.config.ui.title;
 
       if (statusEl) {
-        if (session.state === "connecting") {
-          statusEl.textContent = session.config.ui?.reconnecting_message || DEFAULT_CONFIG.ui.reconnecting_message;
-        } else if (session.state === "live") {
-          statusEl.textContent = "Connected";
-        } else {
-          statusEl.textContent = session.config.ui?.offline_message || DEFAULT_CONFIG.ui.offline_message;
-        }
+        statusEl.textContent = session.state === "live" ? "Online" : "Offline";
       }
     };
 
@@ -292,22 +360,57 @@
       if (!message?.id || session.messageIds.has(message.id)) return;
       session.messageIds.add(message.id);
 
+      if (message.userId) {
+        upsertUserProfile(message.userId, {
+          name: message.name,
+          isOwner: Boolean(message.isOwner),
+        });
+      }
+
       const item = document.createElement("div");
-      item.className = `site-assistant-msg site-assistant-msg--${isSelf ? "user" : "bot"}`;
+      item.className = `community-chat-msg community-chat-msg--${isSelf ? "self" : "other"}`;
       item.dataset.messageId = message.id;
 
-      if (!isSelf) {
-        const label = document.createElement("div");
-        label.className = "community-chat-msg-label";
-        appendNameWithOwnerBadge(label, message.name, Boolean(message.isOwner));
+      const head = document.createElement("div");
+      head.className = "community-chat-msg-head";
 
-        const time = document.createElement("time");
-        time.dateTime = new Date(message.at).toISOString();
-        time.textContent = formatTime(message.at);
-        label.appendChild(time);
+      const time = document.createElement("time");
+      time.dateTime = new Date(message.at).toISOString();
+      time.textContent = formatTime(message.at);
 
-        item.appendChild(label);
+      const avatar = createChatAvatar(message.name);
+      const nameWrap = document.createElement("span");
+      nameWrap.className = "community-chat-name-wrap";
+      const nameLabel = document.createElement("strong");
+      nameLabel.textContent = message.name || "Guest";
+      nameWrap.appendChild(nameLabel);
+      if (message.isOwner) nameWrap.appendChild(createOwnerPill());
+
+      if (isSelf) {
+        const identity = document.createElement("div");
+        identity.className = "community-chat-msg-identity";
+        identity.appendChild(avatar);
+        identity.appendChild(nameWrap);
+        head.appendChild(identity);
+        head.appendChild(time);
+      } else {
+        const trigger = document.createElement("button");
+        trigger.type = "button";
+        trigger.className = "community-chat-profile-trigger";
+        trigger.setAttribute("aria-label", `View ${message.name || "Guest"}'s profile`);
+        trigger.appendChild(nameWrap);
+        trigger.appendChild(avatar);
+        trigger.addEventListener("click", () => {
+          openUserProfile(message.userId, {
+            name: message.name,
+            isOwner: Boolean(message.isOwner),
+          });
+        });
+        head.appendChild(time);
+        head.appendChild(trigger);
       }
+
+      item.appendChild(head);
 
       const bubble = document.createElement("div");
       bubble.className = "site-assistant-bubble";
@@ -319,7 +422,7 @@
     };
 
     const renderHistory = (history) => {
-      messagesEl.querySelectorAll(".site-assistant-msg").forEach((node) => node.remove());
+      messagesEl.querySelectorAll(".community-chat-msg").forEach((node) => node.remove());
       session.messageIds.clear();
       (history || []).forEach((message) => {
         renderMessage(message, { isSelf: message.userId === session.selfId });
@@ -330,24 +433,17 @@
     const renderPresence = ({ online, users } = {}) => {
       if (onlineEl) onlineEl.textContent = Number.isFinite(online) ? String(Math.max(0, online)) : "0";
       syncOnlineDisplayNames(users);
-      if (!usersEl) return;
-      usersEl.replaceChildren();
       (users || []).forEach((user) => {
         const entry =
           typeof user === "string"
             ? { name: user, isOwner: isOwnerDisplayName(user) }
-            : { name: user?.name || "", isOwner: Boolean(user?.isOwner) };
-        if (!entry.name) return;
-
-        const chip = document.createElement("span");
-        chip.className = "community-chat-user-chip";
-
-        const nameEl = document.createElement("span");
-        nameEl.textContent = entry.name;
-        chip.appendChild(nameEl);
-
-        if (entry.isOwner) chip.appendChild(createOwnerPill());
-        usersEl.appendChild(chip);
+            : {
+                userId: user?.userId || user?.id || "",
+                name: user?.name || "",
+                bio: user?.bio || "",
+                isOwner: Boolean(user?.isOwner),
+              };
+        if (entry.userId) upsertUserProfile(entry.userId, entry);
       });
     };
 
@@ -439,6 +535,13 @@
           case "joined":
             session.selfId = message.you?.id || session.selfId;
             chatSelfUserId = session.selfId;
+            if (session.selfId) {
+              upsertUserProfile(session.selfId, {
+                name: message.you?.name || readProfileIdentity().name,
+                bio: message.you?.bio || readProfileIdentity().bio,
+                isOwner: Boolean(message.you?.isOwner),
+              });
+            }
             updateUi();
             break;
           case "message":
@@ -447,6 +550,13 @@
             break;
           case "presence":
             renderPresence(message);
+            break;
+          case "profile":
+            upsertUserProfile(message.userId, message);
+            if (pendingProfileUserId && pendingProfileUserId === message.userId) {
+              showProfilePopover(message);
+              pendingProfileUserId = "";
+            }
             break;
           case "error":
             if (message.code === "name_required") updateUi();
@@ -480,6 +590,11 @@
 
     inputEl.addEventListener("input", updateUi);
 
+    profileCloseBtn?.addEventListener("click", closeProfilePopover);
+    profilePopover?.addEventListener("click", (event) => {
+      if (event.target === profilePopover) closeProfilePopover();
+    });
+
     global.addEventListener("storage", (event) => {
       if (event.key === PROFILE_DISPLAY_NAME_KEY || event.key === PROFILE_BIO_KEY) {
         sendJoin();
@@ -493,6 +608,8 @@
         clearReconnect();
         session.generation += 1;
         closeSocket();
+        closeProfilePopover();
+        userProfiles.clear();
         activeSession = null;
       },
       reconnect() {
@@ -507,6 +624,8 @@
       focusComposer() {
         if (!inputEl.disabled) inputEl.focus({ preventScroll: true });
       },
+      closeProfile: closeProfilePopover,
+      isProfileOpen: () => Boolean(profilePopover && !profilePopover.hidden),
       getState: () => session.state,
     };
 
@@ -554,6 +673,7 @@
         focusComposerInput();
       }
       if (!open && wasOpen) {
+        chatApi?.closeProfile?.();
         const active = document.activeElement;
         if (active instanceof HTMLElement && (panel.contains(active) || active === toggle)) {
           active.blur();
@@ -613,10 +733,14 @@
     });
 
     global.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && open) {
+      if (event.key !== "Escape" || !open) return;
+      if (chatApi?.isProfileOpen?.()) {
         event.preventDefault();
-        setOpen(false);
+        chatApi.closeProfile();
+        return;
       }
+      event.preventDefault();
+      setOpen(false);
     });
 
     global.addEventListener(ASSISTANT_OPEN_EVENT, () => setOpen(false));

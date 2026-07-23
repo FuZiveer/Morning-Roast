@@ -102,6 +102,7 @@ function createChatRoom(config) {
     for (const client of clients) {
       if (!client.displayName) continue;
       users.push({
+        userId: client.userId,
         name: client.displayName,
         isOwner: isOwnerDisplayName(client.displayName),
       });
@@ -217,6 +218,25 @@ function createChatRoom(config) {
     }
   }
 
+  function handleGetProfile(client, message) {
+    const targetId = String(message.userId || "").trim();
+    if (!targetId) return;
+
+    for (const peer of clients) {
+      if (peer.userId !== targetId || !peer.displayName) continue;
+      send(client, {
+        type: "profile",
+        userId: peer.userId,
+        name: peer.displayName,
+        bio: peer.bio || "",
+        isOwner: isOwnerDisplayName(peer.displayName),
+      });
+      return;
+    }
+
+    sendError(client, "profile_not_found", "That user is no longer online.");
+  }
+
   function handleChatMessage(client, message) {
     if (!client.displayName) {
       sendError(client, "name_required", chatConfig.ui?.name_required_message || "Display name required.");
@@ -288,6 +308,9 @@ function createChatRoom(config) {
           break;
         case "message":
           handleChatMessage(client, message);
+          break;
+        case "get_profile":
+          handleGetProfile(client, message);
           break;
         default:
           break;
