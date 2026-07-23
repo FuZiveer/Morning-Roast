@@ -228,6 +228,33 @@
     }
   }
 
+  function resolveHistoryHttpUrl(wsUrl) {
+    if (!wsUrl) return "";
+    try {
+      const url = new URL(wsUrl);
+      url.protocol = url.protocol === "wss:" ? "https:" : "http:";
+      url.pathname = "/chat/history";
+      url.search = "";
+      url.hash = "";
+      return url.toString();
+    } catch {
+      return "";
+    }
+  }
+
+  async function fetchChatHistory(wsUrl) {
+    const httpUrl = resolveHistoryHttpUrl(wsUrl);
+    if (!httpUrl) return [];
+    try {
+      const response = await fetch(httpUrl, { cache: "no-store" });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return Array.isArray(data.history) ? data.history : [];
+    } catch {
+      return [];
+    }
+  }
+
   async function fetchChatConfig(wsUrl) {
     const httpUrl = resolveConfigHttpUrl(wsUrl);
     if (!httpUrl) return { ...DEFAULT_CONFIG };
@@ -714,6 +741,12 @@
       }
       session.wsUrl = resolveChatWsUrl(session.config);
       updateUi();
+
+      const persistedHistory = await fetchChatHistory(session.wsUrl);
+      if (persistedHistory.length) {
+        renderHistory(persistedHistory);
+      }
+
       connect();
     })();
 

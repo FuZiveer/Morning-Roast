@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { WebSocket } = require("ws");
 const { createChatModeration } = require("./chat-moderation");
+const { createChatHistoryStore } = require("./chat-history-store");
 
 function sanitizeText(value, maxLength) {
   return String(value || "")
@@ -43,7 +44,7 @@ function createChatRoom(config) {
 
   const moderation = createChatModeration(moderationConfig.blocked_words || []);
   const clients = new Set();
-  const history = [];
+  const historyStore = createChatHistoryStore({ maxSize: HISTORY_SIZE });
 
   function isOwnerDisplayName(name) {
     const normalized = sanitizeText(name, MAX_NAME_LENGTH).toLowerCase();
@@ -150,16 +151,18 @@ function createChatRoom(config) {
   }
 
   function pushHistory(entry) {
-    history.push(entry);
-    while (history.length > HISTORY_SIZE) history.shift();
-    return entry;
+    return historyStore.push(entry);
+  }
+
+  function getHistoryPayload() {
+    return historyStore.list().map(({ id, userId, name, text, at }) => withOwnerFlag({ id, userId, name, text, at }));
   }
 
   function buildWelcome(client) {
     return {
       type: "welcome",
       online: clients.size,
-      history: history.map(({ id, userId, name, text, at }) => withOwnerFlag({ id, userId, name, text, at })),
+      history: getHistoryPayload(),
       you: {
         id: client.userId,
         name: client.displayName || "",
@@ -361,7 +364,8 @@ function createChatRoom(config) {
     handleConnection,
     pingClients,
     getOnlineCount: () => clients.size,
-    getHistorySize: () => history.length,
+    getHistorySize: () => historyStore.size(),
+    getHistory: () => getHistoryPayload(),
     checkDisplayName(name, options = {}) {
       return checkDisplayName(name, options);
     },

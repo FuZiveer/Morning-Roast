@@ -101,6 +101,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (pathname === "/chat/history") {
+    const history = chatRoom ? chatRoom.getHistory() : [];
+
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": corsOrigin,
+      "Cache-Control": "no-store",
+    });
+    res.end(JSON.stringify({ history }));
+    return;
+  }
+
   res.writeHead(404);
   res.end("Not Found");
 });
