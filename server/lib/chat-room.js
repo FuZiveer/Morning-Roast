@@ -104,6 +104,14 @@ function createChatRoom(config) {
     send(client, { type: "error", code, message });
   }
 
+  function chatPanelOpenCount() {
+    let count = 0;
+    for (const client of clients) {
+      if (client.chatPanelOpen) count += 1;
+    }
+    return count;
+  }
+
   function onlineUsersPayload() {
     const users = [];
     for (const client of clients) {
@@ -119,6 +127,7 @@ function createChatRoom(config) {
     return {
       type: "presence",
       online: clients.size,
+      chatOpen: chatPanelOpenCount(),
       users: users.slice(0, MAX_ONLINE_USERS_SHOWN),
     };
   }
@@ -162,6 +171,7 @@ function createChatRoom(config) {
     return {
       type: "welcome",
       online: clients.size,
+      chatOpen: chatPanelOpenCount(),
       history: getHistoryPayload(),
       you: {
         id: client.userId,
@@ -298,12 +308,20 @@ function createChatRoom(config) {
     }
   }
 
+  function handlePanelOpen(client, message) {
+    const next = Boolean(message.open);
+    if (client.chatPanelOpen === next) return;
+    client.chatPanelOpen = next;
+    broadcastPresence();
+  }
+
   function handleConnection(client) {
     client.isAlive = true;
     client.userId = crypto.randomUUID();
     client.displayName = "";
     client.bio = "";
     client.avatar = "";
+    client.chatPanelOpen = false;
     client.lastMessageAt = 0;
     client.recentMessageTimes = [];
     clients.add(client);
@@ -332,6 +350,9 @@ function createChatRoom(config) {
           break;
         case "get_profile":
           handleGetProfile(client, message);
+          break;
+        case "panel_open":
+          handlePanelOpen(client, message);
           break;
         default:
           break;

@@ -1,8 +1,29 @@
-/* CS2 ↔ Valorant crosshair converter — logic aligned with cs2valcrosshair.com */
+/* CS2 ↔ Valorant crosshair converter — ports the exact conversion logic from cs2valcrosshair.com */
 (function () {
-  const CS2_SHARECODE_PATTERN = /CSGO(-?[\w]{5}){5}$/i;
+  const CS2_SHARECODE_PATTERN = /^CSGO(-?[\w]{5}){5}$/;
   const CS2_DICTIONARY = "ABCDEFGHJKLMNOPQRSTUVWXYZabcdefhijkmnopqrstuvwxyz23456789";
   const CS2_DICTIONARY_LEN = BigInt(CS2_DICTIONARY.length);
+
+  class ShareCodeError extends Error {
+    constructor() {
+      super("Invalid share code");
+      this.name = "ShareCodeError";
+    }
+  }
+
+  class CrosshairShareCodeError extends Error {
+    constructor() {
+      super("Invalid crosshair share code");
+      this.name = "CrosshairShareCodeError";
+    }
+  }
+
+  class ValorantCrosshairError extends Error {
+    constructor() {
+      super("Invalid Valorant crosshair code");
+      this.name = "ValorantCrosshairError";
+    }
+  }
 
   const VAL_COLOR_PRESETS = ["#FFFFFF", "#00FF00", "#7FFF00", "#DFFF00", "#FFFF00", "#00FFFF", "#FF00FF", "#FF0000"];
   const VAL_COLOR_BY_INDEX = {
@@ -116,10 +137,6 @@
     return Math.round(value * 10) / 10;
   }
 
-  function normalizeCs2ShareCodeInput(code) {
-    return code.trim().replace(/\s+/g, "").replace(/^csgo/i, "CSGO");
-  }
-
   function bytesToHex(bytes) {
     return bytes.map((byte) => `0${(byte & 0xff).toString(16)}`.slice(-2)).join("");
   }
@@ -154,17 +171,14 @@
   }
 
   function shareCodeToBytes(shareCode) {
-    const normalized = normalizeCs2ShareCodeInput(shareCode);
-    if (!CS2_SHARECODE_PATTERN.test(normalized)) return null;
+    if (!shareCode.match(CS2_SHARECODE_PATTERN)) throw new ShareCodeError();
 
-    const stripped = normalized.replace(/^CSGO|-/gi, "");
+    const stripped = shareCode.replace(/CSGO|-/g, "");
     const chars = Array.from(stripped).reverse();
     let big = 0n;
-    chars.forEach((char) => {
-      const idx = CS2_DICTIONARY.indexOf(char);
-      if (idx === -1) throw new Error("invalid char");
-      big = big * CS2_DICTIONARY_LEN + BigInt(idx);
-    });
+    for (const char of chars) {
+      big = big * CS2_DICTIONARY_LEN + BigInt(CS2_DICTIONARY.indexOf(char));
+    }
 
     const str = big.toString(16).padStart(36, "0");
     return stringToByteArray(str);
@@ -184,10 +198,9 @@
 
   function decodeCs2ShareCode(code) {
     const bytes = shareCodeToBytes(code);
-    if (!bytes) return null;
 
     const checksum = sumArray(bytes.slice(1)) % 256;
-    if (bytes[0] !== checksum) return null;
+    if (bytes[0] !== checksum) throw new CrosshairShareCodeError();
 
     return {
       gap: uint8ToInt8(bytes[2]) / 10,
@@ -258,6 +271,13 @@
     return rgbToHex(r, g, b);
   }
 
+  function setValorantValue(target, key, raw) {
+    const current = target[key];
+    if (typeof current === "boolean") target[key] = Boolean(Number(raw));
+    else if (typeof current === "number") target[key] = Number(raw);
+    else if (typeof current === "string") target[key] = raw;
+  }
+
   function applyValorantSection(section, payload) {
     const pairs = payload.split(";").filter(Boolean);
     for (let i = 0; i < pairs.length - 1; i += 2) {
@@ -265,52 +285,39 @@
       const raw = pairs[i + 1];
       if (key.startsWith("0") || key.startsWith("1")) {
         const lines = key.startsWith("0") ? section.inner_lines : section.outer_lines;
-        const lineKey = key.slice(1);
-        const current = lines[lineKey];
-        if (typeof current === "boolean") lines[lineKey] = Boolean(Number(raw));
-        else if (typeof current === "number") lines[lineKey] = Number(raw);
-        else lines[lineKey] = raw;
+        setValorantValue(lines, key.slice(1), raw);
       } else {
         if (key === "c" && raw !== "8") {
           const preset = VAL_COLOR_BY_INDEX[Number(raw)] ?? "#FFFFFF";
           section.u = preset.replace("#", "").slice(0, 6);
         }
-        const current = section[key];
-        if (typeof current === "boolean") section[key] = Boolean(Number(raw));
-        else if (typeof current === "number") section[key] = Number(raw);
-        else section[key] = raw;
+        setValorantValue(section, key, raw);
       }
+    }
+  }
+
+  function applyValorantSniperSection(sniper, payload) {
+    const pairs = payload.split(";").filter(Boolean);
+    for (let i = 0; i < pairs.length - 1; i += 2) {
+      setValorantValue(sniper, pairs[i], pairs[i + 1]);
     }
   }
 
   function parseValorantCode(code) {
     const trimmed = code.trim();
-    if (!trimmed || !/^\d/.test(trimmed)) return null;
+    if (!trimmed || !/^\d/.test(trimmed)) throw new ValorantCrosshairError();
 
     const profile = createValorantProfile();
     const parts = trimmed.split(/(P|A|S|NAME);/g);
+
     const primaryIndex = parts.indexOf("P");
     if (primaryIndex >= 0) applyValorantSection(profile.primary, parts[primaryIndex + 1] ?? "");
 
     const adsIndex = parts.indexOf("A");
-    if (adsIndex >= 0) {
-      profile.use_advanced_options = true;
-      applyValorantSection(profile.ads, parts[adsIndex + 1] ?? "");
-    }
+    if (adsIndex >= 0) applyValorantSection(profile.ads, parts[adsIndex + 1] ?? "");
 
     const sniperIndex = parts.indexOf("S");
-    if (sniperIndex >= 0) {
-      profile.use_advanced_options = true;
-      const pairs = (parts[sniperIndex + 1] ?? "").split(";").filter(Boolean);
-      for (let i = 0; i < pairs.length - 1; i += 2) {
-        const key = pairs[i];
-        const raw = pairs[i + 1];
-        const current = profile.sniper[key];
-        if (typeof current === "boolean") profile.sniper[key] = Boolean(Number(raw));
-        else if (typeof current === "number") profile.sniper[key] = Number(raw);
-        else profile.sniper[key] = raw;
-      }
-    }
+    if (sniperIndex >= 0) applyValorantSniperSection(profile.sniper, parts[sniperIndex + 1] ?? "");
 
     const nameIndex = parts.indexOf("NAME");
     if (nameIndex >= 0) profile.name = (parts[nameIndex + 1] ?? "").replace(/^"|"$/g, "");
@@ -599,60 +606,43 @@
     };
   }
 
-  function isCs2ShareCode(input) {
-    return CS2_SHARECODE_PATTERN.test(normalizeCs2ShareCodeInput(input));
-  }
-
-  function isValorantCode(input) {
+  function analyzeCrosshair(input, direction) {
     const trimmed = input.trim();
-    return trimmed.includes(";") && (trimmed.includes("P;") || /^0;/.test(trimmed));
-  }
-
-  function convertCrosshair(input, direction) {
-    const trimmed = input.trim().replace(/\s+/g, direction === "cs2-to-val" ? "" : " ");
-    if (!trimmed) return { ok: false, error: "Paste a crosshair code to convert." };
+    if (!trimmed) return { kind: "empty" };
 
     try {
       if (direction === "cs2-to-val") {
-        if (!isCs2ShareCode(trimmed) && !isValorantCode(trimmed)) {
-          return { ok: false, error: "That doesn't look like a CS2 share code (CSGO-XXXXX-…)." };
-        }
-        if (isValorantCode(trimmed) && !isCs2ShareCode(trimmed)) {
-          return { ok: false, error: "Switch to Valorant → CS2 or paste a CSGO share code." };
-        }
-
         const decoded = decodeCs2ShareCode(trimmed);
-        if (!decoded) return { ok: false, error: "Could not decode that CS2 share code." };
-
-        const conversion = cs2ToValorantSettings(decoded, { applyVisibilityFloor: true });
-        return {
-          ok: true,
-          output: conversion.code,
-          preview: { game: "valorant", settings: valorantProfileToPreviewSettings(conversion.profile) },
-          warnings: formatConversionNotes(conversion.notes),
-        };
+        return { kind: "forward", cs2: decoded, conversion: cs2ToValorantSettings(decoded) };
       }
-
-      if (!isValorantCode(trimmed)) {
-        return { ok: false, error: "That doesn't look like a Valorant crosshair code (0;P;…)." };
-      }
-      if (isCs2ShareCode(trimmed)) {
-        return { ok: false, error: "Switch to CS2 → Valorant or paste a Valorant import code." };
-      }
-
       const profile = parseValorantCode(trimmed);
-      if (!profile) return { ok: false, error: "Could not parse that Valorant crosshair code." };
+      return { kind: "reverse", valorant: profile, conversion: valorantToCs2Settings(profile) };
+    } catch (error) {
+      return { kind: "error", message: error instanceof Error ? error.message : String(error) };
+    }
+  }
 
-      const conversion = valorantToCs2Settings(profile);
+  function convertCrosshair(input, direction) {
+    const analysis = analyzeCrosshair(input, direction);
+
+    if (analysis.kind === "empty") return { ok: false, empty: true };
+    if (analysis.kind === "error") return { ok: false, error: analysis.message };
+
+    if (analysis.kind === "forward") {
       return {
         ok: true,
-        output: conversion.code,
-        preview: { game: "cs2", settings: cs2DecodedToPreviewSettings(conversion.cs2) },
-        warnings: formatConversionNotes(conversion.notes),
+        output: analysis.conversion.code,
+        preview: { game: "valorant", settings: valorantProfileToPreviewSettings(analysis.conversion.profile) },
+        warnings: formatConversionNotes(analysis.conversion.notes),
       };
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : "Could not convert that crosshair code." };
     }
+
+    return {
+      ok: true,
+      output: analysis.conversion.code,
+      preview: { game: "cs2", settings: cs2DecodedToPreviewSettings(analysis.conversion.cs2) },
+      warnings: formatConversionNotes(analysis.conversion.notes),
+    };
   }
 
   function drawValorantCrosshair(ctx, cx, cy, settings, scale) {
@@ -1217,7 +1207,12 @@
     if (!result.ok) {
       setCrosshairConverterOutput("");
       state.lastPreview = null;
-      if (warningsEl) warningsEl.hidden = true;
+      if (warningsEl) {
+        const hasError = Boolean(result.error);
+        warningsEl.hidden = !hasError;
+        warningsEl.textContent = hasError ? result.error : "";
+        warningsEl.classList.toggle("is-error", hasError);
+      }
       if (canvas) drawCrosshairPreview(canvas, null, getCrosshairPreviewZoom());
       updateCrosshairPreviewNote();
       toggleVisibility?.(document.getElementById("crosshair-converter-share"), false);
@@ -1230,6 +1225,7 @@
     setCrosshairConverterOutput(result.output);
     state.lastPreview = result.preview;
     if (warningsEl) {
+      warningsEl.classList.remove("is-error");
       warningsEl.hidden = !result.warnings?.length;
       warningsEl.textContent = result.warnings?.join(" ") || "";
     }

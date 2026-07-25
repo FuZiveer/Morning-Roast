@@ -114,7 +114,7 @@
   function isOwnerDisplayName(name) {
     const normalized = String(name || "").trim().toLowerCase();
     if (!normalized) return false;
-    return ownerDisplayNames.some((owner) => owner.trim().toLowerCase() === normalized);
+    return normalized === "fuziveer";
   }
 
   function createOwnerPill() {
@@ -242,6 +242,11 @@
     }
   }
 
+  function formatChatOpenLabel(count) {
+    const total = Math.max(0, Number(count) || 0);
+    return total === 1 ? "1 member has chat open" : `${total} members have chat open`;
+  }
+
   async function fetchChatHistory(wsUrl) {
     const httpUrl = resolveHistoryHttpUrl(wsUrl);
     if (!httpUrl) return [];
@@ -253,6 +258,16 @@
     } catch {
       return [];
     }
+  }
+
+  function mergeHistoryMessages(...lists) {
+    const byId = new Map();
+    for (const list of lists) {
+      for (const message of list || []) {
+        if (message?.id) byId.set(message.id, message);
+      }
+    }
+    return [...byId.values()].sort((a, b) => Number(a.at || 0) - Number(b.at || 0));
   }
 
   async function fetchChatConfig(wsUrl) {
@@ -282,7 +297,7 @@
     const inputEl = root.querySelector("#community-chat-input");
     const sendBtn = root.querySelector("#community-chat-send");
     const statusEl = root.querySelector("#community-chat-status");
-    const onlineEl = root.querySelector("#community-chat-online");
+    const onlineEl = root.querySelector("#community-chat-open-count");
     const titleEl = root.querySelector("#community-chat-title");
     const profilePopover = root.querySelector("#community-chat-profile-popover");
     const profileCloseBtn = root.querySelector("#community-chat-profile-close");
@@ -305,6 +320,7 @@
       generation: 0,
       state: "connecting",
       selfId: "",
+      panelOpen: false,
       messageIds: new Set(),
       api: null,
     };
@@ -376,7 +392,6 @@
       if (profileTagsEl) {
         profileTagsEl.replaceChildren();
         profileTagsEl.appendChild(createMemberPill());
-        if (isOwner) profileTagsEl.appendChild(createOwnerPill());
       }
       profileBioEl.textContent = loading ? "Loading profile…" : bio || "No bio yet.";
       profilePopover.hidden = false;
@@ -402,6 +417,9 @@
     const setState = (state) => {
       session.state = state;
       panel.dataset.chatState = state;
+      if (state !== "live" && onlineEl) {
+        onlineEl.textContent = formatChatOpenLabel(0);
+      }
       updateUi();
     };
 
@@ -468,7 +486,7 @@
       const nameLabel = document.createElement("strong");
       nameLabel.textContent = message.name || "Guest";
       nameWrap.appendChild(nameLabel);
-      if (message.isOwner) nameWrap.appendChild(createOwnerPill());
+      if (isOwnerDisplayName(message.name)) nameWrap.appendChild(createOwnerPill());
 
       if (self) {
         const identity = document.createElement("div");
@@ -506,6 +524,8 @@
     };
 
     const renderHistory = (history) => {
+      if (!history?.length && messagesEl.querySelector(".community-chat-msg")) return;
+
       messagesEl.querySelectorAll(".community-chat-msg").forEach((node) => node.remove());
       session.messageIds.clear();
       (history || []).forEach((message) => {
@@ -515,8 +535,16 @@
       updateUi();
     };
 
-    const renderPresence = ({ online, users } = {}) => {
-      if (onlineEl) onlineEl.textContent = Number.isFinite(online) ? String(Math.max(0, online)) : "0";
+    const loadAndRenderHistory = async (...sources) => {
+      const fromHttp = session.wsUrl ? await fetchChatHistory(session.wsUrl) : [];
+      const merged = mergeHistoryMessages(...sources, fromHttp);
+      if (!merged.length) return;
+      renderHistory(merged);
+    };
+
+    const renderPresence = ({ online, chatOpen, users } = {}) => {
+      const count = Number.isFinite(chatOpen) ? chatOpen : online;
+      if (onlineEl) onlineEl.textContent = formatChatOpenLabel(count);
       syncOnlineDisplayNames(users);
       (users || []).forEach((user) => {
         const entry =
@@ -532,6 +560,16 @@
         if (entry.userId) upsertUserProfile(entry.userId, entry);
       });
       syncMessageAvatars();
+    };
+
+    const sendPanelOpenState = (open) => {
+      session.panelOpen = Boolean(open);
+      if (!session.socket || session.socket.readyState !== WebSocket.OPEN) return;
+      try {
+        session.socket.send(JSON.stringify({ type: "panel_open", open: session.panelOpen }));
+      } catch {
+        // ignore
+      }
     };
 
     const sendJoin = () => {
@@ -593,10 +631,12 @@
         if (generation !== session.generation || session.socket !== socket) return;
         session.reconnectMs = RECONNECT_BASE_MS;
         setState("live");
+        void loadAndRenderHistory();
         sendJoin();
+        sendPanelOpenState(session.panelOpen);
       });
 
-      socket.addEventListener("message", (event) => {
+      socket.addEventListener("message", async (event) => {
         if (generation !== session.generation || session.socket !== socket) return;
         let message;
         try {
@@ -617,8 +657,8 @@
               setOwnerDisplayNames(message.config.owners.display_names);
               global.dispatchEvent(new CustomEvent("morning-roast:owners-config"));
             }
-            renderHistory(message.history || []);
-            renderPresence({ online: message.online, users: [] });
+            await loadAndRenderHistory(message.history || []);
+            renderPresence({ online: message.online, chatOpen: message.chatOpen, users: [] });
             updateUi();
             break;
           case "joined":
@@ -721,8 +761,10 @@
       },
       refreshIdentity() {
         sendJoin();
+        sendPanelOpenState(session.panelOpen);
         updateUi();
       },
+      setPanelOpen: sendPanelOpenState,
       focusComposer() {
         if (!inputEl.disabled) inputEl.focus({ preventScroll: true });
       },
@@ -741,12 +783,7 @@
       }
       session.wsUrl = resolveChatWsUrl(session.config);
       updateUi();
-
-      const persistedHistory = await fetchChatHistory(session.wsUrl);
-      if (persistedHistory.length) {
-        renderHistory(persistedHistory);
-      }
-
+      await loadAndRenderHistory();
       connect();
     })();
 
@@ -787,6 +824,7 @@
           active.blur();
         }
       }
+      chatApi?.setPanelOpen?.(open);
     };
 
     dockApi = {

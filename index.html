@@ -126,6 +126,7 @@
     <script defer src="tools/site-assistant.js"></script>
     <script defer src="tools/online-presence.js"></script>
     <script defer src="tools/community-chat.js"></script>
+    <script defer src="tools/profile-tags.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
@@ -1467,9 +1468,9 @@
                     <input type="file" id="profile-avatar-input" class="profile-avatar-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
                     <button type="button" class="profile-avatar-remove" id="profile-avatar-remove" hidden>Remove photo</button>
                   </div>
-                  <div class="profile-preview-name-row">
+                  <div class="profile-preview-meta">
                     <h2 class="profile-preview-name" id="profile-preview-name">Your name</h2>
-                    <span class="owner-pill" id="profile-owner-pill" hidden>Owner</span>
+                    <div class="profile-tags" id="profile-tags" aria-label="Profile tags"></div>
                   </div>
                 </div>
               </div>
@@ -3548,7 +3549,7 @@
                 <span class="community-chat-status-dot site-assistant-status" aria-hidden="true"></span>
                 <div>
                   <h3 id="community-chat-title">Community Chat</h3>
-                  <p class="site-assistant-subtitle"><span id="community-chat-status">Offline</span> · <strong id="community-chat-online">0</strong> online</p>
+                  <p class="site-assistant-subtitle"><span id="community-chat-status">Offline</span> · <span id="community-chat-open-count">0 members have chat open</span></p>
                 </div>
               </div>
               <div class="site-assistant-header-actions">

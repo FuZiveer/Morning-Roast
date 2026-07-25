@@ -1,4 +1,4 @@
-const CACHE = "morning-roast-v197"; // Keep in sync with APP_CACHE_VERSION in script.js
+const CACHE = "morning-roast-v206"; // Keep in sync with APP_CACHE_VERSION in script.js
 const ASSETS = [
   "./index.html",
   "./style.css",
@@ -7,6 +7,7 @@ const ASSETS = [
   "./tools/site-assistant.js",
   "./tools/online-presence.js",
   "./tools/community-chat.js",
+  "./tools/profile-tags.js",
   "./script.js",
   "./assets/favicon.ico",
   "./assets/logo.png",

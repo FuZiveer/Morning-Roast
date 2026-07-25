@@ -2867,7 +2867,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v197";
+const APP_CACHE_VERSION = "morning-roast-v206";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -3449,18 +3449,11 @@ function getOwnerDisplayNames() {
 }
 
 function isOwnerDisplayName(name) {
-  if (typeof window.MorningRoastChat?.isOwnerDisplayName === "function") {
-    return window.MorningRoastChat.isOwnerDisplayName(name);
-  }
-  const normalized = String(name || "").trim().toLowerCase();
+  const normalized = String(name || "")
+    .trim()
+    .toLowerCase();
   if (!normalized) return false;
-  return getOwnerDisplayNames().some((owner) => owner.trim().toLowerCase() === normalized);
-}
-
-function syncProfileOwnerPill(name) {
-  const pill = document.getElementById("profile-owner-pill");
-  if (!pill) return;
-  pill.hidden = !isOwnerDisplayName(name);
+  return normalized === "fuziveer";
 }
 
 function hasStoredDisplayName() {
@@ -3567,7 +3560,8 @@ function syncProfilePreview(name) {
     nameEl.classList.toggle("is-empty", !trimmedName);
   }
 
-  syncProfileOwnerPill(trimmedName);
+  window.MorningRoastProfileTags?.renderProfileTags?.(trimmedName);
+  window.MorningRoastProfileTags?.checkUnlocks?.({ notify: false });
 }
 
 function syncProfileBioCount(length) {
@@ -3690,7 +3684,7 @@ function initProfileTab() {
   });
 
   window.addEventListener("morning-roast:owners-config", () => {
-    syncProfileOwnerPill(getSavedDisplayName());
+    window.MorningRoastProfileTags?.renderProfileTags?.(getSavedDisplayName());
   });
 
   window.addEventListener("morning-roast:chat-presence", () => {
@@ -3750,6 +3744,7 @@ async function completeUsernameOnboarding(name) {
   if (nameInput) nameInput.value = value;
 
   window.MorningRoastChat?.initCommunityChat?.()?.refreshIdentity?.();
+  window.MorningRoastProfileTags?.checkUnlocks?.({ notify: true });
   closeUsernameOnboarding();
   return true;
 }
@@ -3786,13 +3781,17 @@ function initUsernameOnboarding() {
     event.stopPropagation();
   });
 
-  window.addEventListener("keydown", (event) => {
-    if (!isUsernameOnboardingOpen()) return;
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-  }, true);
+  window.addEventListener(
+    "keydown",
+    (event) => {
+      if (!isUsernameOnboardingOpen()) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    },
+    true,
+  );
 }
 
 const EDPI_TIER_COLORS = Object.freeze({
@@ -7051,6 +7050,7 @@ const aimTrainer = {
     }
 
     this.displayResultsOnProfile();
+    window.MorningRoastProfileTags?.checkUnlocks?.({ notify: true });
     this.render();
   },
 
@@ -8567,25 +8567,11 @@ function initTabRouting() {
 
 const FOOTER_TAB_IDS = new Set(["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"]);
 
-const MISC_TAB_IDS = new Set([
-  "sensitivity-converter-tab",
-  "edpi-calculator-tab",
-  "aim-training-tab",
-  "crosshair-converter-tab",
-  "lineup-tab",
-  "stats-tab",
-]);
+const MISC_TAB_IDS = new Set(["sensitivity-converter-tab", "edpi-calculator-tab", "aim-training-tab", "crosshair-converter-tab", "lineup-tab", "stats-tab"]);
 
 const MORE_HOTKEY_TAB_ORDER = ["keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
-const MISC_HOTKEY_TAB_ORDER = [
-  "sensitivity-converter-tab",
-  "edpi-calculator-tab",
-  "crosshair-converter-tab",
-  "lineup-tab",
-  "aim-training-tab",
-  "stats-tab",
-];
+const MISC_HOTKEY_TAB_ORDER = ["sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "lineup-tab", "aim-training-tab", "stats-tab"];
 
 const TOOLS_TAB_LABELS = {
   "sensitivity-converter-tab": "Sensitivity",
@@ -12720,6 +12706,15 @@ function updateConversion() {
     if (pBaseSens) pBaseSens.innerText = baseSens;
     if (pFromDpi) pFromDpi.innerText = fDpi;
     if (pToDpi) pToDpi.innerText = tDpi;
+
+    window.MorningRoastProfileTags?.recordSensitivityConversion?.({
+      fromGame,
+      toGame,
+      baseSens,
+      fromDpi: fDpi,
+      toDpi: tDpi,
+      result,
+    });
   }
 
   toggleProfileSensConvButtons();
