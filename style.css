@@ -94,6 +94,11 @@ html[data-bg-pattern="stars"] {
   --app-bg-pattern: none;
 }
 
+html[data-bg-pattern="particles"] .bg-particles-canvas.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
 html[data-bg-image="sunset-lake"] {
   --app-bg-image-url: url("./assets/backgrounds/sunset-lake.jpg");
 }
@@ -3505,6 +3510,11 @@ html.glass-theme .home-inline-link:focus-visible {
   --glider-text-size: 0.58rem;
   font-size: calc(var(--glider-text-size) * var(--text-size-scale, 1));
   letter-spacing: 0.02em;
+}
+
+#edpi-compare-selector {
+  height: 3.75rem;
+  min-height: 3.75rem;
 }
 
 #edpi-compare-selector .toggle-btn {

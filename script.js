@@ -2867,7 +2867,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v222";
+const APP_CACHE_VERSION = "morning-roast-v224";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -14097,6 +14097,7 @@ function normalizeBgBackdropMode(stored, pattern, image) {
   if (stored === "pattern" || stored === "image" || stored === "none") return stored;
   const normPattern = normalizeBgPattern(pattern);
   const normImage = normalizeBgImage(image);
+  if (normPattern === "particles" || normPattern === "stars") return "pattern";
   if (normPattern === "none" && normImage === "none") return "none";
   if (normImage !== "none") return "image";
   return "pattern";
@@ -14237,7 +14238,7 @@ function mountBgStars(root, { count = BG_STAR_COUNT, animate = true } = {}) {
 
   return {
     count,
-    schedule: "solo-1-5",
+    schedule: animate ? "solo-1-5" : "static",
     destroy() {
       stopped = true;
       while (timers.length) clearTimeout(timers.pop());
@@ -14263,17 +14264,19 @@ const bgStars = {
   sync() {
     const layer = this.ensure();
     if (!layer) return;
-    const active = document.documentElement.dataset.bgPattern === "stars" && this.motionAllowed();
-    if (active) {
-      if (this.controller?.count === BG_STAR_COUNT && this.controller?.schedule === "solo-1-5") return;
-      this.controller?.destroy();
-      this.controller = mountBgStars(layer, { count: BG_STAR_COUNT, animate: true });
+    const patternOn = document.documentElement.dataset.bgPattern === "stars";
+    if (!patternOn) {
+      if (this.controller) {
+        this.controller.destroy();
+        this.controller = null;
+      }
       return;
     }
-    if (this.controller) {
-      this.controller.destroy();
-      this.controller = null;
-    }
+    const animate = this.motionAllowed();
+    const schedule = animate ? "solo-1-5" : "static";
+    if (this.controller?.count === BG_STAR_COUNT && this.controller?.schedule === schedule) return;
+    this.controller?.destroy();
+    this.controller = mountBgStars(layer, { count: BG_STAR_COUNT, animate });
   },
 };
 
@@ -14443,7 +14446,9 @@ const bgParticles = {
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext("2d");
     window.addEventListener("resize", () => {
+      if (document.documentElement.dataset.bgPattern !== "particles") return;
       if (this._active) this.resize(true);
+      else if (this.canvas?.classList.contains("is-active")) this.showStatic();
     });
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) this.stopAnimation();
@@ -14453,9 +14458,23 @@ const bgParticles = {
   },
 
   sync() {
-    const on = document.documentElement.dataset.bgPattern === "particles" && this.motionAllowed();
-    if (on) this.start();
-    else this.stop();
+    const on = document.documentElement.dataset.bgPattern === "particles";
+    if (!on) {
+      this.stop();
+      return;
+    }
+    if (!this.canvas || !this.ctx) return;
+    if (this.motionAllowed()) this.start();
+    else this.showStatic();
+  },
+
+  showStatic() {
+    this.stopAnimation();
+    this._active = false;
+    if (!this.canvas || !this.ctx) return;
+    this.canvas.classList.add("is-active");
+    this.resize(true);
+    this.draw(0);
   },
 
   start() {
@@ -14523,7 +14542,7 @@ const bgParticles = {
       r: Math.random() * 1.6 + 0.4,
       vx: (Math.random() - 0.5) * 15,
       vy: (Math.random() - 0.5) * 15,
-      a: Math.random() * 0.35 + 0.08,
+      a: Math.random() * 0.4 + 0.18,
     }));
   },
 
@@ -14556,7 +14575,7 @@ const bgParticles = {
         if (distSq > linkDistanceSq) continue;
 
         const dist = Math.sqrt(distSq);
-        const lineAlpha = Math.min(0.45, (1 - dist / linkDistance) * 0.14 * alphaBoost);
+        const lineAlpha = Math.min(0.55, (1 - dist / linkDistance) * 0.24 * alphaBoost);
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
@@ -15312,18 +15331,18 @@ function initPreferences() {
   const savedBgImageRaw = localStorage.getItem("prefBgImage");
   const savedBgImage = savedBgImageRaw == null ? DEFAULT_BG_IMAGE : normalizeBgImage(savedBgImageRaw);
   const savedBgBackdropModeRaw = localStorage.getItem("prefBgBackdropMode");
-  const savedBgBackdropMode = savedBgBackdropModeRaw == null ? DEFAULT_BG_BACKDROP_MODE : normalizeBgBackdropMode(savedBgBackdropModeRaw, savedBgPattern, savedBgImage);
+  const savedBgBackdropMode = normalizeBgBackdropMode(savedBgBackdropModeRaw, savedBgPattern, savedBgImage);
   const savedFontFamily = normalizeFontFamily(localStorage.getItem("prefFontFamily"));
 
   applyAccent(savedAccent || DEFAULT_ACCENT, { instant: true });
   applyFontSize(savedFont || "1");
   applyFontFamily(savedFontFamily);
   applyContrast(savedContrast);
+  bgParticles.init();
   applyMotion(savedMotion);
   applyBgBackdrop(savedBgBackdropMode, savedBgBackdropMode === "image" ? savedBgImage : savedBgBackdropMode === "pattern" ? savedBgPattern : "none");
   initBgBackdropControl(savedBgBackdropMode, savedBgPattern, savedBgImage);
   initFontFamilyDropdown(savedFontFamily);
-  bgParticles.init();
   setUiRefreshMode(savedRefresh);
 
   const accentGrid = document.getElementById("accent-grid");

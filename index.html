@@ -47,7 +47,7 @@
           if (bgImageIds.indexOf(bgImage) === -1 && bgImage !== "none") bgImage = "magenta-fluid-waves";
           var backdropMode = localStorage.getItem("prefBgBackdropMode");
           if (backdropMode !== "pattern" && backdropMode !== "image" && backdropMode !== "none") {
-            backdropMode = "image";
+            backdropMode = pattern === "particles" || pattern === "stars" ? "pattern" : "image";
           }
           if (backdropMode === "image") {
             root.classList.add("glass-theme");
