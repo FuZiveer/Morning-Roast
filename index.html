@@ -820,8 +820,8 @@
               <h4 class="settings-section-title"><i class="ri-flask-line" aria-hidden="true"></i> Mode</h4>
               <div class="trainer-toggle-selector pref-toggle" id="edpi-compare-selector" role="tablist" aria-label="eDPI compare mode">
                 <div class="glider"></div>
-                <button type="button" class="toggle-btn active" data-edpi-compare="single" role="tab" aria-selected="true">Single</button>
-                <button type="button" class="toggle-btn" data-edpi-compare="compare" role="tab" aria-selected="false">Compare</button>
+                <button type="button" class="toggle-btn active" data-edpi-compare="single" role="tab" aria-selected="true"><i class="ri-calculator-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Single</span></button>
+                <button type="button" class="toggle-btn" data-edpi-compare="compare" role="tab" aria-selected="false"><i class="ri-arrow-left-right-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Compare</span></button>
               </div>
             </div>
           </div>
@@ -1072,9 +1072,9 @@
                   <span class="crosshair-converter-resolution">1080p</span>
                   <div class="trainer-toggle-selector crosshair-converter-zoom-selector" id="crosshair-converter-zoom-selector" role="group" aria-label="Preview zoom">
                     <span class="glider" aria-hidden="true"></span>
-                    <button type="button" class="toggle-btn active" data-crosshair-zoom="1">1×</button>
-                    <button type="button" class="toggle-btn" data-crosshair-zoom="2">2×</button>
-                    <button type="button" class="toggle-btn" data-crosshair-zoom="4">4×</button>
+                    <button type="button" class="toggle-btn active" data-crosshair-zoom="1"><i class="ri-search-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">1×</span></button>
+                    <button type="button" class="toggle-btn" data-crosshair-zoom="2"><i class="ri-search-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">2×</span></button>
+                    <button type="button" class="toggle-btn" data-crosshair-zoom="4"><i class="ri-search-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">4×</span></button>
                   </div>
                 </div>
               </div>
@@ -1549,19 +1549,20 @@
                   <div class="trainer-toggle-selector lineup-side-selector" id="lineup-side-selector" role="tablist" aria-label="Lineup side">
                     <div class="glider"></div>
                     <button type="button" class="toggle-btn active" data-lineup-side="all" role="tab" aria-selected="true">
-                      <span class="lineup-side-icon-duo" aria-hidden="true" hidden>
+                      <span class="lineup-side-icon-duo toggle-btn-icon" aria-hidden="true" hidden>
                         <img class="lineup-side-icon lineup-side-icon--duo" data-lineup-side-icon="attacker" alt="" width="16" height="16" decoding="async" />
                         <img class="lineup-side-icon lineup-side-icon--duo" data-lineup-side-icon="defender" alt="" width="16" height="16" decoding="async" />
                       </span>
-                      <span>All</span>
+                      <i class="ri-team-line toggle-btn-icon lineup-side-fallback-icon" aria-hidden="true"></i>
+                      <span class="toggle-btn-label">All</span>
                     </button>
                     <button type="button" class="toggle-btn" data-lineup-side="attacker" role="tab" aria-selected="false">
-                      <img class="lineup-side-icon" data-lineup-side-icon="attacker" alt="" width="18" height="18" decoding="async" hidden />
-                      <span>Attacker</span>
+                      <img class="lineup-side-icon toggle-btn-icon" data-lineup-side-icon="attacker" alt="" width="18" height="18" decoding="async" hidden />
+                      <span class="toggle-btn-label">Attacker</span>
                     </button>
                     <button type="button" class="toggle-btn" data-lineup-side="defender" role="tab" aria-selected="false">
-                      <img class="lineup-side-icon" data-lineup-side-icon="defender" alt="" width="18" height="18" decoding="async" hidden />
-                      <span>Defender</span>
+                      <img class="lineup-side-icon toggle-btn-icon" data-lineup-side-icon="defender" alt="" width="18" height="18" decoding="async" hidden />
+                      <span class="toggle-btn-label">Defender</span>
                     </button>
                   </div>
                 </div>
@@ -2673,11 +2674,11 @@
             <div class="trainer-settings-tab-bar">
               <div class="trainer-toggle-selector trainer-settings-tab-selector" id="trainer-settings-tab-selector" role="tablist" aria-label="Advanced settings sections">
                 <div class="glider"></div>
-                <button type="button" class="toggle-btn active" data-settings-tab="session" role="tab" aria-selected="true" aria-controls="trainer-settings-section-session" id="trainer-settings-tab-session">Session</button>
-                <button type="button" class="toggle-btn" data-settings-tab="display" role="tab" aria-selected="false" aria-controls="trainer-settings-section-display" id="trainer-settings-tab-display">Display</button>
-                <button type="button" class="toggle-btn" data-settings-tab="target" role="tab" aria-selected="false" aria-controls="trainer-settings-section-target" id="trainer-settings-tab-target">Target</button>
-                <button type="button" class="toggle-btn" data-settings-tab="sensitivity" role="tab" aria-selected="false" aria-controls="trainer-settings-section-sensitivity" id="trainer-settings-tab-sensitivity">Sens</button>
-                <button type="button" class="toggle-btn" data-settings-tab="crosshair" role="tab" aria-selected="false" aria-controls="trainer-settings-section-crosshair" id="trainer-settings-tab-crosshair">Crosshair</button>
+                <button type="button" class="toggle-btn active" data-settings-tab="session" role="tab" aria-selected="true" aria-controls="trainer-settings-section-session" id="trainer-settings-tab-session"><i class="ri-time-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Session</span></button>
+                <button type="button" class="toggle-btn" data-settings-tab="display" role="tab" aria-selected="false" aria-controls="trainer-settings-section-display" id="trainer-settings-tab-display"><i class="ri-aspect-ratio-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Display</span></button>
+                <button type="button" class="toggle-btn" data-settings-tab="target" role="tab" aria-selected="false" aria-controls="trainer-settings-section-target" id="trainer-settings-tab-target"><i class="ri-focus-3-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Target</span></button>
+                <button type="button" class="toggle-btn" data-settings-tab="sensitivity" role="tab" aria-selected="false" aria-controls="trainer-settings-section-sensitivity" id="trainer-settings-tab-sensitivity"><i class="ri-drag-move-2-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Sens</span></button>
+                <button type="button" class="toggle-btn" data-settings-tab="crosshair" role="tab" aria-selected="false" aria-controls="trainer-settings-section-crosshair" id="trainer-settings-tab-crosshair"><i class="ri-crosshair-2-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Crosshair</span></button>
               </div>
             </div>
 
@@ -2712,8 +2713,8 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector" id="tracking-hp-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-value="limited">LIMITED</button>
-                          <button class="toggle-btn" data-value="unlimited">UNLIMITED</button>
+                          <button class="toggle-btn active" data-value="limited"><i class="ri-heart-pulse-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">LIMITED</span></button>
+                          <button class="toggle-btn" data-value="unlimited"><i class="ri-infinity-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">UNLIMITED</span></button>
                         </div>
                       </div>
                     </div>
@@ -2780,9 +2781,9 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector" id="target-color-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-value="red">RED</button>
-                          <button class="toggle-btn" data-value="yellow">YELLOW</button>
-                          <button class="toggle-btn" data-value="purple">PURPLE</button>
+                          <button class="toggle-btn active" data-value="red"><i class="ri-circle-fill toggle-btn-icon toggle-btn-icon--red" aria-hidden="true"></i><span class="toggle-btn-label">RED</span></button>
+                          <button class="toggle-btn" data-value="yellow"><i class="ri-circle-fill toggle-btn-icon toggle-btn-icon--yellow" aria-hidden="true"></i><span class="toggle-btn-label">YELLOW</span></button>
+                          <button class="toggle-btn" data-value="purple"><i class="ri-circle-fill toggle-btn-icon toggle-btn-icon--purple" aria-hidden="true"></i><span class="toggle-btn-label">PURPLE</span></button>
                         </div>
                       </div>
                     </div>
@@ -2795,9 +2796,9 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector" id="target-difficulty-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-value="easy">EASY</button>
-                          <button class="toggle-btn" data-value="medium">MEDIUM</button>
-                          <button class="toggle-btn" data-value="hard">HARD</button>
+                          <button class="toggle-btn active" data-value="easy"><i class="ri-emotion-happy-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">EASY</span></button>
+                          <button class="toggle-btn" data-value="medium"><i class="ri-emotion-normal-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">MEDIUM</span></button>
+                          <button class="toggle-btn" data-value="hard"><i class="ri-emotion-unhappy-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">HARD</span></button>
                         </div>
                       </div>
                     </div>
@@ -2833,8 +2834,8 @@
                         </div>
                         <div class="trainer-toggle-selector" id="target-healthbar-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-value="false">OFF</button>
-                          <button class="toggle-btn" data-value="true">ON</button>
+                          <button class="toggle-btn active" data-value="false"><i class="ri-close-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                          <button class="toggle-btn" data-value="true"><i class="ri-heart-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                         </div>
                       </div>
                     </div>
@@ -2847,8 +2848,8 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector" id="target-health-text-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-value="false">OFF</button>
-                          <button class="toggle-btn" data-value="true">ON</button>
+                          <button class="toggle-btn active" data-value="false"><i class="ri-close-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                          <button class="toggle-btn" data-value="true"><i class="ri-text toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                         </div>
                       </div>
                     </div>
@@ -2861,8 +2862,8 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector" id="target-hitmarker-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-value="false">OFF</button>
-                          <button class="toggle-btn" data-value="true">ON</button>
+                          <button class="toggle-btn active" data-value="false"><i class="ri-close-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                          <button class="toggle-btn" data-value="true"><i class="ri-crosshair-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                         </div>
                       </div>
                     </div>
@@ -2882,11 +2883,11 @@
                         </div>
                         <div class="trainer-spread-selector" id="target-spread-selector" role="group" aria-label="Target spread">
                           <div class="glider"></div>
-                          <button type="button" class="spread-btn" data-spread="0">Tight</button>
-                          <button type="button" class="spread-btn" data-spread="1">Close</button>
-                          <button type="button" class="spread-btn active" data-spread="2">Balanced</button>
-                          <button type="button" class="spread-btn" data-spread="3">Wide</button>
-                          <button type="button" class="spread-btn" data-spread="4">Far</button>
+                          <button type="button" class="spread-btn" data-spread="0"><i class="ri-contract-left-right-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Tight</span></button>
+                          <button type="button" class="spread-btn" data-spread="1"><i class="ri-focus-3-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Close</span></button>
+                          <button type="button" class="spread-btn active" data-spread="2"><i class="ri-equalizer-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Balanced</span></button>
+                          <button type="button" class="spread-btn" data-spread="3"><i class="ri-expand-left-right-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Wide</span></button>
+                          <button type="button" class="spread-btn" data-spread="4"><i class="ri-expand-diagonal-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Far</span></button>
                         </div>
                       </div>
                     </div>
@@ -2908,8 +2909,8 @@
                         <button id="finder-reset-btn" class="finder-reset-icon"><i class="ri-refresh-line"></i></button>
                         <div class="trainer-toggle-selector" id="finder-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-value="false">NO</button>
-                          <button class="toggle-btn" data-value="true">YES</button>
+                          <button class="toggle-btn active" data-value="false"><i class="ri-close-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">NO</span></button>
+                          <button class="toggle-btn" data-value="true"><i class="ri-search-eye-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">YES</span></button>
                         </div>
                       </div>
                     </div>
@@ -2922,8 +2923,8 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector" id="randomizer-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-value="false">NO</button>
-                          <button class="toggle-btn" data-value="true">YES</button>
+                          <button class="toggle-btn active" data-value="false"><i class="ri-close-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">NO</span></button>
+                          <button class="toggle-btn" data-value="true"><i class="ri-shuffle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">YES</span></button>
                         </div>
                       </div>
                     </div>
@@ -2941,6 +2942,32 @@
                         <p>Set up a crosshair that feels familiar — adjust color, size, gap, thickness, dot, outline, and hit flash to match your in-game setup.</p>
                       </div>
                       <div class="control-group crosshair-controls">
+                        <div class="crosshair-presets" id="crosshair-presets" role="group" aria-label="Crosshair presets">
+                          <button class="crosshair-preset-btn" type="button" data-preset="classic">
+                            <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                            <span>Classic</span>
+                          </button>
+                          <button class="crosshair-preset-btn" type="button" data-preset="valorant">
+                            <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                            <span>Valorant</span>
+                          </button>
+                          <button class="crosshair-preset-btn" type="button" data-preset="cs2">
+                            <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                            <span>CS2</span>
+                          </button>
+                          <button class="crosshair-preset-btn" type="button" data-preset="minimal">
+                            <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                            <span>Minimal</span>
+                          </button>
+                          <button class="crosshair-preset-btn" type="button" data-preset="bold">
+                            <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                            <span>Bold</span>
+                          </button>
+                          <button class="crosshair-preset-btn" type="button" data-preset="dotOnly">
+                            <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
+                            <span>Dot</span>
+                          </button>
+                        </div>
                         <div class="crosshair-preview-wrap">
                           <canvas id="crosshair-preview" width="140" height="140"></canvas>
                         </div>
@@ -2974,32 +3001,32 @@
                               <label>Lines</label>
                               <div class="trainer-toggle-selector crosshair-toggle" id="ch-lines-selector">
                                 <div class="glider"></div>
-                                <button class="toggle-btn active" data-value="true">ON</button>
-                                <button class="toggle-btn" data-value="false">OFF</button>
+                                <button class="toggle-btn" data-value="false"><i class="ri-close-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                                <button class="toggle-btn active" data-value="true"><i class="ri-layout-grid-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                               </div>
                             </div>
                             <div class="crosshair-option crosshair-option-toggle">
                               <label>Center Dot</label>
                               <div class="trainer-toggle-selector crosshair-toggle" id="ch-dot-selector">
                                 <div class="glider"></div>
-                                <button class="toggle-btn" data-value="false">OFF</button>
-                                <button class="toggle-btn active" data-value="true">ON</button>
+                                <button class="toggle-btn" data-value="false"><i class="ri-close-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                                <button class="toggle-btn active" data-value="true"><i class="ri-record-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                               </div>
                             </div>
                             <div class="crosshair-option crosshair-option-toggle">
                               <label>Outline</label>
                               <div class="trainer-toggle-selector crosshair-toggle" id="ch-outline-selector">
                                 <div class="glider"></div>
-                                <button class="toggle-btn active" data-value="false">OFF</button>
-                                <button class="toggle-btn" data-value="true">ON</button>
+                                <button class="toggle-btn active" data-value="false"><i class="ri-close-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                                <button class="toggle-btn" data-value="true"><i class="ri-checkbox-blank-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                               </div>
                             </div>
                             <div class="crosshair-option crosshair-option-toggle">
                               <label>Hit Flash</label>
                               <div class="trainer-toggle-selector crosshair-toggle" id="ch-flash-selector">
                                 <div class="glider"></div>
-                                <button class="toggle-btn" data-value="false">OFF</button>
-                                <button class="toggle-btn active" data-value="true">ON</button>
+                                <button class="toggle-btn" data-value="false"><i class="ri-close-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                                <button class="toggle-btn active" data-value="true"><i class="ri-flashlight-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                               </div>
                             </div>
                           </div>
@@ -3021,33 +3048,6 @@
                               <label>Outline <span id="ch-outline-thickness-val">2</span></label>
                               <input type="range" id="ch-outline-thickness" min="1" max="8" step="1" value="2" />
                             </div>
-                          </div>
-                          <div class="crosshair-options-divider" aria-hidden="true"></div>
-                          <div class="crosshair-presets" id="crosshair-presets" role="group" aria-label="Crosshair presets">
-                            <button class="crosshair-preset-btn" type="button" data-preset="classic">
-                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                              <span>Classic</span>
-                            </button>
-                            <button class="crosshair-preset-btn" type="button" data-preset="valorant">
-                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                              <span>Valorant</span>
-                            </button>
-                            <button class="crosshair-preset-btn" type="button" data-preset="cs2">
-                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                              <span>CS2</span>
-                            </button>
-                            <button class="crosshair-preset-btn" type="button" data-preset="minimal">
-                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                              <span>Minimal</span>
-                            </button>
-                            <button class="crosshair-preset-btn" type="button" data-preset="bold">
-                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                              <span>Bold</span>
-                            </button>
-                            <button class="crosshair-preset-btn" type="button" data-preset="dotOnly">
-                              <canvas class="crosshair-preset-canvas" width="28" height="28" aria-hidden="true"></canvas>
-                              <span>Dot</span>
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -3084,7 +3084,7 @@
             <div class="trainer-settings-tab-bar">
               <div class="trainer-toggle-selector trainer-settings-tab-selector" id="theme-settings-tab-selector" role="tablist" aria-label="Theme settings sections">
                 <div class="glider"></div>
-                <button type="button" class="toggle-btn active" data-settings-tab="appearance" role="tab" aria-selected="true" aria-controls="theme-settings-section-appearance" id="theme-settings-tab-appearance">Appearance</button>
+                <button type="button" class="toggle-btn active" data-settings-tab="appearance" role="tab" aria-selected="true" aria-controls="theme-settings-section-appearance" id="theme-settings-tab-appearance"><i class="ri-palette-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Appearance</span></button>
               </div>
             </div>
 
@@ -3192,9 +3192,9 @@
                       <div class="control-group bg-backdrop-control">
                         <div class="trainer-toggle-selector pref-toggle" id="bg-backdrop-mode-selector">
                           <div class="glider"></div>
-                          <button type="button" class="toggle-btn" data-bg-backdrop-mode="none">NONE</button>
-                          <button type="button" class="toggle-btn active" data-bg-backdrop-mode="pattern">PATTERN</button>
-                          <button type="button" class="toggle-btn" data-bg-backdrop-mode="image">IMAGE</button>
+                          <button type="button" class="toggle-btn" data-bg-backdrop-mode="none"><i class="ri-prohibited-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">NONE</span></button>
+                          <button type="button" class="toggle-btn active" data-bg-backdrop-mode="pattern"><i class="ri-grid-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">PATTERN</span></button>
+                          <button type="button" class="toggle-btn" data-bg-backdrop-mode="image"><i class="ri-image-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">IMAGE</span></button>
                         </div>
                         <div class="pref-dropdown" id="bg-backdrop-dropdown">
                           <button type="button" class="pref-dropdown-trigger" id="bg-backdrop-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="bg-backdrop-list">
@@ -3240,10 +3240,10 @@
             <div class="trainer-settings-tab-bar">
               <div class="trainer-toggle-selector trainer-settings-tab-selector" id="general-settings-tab-selector" role="tablist" aria-label="General settings sections">
                 <div class="glider"></div>
-                <button type="button" class="toggle-btn active" data-settings-tab="performance" role="tab" aria-selected="true" aria-controls="general-settings-section-performance" id="general-settings-tab-performance">Performance</button>
-                <button type="button" class="toggle-btn" data-settings-tab="display" role="tab" aria-selected="false" aria-controls="general-settings-section-display" id="general-settings-tab-display">Display</button>
-                <button type="button" class="toggle-btn" data-settings-tab="audio" role="tab" aria-selected="false" aria-controls="general-settings-section-audio" id="general-settings-tab-audio">Audio</button>
-                <button type="button" class="toggle-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="general-settings-section-data" id="general-settings-tab-data">Data</button>
+                <button type="button" class="toggle-btn active" data-settings-tab="performance" role="tab" aria-selected="true" aria-controls="general-settings-section-performance" id="general-settings-tab-performance"><i class="ri-speed-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Performance</span></button>
+                <button type="button" class="toggle-btn" data-settings-tab="display" role="tab" aria-selected="false" aria-controls="general-settings-section-display" id="general-settings-tab-display"><i class="ri-contrast-2-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Display</span></button>
+                <button type="button" class="toggle-btn" data-settings-tab="audio" role="tab" aria-selected="false" aria-controls="general-settings-section-audio" id="general-settings-tab-audio"><i class="ri-volume-up-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Audio</span></button>
+                <button type="button" class="toggle-btn" data-settings-tab="data" role="tab" aria-selected="false" aria-controls="general-settings-section-data" id="general-settings-tab-data"><i class="ri-database-2-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">Data</span></button>
               </div>
             </div>
 
@@ -3259,9 +3259,9 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector pref-toggle" id="refresh-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn" data-refresh="60">60HZ</button>
-                          <button class="toggle-btn" data-refresh="144">144HZ</button>
-                          <button class="toggle-btn active" data-refresh="max">MAX</button>
+                          <button class="toggle-btn" data-refresh="60"><i class="ri-refresh-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">60HZ</span></button>
+                          <button class="toggle-btn" data-refresh="144"><i class="ri-refresh-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">144HZ</span></button>
+                          <button class="toggle-btn active" data-refresh="max"><i class="ri-speed-up-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">MAX</span></button>
                         </div>
                       </div>
                     </div>
@@ -3282,9 +3282,9 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector pref-toggle ui-size-selector" id="fontsize-selector">
                           <div class="glider"></div>
-                          <button type="button" class="toggle-btn" data-fontsize="0.9">SMALL</button>
-                          <button type="button" class="toggle-btn active" data-fontsize="1">NORMAL</button>
-                          <button type="button" class="toggle-btn" data-fontsize="1.12">LARGE</button>
+                          <button type="button" class="toggle-btn" data-fontsize="0.9"><i class="ri-font-size toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">SMALL</span></button>
+                          <button type="button" class="toggle-btn active" data-fontsize="1"><i class="ri-font-size-2 toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">NORMAL</span></button>
+                          <button type="button" class="toggle-btn" data-fontsize="1.12"><i class="ri-font-size-ai toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">LARGE</span></button>
                         </div>
                       </div>
                     </div>
@@ -3297,8 +3297,8 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector pref-toggle" id="contrast-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-contrast="false">OFF</button>
-                          <button class="toggle-btn" data-contrast="true">ON</button>
+                          <button class="toggle-btn active" data-contrast="false"><i class="ri-contrast-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                          <button class="toggle-btn" data-contrast="true"><i class="ri-contrast-2-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                         </div>
                       </div>
                     </div>
@@ -3311,8 +3311,8 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector pref-toggle" id="motion-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-motion="false">OFF</button>
-                          <button class="toggle-btn" data-motion="true">ON</button>
+                          <button class="toggle-btn active" data-motion="false"><i class="ri-pause-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                          <button class="toggle-btn" data-motion="true"><i class="ri-play-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                         </div>
                       </div>
                     </div>
@@ -3367,8 +3367,8 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector pref-toggle" id="confirm-reset-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn" data-confirm-reset="false">OFF</button>
-                          <button class="toggle-btn active" data-confirm-reset="true">ON</button>
+                          <button class="toggle-btn" data-confirm-reset="false"><i class="ri-close-circle-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">OFF</span></button>
+                          <button class="toggle-btn active" data-confirm-reset="true"><i class="ri-question-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">ON</span></button>
                         </div>
                       </div>
                     </div>
@@ -3381,8 +3381,8 @@
                       <div class="control-group">
                         <div class="trainer-toggle-selector pref-toggle" id="distance360-unit-selector">
                           <div class="glider"></div>
-                          <button class="toggle-btn active" data-distance360-unit="cm">CM</button>
-                          <button class="toggle-btn" data-distance360-unit="in">IN</button>
+                          <button class="toggle-btn active" data-distance360-unit="cm"><i class="ri-ruler-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">CM</span></button>
+                          <button class="toggle-btn" data-distance360-unit="in"><i class="ri-ruler-2-line toggle-btn-icon" aria-hidden="true"></i><span class="toggle-btn-label">IN</span></button>
                         </div>
                       </div>
                     </div>

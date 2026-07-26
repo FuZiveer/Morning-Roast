@@ -2867,7 +2867,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v206";
+const APP_CACHE_VERSION = "morning-roast-v222";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -4309,6 +4309,54 @@ function setUiRefreshMode(mode) {
 
 UiFpsCap.setMode(normalizeUiRefreshMode(localStorage.getItem("prefUiRefresh") || localStorage.getItem("prefHighRefresh")));
 
+function parseAimSensValue(raw) {
+  if (raw == null) return null;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return null;
+  const parsed = parseFloat(trimmed.replace(",", "."));
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
+function formatAimSensValue(value) {
+  return Number(value).toFixed(3);
+}
+
+function persistAimSensStorage(rawOrNumber) {
+  const parsed = typeof rawOrNumber === "number" ? rawOrNumber : parseAimSensValue(rawOrNumber);
+  if (parsed == null) {
+    localStorage.removeItem("aimSens");
+    return null;
+  }
+  const formatted = formatAimSensValue(parsed);
+  localStorage.setItem("aimSens", formatted);
+  return formatted;
+}
+
+function loadAimSensInput(input) {
+  if (!input) return;
+  const parsed = parseAimSensValue(localStorage.getItem("aimSens"));
+  if (parsed == null) {
+    input.value = "";
+    localStorage.removeItem("aimSens");
+    return;
+  }
+  input.value = formatAimSensValue(parsed);
+}
+
+function syncAimSensInputFromField(input, { formatInput = false } = {}) {
+  if (!input) return;
+  const parsed = parseAimSensValue(input.value);
+  if (parsed == null) {
+    input.value = "";
+    localStorage.removeItem("aimSens");
+    return;
+  }
+  const formatted = formatAimSensValue(parsed);
+  if (formatInput) input.value = formatted;
+  localStorage.setItem("aimSens", formatted);
+}
+
 const aimTrainer = {
   totalTimeTaken: 0,
   lastHitTime: 0,
@@ -5177,9 +5225,7 @@ const aimTrainer = {
     const dpiInput = document.getElementById("canvas-dpi");
     const gameSearchInput = document.getElementById("trainer-game-search");
 
-    if (localStorage.getItem("aimSens")) {
-      if (sensInput) sensInput.value = localStorage.getItem("aimSens");
-    }
+    loadAimSensInput(sensInput);
     if (localStorage.getItem("aimDpi")) {
       if (dpiInput) dpiInput.value = localStorage.getItem("aimDpi");
     }
@@ -5240,7 +5286,7 @@ const aimTrainer = {
               if (this.finderTrialSens) {
                 if (elements["canvas-sens"]) {
                   elements["canvas-sens"].value = this.finderTrialSens;
-                  localStorage.setItem("aimSens", this.finderTrialSens);
+                  persistAimSensStorage(this.finderTrialSens);
                 }
               } else {
                 this.randomizeSessionSensitivity();
@@ -5325,9 +5371,21 @@ const aimTrainer = {
       }
     });
 
-    sensInput.addEventListener("input", () => {
-      if (sensInput) localStorage.setItem("aimSens", sensInput.value);
-    });
+    if (sensInput) {
+      sensInput.addEventListener("input", () => {
+        if (this.finderEnabled) return;
+        const parsed = parseAimSensValue(sensInput.value);
+        if (parsed != null) {
+          persistAimSensStorage(parsed);
+        } else if (!sensInput.value.trim()) {
+          localStorage.removeItem("aimSens");
+        }
+      });
+      sensInput.addEventListener("blur", () => {
+        if (this.finderEnabled) return;
+        syncAimSensInputFromField(sensInput, { formatInput: true });
+      });
+    }
 
     const finderResetBtn = elements["finder-reset-btn"];
     if (finderResetBtn) {
@@ -5814,7 +5872,7 @@ const aimTrainer = {
       if (this.finderTrialSens === null) this.randomizeSessionSensitivity();
       else if (elements["canvas-sens"]) {
         elements["canvas-sens"].value = this.finderTrialSens;
-        localStorage.setItem("aimSens", this.finderTrialSens);
+        persistAimSensStorage(this.finderTrialSens);
       }
     }
 
@@ -5860,7 +5918,7 @@ const aimTrainer = {
 
     sensInput.value = trialSens.toFixed(3);
     this.finderTrialSens = trialSens.toFixed(3);
-    localStorage.setItem("aimSens", trialSens.toFixed(3));
+    persistAimSensStorage(trialSens);
   },
 
   buildShareScoreCanvas() {
@@ -7060,7 +7118,7 @@ const aimTrainer = {
 
     if (elements["canvas-sens"]) {
       elements["canvas-sens"].value = finalSens;
-      localStorage.setItem("aimSens", finalSens);
+      persistAimSensStorage(finalSens);
     }
 
     this.showFinderNotification(finalSens);
@@ -14486,7 +14544,7 @@ const bgParticles = {
     const linkDistanceSq = linkDistance * linkDistance;
 
     const highContrast = document.documentElement.classList.contains("high-contrast");
-    const alphaBoost = highContrast ? 2.4 : 1;
+    const alphaBoost = highContrast ? 3 : 1;
 
     for (let i = 0; i < particles.length; i++) {
       const a = particles[i];
