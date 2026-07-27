@@ -3762,6 +3762,53 @@ html.glass-theme .home-inline-link:focus-visible {
   display: none;
 }
 
+#profile-tab .profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: hsla(0, 0%, 0%, 0.62);
+  color: hsl(var(--text-bright));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--button-motion-duration) var(--button-motion-ease),
+    visibility var(--button-motion-duration) var(--button-motion-ease);
+}
+
+#profile-tab .profile-avatar-overlay-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  transform: translateY(0.18rem);
+  font-size: calc(0.62rem * var(--text-size-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  transition: transform var(--button-motion-duration) var(--button-motion-ease);
+}
+
+#profile-tab .profile-avatar-overlay-inner i {
+  font-size: 1.1rem;
+}
+
+#profile-tab .profile-avatar-button:hover .profile-avatar-overlay,
+#profile-tab .profile-avatar-button:focus-visible .profile-avatar-overlay {
+  opacity: 1;
+  visibility: visible;
+}
+
+#profile-tab .profile-avatar-button:hover .profile-avatar-overlay-inner,
+#profile-tab .profile-avatar-button:focus-visible .profile-avatar-overlay-inner {
+  transform: translateY(0);
+}
+
 #profile-tab .profile-avatar-edit {
   position: absolute;
   right: -0.1rem;
@@ -3779,14 +3826,14 @@ html.glass-theme .home-inline-link:focus-visible {
   box-shadow: none;
   pointer-events: none;
   transition:
+    opacity var(--button-motion-duration) var(--button-motion-ease),
     border-color var(--button-motion-duration) var(--button-motion-ease),
     background-color var(--button-motion-duration) var(--button-motion-ease);
 }
 
 #profile-tab .profile-avatar-button:hover .profile-avatar-edit,
 #profile-tab .profile-avatar-button:focus-visible .profile-avatar-edit {
-  border-color: var(--control-border-hover);
-  background: hsl(var(--surface-raised));
+  opacity: 0;
 }
 
 #profile-tab .profile-avatar-remove {
@@ -4128,7 +4175,7 @@ html.glass-theme .home-inline-link:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  max-width: min(100%, 18rem);
+  max-width: min(100%, 24rem);
   padding: 0 0.15rem;
   font-size: calc(0.68rem * var(--text-size-scale, 1));
   color: hsl(var(--text-faint));
@@ -4162,6 +4209,10 @@ html.glass-theme .home-inline-link:focus-visible {
   font: inherit;
   cursor: pointer;
   text-align: right;
+}
+
+.community-chat-panel .community-chat-msg--self .community-chat-profile-trigger {
+  text-align: left;
 }
 
 .community-chat-panel .community-chat-profile-trigger:hover strong,
@@ -4230,7 +4281,232 @@ html.glass-theme .home-inline-link:focus-visible {
 
 .community-chat-panel .community-chat-msg--self .site-assistant-bubble,
 .community-chat-panel .community-chat-msg--other .site-assistant-bubble {
-  max-width: min(100%, 18rem);
+  max-width: min(100%, 24rem);
+}
+
+.community-chat-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.community-chat-sidebar {
+  --chat-sidebar-collapsed-width: calc(3.75rem + 3px);
+  --chat-sidebar-expanded-width: 9.5rem;
+  --chat-sidebar-inset-x: 0.45rem;
+  --chat-sidebar-button-size: 2.25rem;
+  --chat-sidebar-button-hover-bg: hsl(var(--eerie-black));
+  flex: 0 0 var(--chat-sidebar-collapsed-width);
+  width: var(--chat-sidebar-collapsed-width);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.65rem 0.35rem;
+  border-right: var(--border-width) solid hsl(var(--border-subtle));
+  background: hsl(0, 0%, 5%);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  transition:
+    width var(--sidebar-motion-duration) var(--sidebar-motion-ease),
+    flex-basis var(--sidebar-motion-duration) var(--sidebar-motion-ease);
+}
+
+.community-chat-sidebar:hover {
+  flex: 0 0 var(--chat-sidebar-expanded-width);
+  width: var(--chat-sidebar-expanded-width);
+  overflow: auto;
+}
+
+.community-chat-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.community-chat-sidebar-label {
+  margin: 0;
+  padding: 0 0.35rem;
+  color: hsl(var(--text-inactive));
+  font-size: calc(0.58rem * var(--text-size-scale, 1));
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--menu-motion-duration) var(--menu-motion-ease),
+    max-height var(--sidebar-motion-duration) var(--sidebar-motion-ease);
+}
+
+.community-chat-sidebar:hover .community-chat-sidebar-label {
+  opacity: 1;
+  max-height: 1.25rem;
+}
+
+.community-chat-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.community-chat-sidebar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--chat-sidebar-button-size);
+  padding: 0 var(--chat-sidebar-inset-x);
+  border: var(--border-width) solid transparent;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: hsl(var(--text-secondary));
+  font: inherit;
+  font-size: calc(0.68rem * var(--text-size-scale, 1));
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  transition:
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    color var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.community-chat-sidebar-item i {
+  flex-shrink: 0;
+  width: 1.5rem;
+  font-size: 1rem;
+  text-align: center;
+  transition: color var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.community-chat-sidebar-item-label {
+  position: absolute;
+  left: calc(var(--chat-sidebar-inset-x) + 1.5rem + 0.45rem);
+  top: 50%;
+  transform: translateY(-50%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: calc(var(--chat-sidebar-expanded-width) - 3.5rem);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--menu-motion-duration) var(--menu-motion-ease);
+}
+
+.community-chat-sidebar:hover .community-chat-sidebar-item-label {
+  opacity: 1;
+}
+
+.community-chat-sidebar-avatar {
+  flex-shrink: 0;
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+  font-size: calc(0.62rem * var(--text-size-scale, 1)) !important;
+}
+
+.community-chat-sidebar-item:hover,
+.community-chat-sidebar-item:focus-visible {
+  border-color: transparent;
+  background: var(--chat-sidebar-button-hover-bg);
+  color: hsl(var(--text-bright));
+  outline: none;
+}
+
+.community-chat-sidebar-item:hover i {
+  color: var(--accent-color);
+}
+
+.community-chat-sidebar-item.is-active {
+  border-color: hsl(from var(--accent-color) h s l / 0.35);
+  background: hsl(from var(--accent-color) h s l / 0.1);
+  color: hsl(var(--text-bright));
+}
+
+.community-chat-sidebar-item.is-offline {
+  opacity: 0.72;
+}
+
+.community-chat-sidebar-unread {
+  position: absolute;
+  top: 0.28rem;
+  right: 0.28rem;
+  flex-shrink: 0;
+  min-width: 0.45rem;
+  height: 0.45rem;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--accent-color);
+  color: transparent;
+  font-size: 0;
+  line-height: 1;
+  overflow: hidden;
+  transition:
+    top var(--sidebar-motion-duration) var(--sidebar-motion-ease),
+    right var(--sidebar-motion-duration) var(--sidebar-motion-ease),
+    min-width var(--sidebar-motion-duration) var(--sidebar-motion-ease),
+    height var(--sidebar-motion-duration) var(--sidebar-motion-ease),
+    color var(--menu-motion-duration) var(--menu-motion-ease),
+    font-size var(--menu-motion-duration) var(--menu-motion-ease);
+}
+
+.community-chat-sidebar:hover .community-chat-sidebar-unread {
+  top: 50%;
+  right: 0.35rem;
+  min-width: 1.1rem;
+  height: auto;
+  padding: 0.08rem 0.28rem;
+  color: hsl(0, 0%, 100%);
+  font-size: calc(0.58rem * var(--text-size-scale, 1));
+  transform: translateY(-50%);
+}
+
+.community-chat-sidebar-empty {
+  display: none;
+  margin: 0;
+  padding: 0.35rem;
+  color: hsl(var(--text-inactive));
+  font-size: calc(0.62rem * var(--text-size-scale, 1));
+  line-height: 1.35;
+}
+
+.community-chat-sidebar:hover .community-chat-sidebar-empty {
+  display: block;
+}
+
+.community-chat-main {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.community-chat-profile-message {
+  width: 100%;
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border: var(--border-width) solid hsl(from var(--accent-color) h s l / 0.35);
+  border-radius: 0.55rem;
+  background: hsl(from var(--accent-color) h s l / 0.12);
+  color: hsl(var(--text-bright));
+  font: inherit;
+  font-size: calc(0.78rem * var(--text-size-scale, 1));
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.community-chat-profile-message:hover,
+.community-chat-profile-message:focus-visible {
+  border-color: hsl(from var(--accent-color) h s l / 0.55);
+  background: hsl(from var(--accent-color) h s l / 0.18);
+  outline: none;
 }
 
 .community-chat-profile-popover {
@@ -12186,6 +12462,7 @@ button.crosshair-preset-btn {
 
 .community-chat-panel .community-chat-form {
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 .community-chat-panel[data-chat-state="live"] .community-chat-status-dot {
@@ -12317,6 +12594,10 @@ button.crosshair-preset-btn {
     transform var(--button-motion-duration) var(--button-motion-ease),
     visibility var(--button-motion-duration) var(--button-motion-ease),
     border-color var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.site-assistant-panel.community-chat-panel {
+  width: min(44rem, calc(100vw - 2rem));
 }
 
 .site-assistant-stack.is-open #site-assistant-panel {
@@ -13056,6 +13337,10 @@ button.crosshair-preset-btn {
   .site-assistant-panel {
     width: min(22.5rem, calc(100vw - 1.5rem));
     height: min(28rem, calc(100vh - 5.75rem));
+  }
+
+  .site-assistant-panel.community-chat-panel {
+    width: min(44rem, calc(100vw - 1.5rem));
   }
 }
 

@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const { WebSocket } = require("ws");
 const { createChatModeration } = require("./chat-moderation");
 const { createChatHistoryStore } = require("./chat-history-store");
+const { createDmHistoryStore } = require("./dm-history-store");
 
 function sanitizeText(value, maxLength) {
   return String(value || "")
@@ -38,6 +39,7 @@ function createChatRoom(config) {
   const RATE_LIMIT_MS = Number(limits.rate_limit_ms) || 1500;
   const MAX_MESSAGES_PER_MINUTE = Number(limits.max_messages_per_minute) || 20;
   const MAX_ONLINE_USERS_SHOWN = Number(limits.max_online_users_shown) || 24;
+  const DM_HISTORY_SIZE = Number(limits.max_dm_history) || 100;
   const ownerDisplayNames = (Array.isArray(chatConfig.owners?.display_names) ? chatConfig.owners.display_names : [])
     .map((name) => String(name || "").trim().toLowerCase())
     .filter(Boolean);
@@ -45,6 +47,7 @@ function createChatRoom(config) {
   const moderation = createChatModeration(moderationConfig.blocked_words || []);
   const clients = new Set();
   const historyStore = createChatHistoryStore({ maxSize: HISTORY_SIZE });
+  const dmHistoryStore = createDmHistoryStore({ maxSize: DM_HISTORY_SIZE });
 
   function isOwnerDisplayName(name) {
     const normalized = sanitizeText(name, MAX_NAME_LENGTH).toLowerCase();
@@ -271,6 +274,104 @@ function createChatRoom(config) {
     sendError(client, "profile_not_found", "That user is no longer online.");
   }
 
+  function findClientByUserId(userId) {
+    const id = String(userId || "").trim();
+    if (!id) return null;
+    for (const peer of clients) {
+      if (peer.userId === id && peer.displayName) return peer;
+    }
+    return null;
+  }
+
+  function handleDmMessage(client, message) {
+    if (!client.displayName) {
+      sendError(client, "name_required", chatConfig.ui?.name_required_message || "Display name required.");
+      return;
+    }
+
+    const toUserId = String(message.toUserId || "").trim();
+    if (!toUserId) {
+      sendError(client, "invalid_message", "Choose someone to message.");
+      return;
+    }
+    if (toUserId === client.userId) {
+      sendError(client, "invalid_message", "You cannot message yourself.");
+      return;
+    }
+
+    const recipient = findClientByUserId(toUserId);
+    if (!recipient) {
+      sendError(client, "user_offline", chatConfig.ui?.dm_offline_message || "That user is offline.");
+      return;
+    }
+
+    const gate = canSendMessage(client);
+    if (!gate.ok) {
+      sendError(client, gate.code, gate.message);
+      return;
+    }
+
+    const text = normalizeMessageText(message.text);
+    if (!text) {
+      sendError(client, "invalid_message", "Message cannot be empty.");
+      return;
+    }
+
+    const now = Date.now();
+    client.lastMessageAt = now;
+    client.recentMessageTimes = client.recentMessageTimes || [];
+    client.recentMessageTimes.push(now);
+
+    const dmKey = dmHistoryStore.conversationKey(client.displayName, recipient.displayName);
+    const entry = dmHistoryStore.push(dmKey, {
+      id: crypto.randomUUID(),
+      fromUserId: client.userId,
+      toUserId: recipient.userId,
+      fromName: client.displayName,
+      toName: recipient.displayName,
+      text,
+      at: now,
+    });
+
+    const payload = {
+      type: "dm",
+      ...entry,
+      fromAvatar: client.avatar || "",
+      toAvatar: recipient.avatar || "",
+      fromIsOwner: isOwnerDisplayName(client.displayName),
+      toIsOwner: isOwnerDisplayName(recipient.displayName),
+    };
+
+    send(client, payload);
+    send(recipient, payload);
+  }
+
+  function handleDmHistory(client, message) {
+    const withUserId = String(message.withUserId || "").trim();
+    let peerName = String(message.withUserName || "").trim();
+    const peer = findClientByUserId(withUserId);
+    if (peer) peerName = peer.displayName;
+
+    if (!client.displayName || !peerName) {
+      send(client, { type: "dm_history", withUserId, withUserName: peerName, history: [] });
+      return;
+    }
+
+    const dmKey = dmHistoryStore.conversationKey(client.displayName, peerName);
+    const history = dmHistoryStore.list(dmKey).map((entry) => ({
+      ...entry,
+      fromIsOwner: isOwnerDisplayName(entry.fromName),
+      toIsOwner: isOwnerDisplayName(entry.toName),
+    }));
+
+    send(client, {
+      type: "dm_history",
+      withUserId: peer?.userId || withUserId,
+      withUserName: peerName,
+      history,
+    });
+  }
+
   function handleChatMessage(client, message) {
     if (!client.displayName) {
       sendError(client, "name_required", chatConfig.ui?.name_required_message || "Display name required.");
@@ -347,6 +448,12 @@ function createChatRoom(config) {
           break;
         case "message":
           handleChatMessage(client, message);
+          break;
+        case "dm":
+          handleDmMessage(client, message);
+          break;
+        case "dm_history":
+          handleDmHistory(client, message);
           break;
         case "get_profile":
           handleGetProfile(client, message);

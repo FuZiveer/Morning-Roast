@@ -8,6 +8,7 @@
   const CHAT_OPEN_EVENT = "morning-roast:chat-open";
   const ASSISTANT_OPEN_EVENT = "morning-roast:assistant-open";
   const CHAT_HISTORY_STORAGE_KEY = "morningRoastChatHistory";
+  const CHAT_DM_STORAGE_KEY = "morningRoastChatDmHistory";
   const CHAT_HISTORY_DEFAULT_MAX = 100;
 
   const DEFAULT_CONFIG = {
@@ -20,6 +21,9 @@
       title: "Community Chat",
       description: "Talk with other Morning Roast visitors in real time.",
       placeholder: "Message the lobby…",
+      dm_placeholder: "Message privately…",
+      dm_offline_message: "That user is offline.",
+      dm_title_prefix: "Chat with",
       empty_state: "No messages yet. Say hi!",
       offline_message: "Chat is offline. Try again in a moment.",
       name_required_message: "Set a display name on your Profile before chatting.",
@@ -330,6 +334,103 @@
     }
   }
 
+  function normalizeStoredDmMessage(message) {
+    if (!message || typeof message !== "object") return null;
+    const id = String(message.id || "").trim();
+    const fromUserId = String(message.fromUserId || message.userId || "").trim();
+    const toUserId = String(message.toUserId || "").trim();
+    const fromName = String(message.fromName || message.name || "").trim();
+    const toName = String(message.toName || "").trim();
+    const text = String(message.text || "").trim();
+    const at = Number(message.at);
+    if (!id || !fromUserId || !toName || !fromName || !text || !Number.isFinite(at)) return null;
+    const stored = { id, fromUserId, toUserId, fromName, toName, text, at };
+    if (message.fromIsOwner || message.isOwner) stored.fromIsOwner = true;
+    if (message.toIsOwner) stored.toIsOwner = true;
+    return stored;
+  }
+
+  function readDmStore() {
+    try {
+      const raw = global.localStorage?.getItem(CHAT_DM_STORAGE_KEY);
+      if (!raw) return { threads: {} };
+      const parsed = JSON.parse(raw);
+      const threads = parsed?.threads;
+      return { threads: threads && typeof threads === "object" && !Array.isArray(threads) ? threads : {} };
+    } catch {
+      return { threads: {} };
+    }
+  }
+
+  function writeDmStore(store) {
+    if (!global.localStorage) return;
+    try {
+      global.localStorage.setItem(
+        CHAT_DM_STORAGE_KEY,
+        JSON.stringify({ version: 1, updatedAt: Date.now(), threads: store.threads || {} }),
+      );
+    } catch {
+      // Storage full or unavailable.
+    }
+  }
+
+  function dmThreadKey(peerName) {
+    const key = normalizeDisplayNameKey(peerName);
+    return key ? `name:${key}` : "";
+  }
+
+  function getDmThread(peerName) {
+    const key = dmThreadKey(peerName);
+    if (!key) return [];
+    const store = readDmStore();
+    const list = store.threads[key];
+    return (Array.isArray(list) ? list : [])
+      .map(normalizeStoredDmMessage)
+      .filter(Boolean)
+      .sort((a, b) => Number(a.at || 0) - Number(b.at || 0));
+  }
+
+  function persistDmThread(peerName, messages, maxSize = CHAT_HISTORY_DEFAULT_MAX) {
+    const key = dmThreadKey(peerName);
+    if (!key) return;
+    const store = readDmStore();
+    const merged = mergeHistoryMessages(
+      (Array.isArray(store.threads[key]) ? store.threads[key] : []).map(normalizeStoredDmMessage).filter(Boolean),
+      messages.map(normalizeStoredDmMessage).filter(Boolean),
+    ).slice(-maxSize);
+    store.threads[key] = merged;
+    writeDmStore(store);
+  }
+
+  function dmToRenderMessage(dm, selfId) {
+    const self = dm.fromUserId === selfId;
+    return {
+      id: dm.id,
+      userId: dm.fromUserId,
+      name: dm.fromName,
+      text: dm.text,
+      at: dm.at,
+      avatar: dm.fromAvatar || "",
+      isOwner: Boolean(dm.fromIsOwner),
+      isSelf: self,
+    };
+  }
+
+  function hydrateRecentThreadsFromStorage(trackRecentThread) {
+    const selfName = readProfileIdentity().name;
+    const selfKey = normalizeDisplayNameKey(selfName);
+    if (!selfKey) return;
+    const store = readDmStore();
+    for (const list of Object.values(store.threads || {})) {
+      const messages = (Array.isArray(list) ? list : []).map(normalizeStoredDmMessage).filter(Boolean);
+      const last = messages[messages.length - 1];
+      if (!last) continue;
+      const peerName = normalizeDisplayNameKey(last.fromName) === selfKey ? last.toName : last.fromName;
+      const peerUserId = normalizeDisplayNameKey(last.fromName) === selfKey ? last.toUserId : last.fromUserId;
+      if (peerName) trackRecentThread(peerUserId, { name: peerName });
+    }
+  }
+
   async function fetchChatConfig(wsUrl) {
     const httpUrl = resolveConfigHttpUrl(wsUrl);
     if (!httpUrl) return { ...DEFAULT_CONFIG };
@@ -365,6 +466,13 @@
     const profileNameEl = root.querySelector("#community-chat-profile-name");
     const profileTagsEl = root.querySelector("#community-chat-profile-tags");
     const profileBioEl = root.querySelector("#community-chat-profile-bio");
+    const profileMessageBtn = root.querySelector("#community-chat-profile-message");
+    const sidebarEl = root.querySelector("#community-chat-sidebar");
+    const lobbyBtn = root.querySelector("#community-chat-lobby-btn");
+    const onlineListEl = root.querySelector("#community-chat-online-list");
+    const recentSectionEl = root.querySelector("#community-chat-recent-section");
+    const recentListEl = root.querySelector("#community-chat-recent-list");
+    const mainEl = root.querySelector(".community-chat-main");
 
     if (!panel || !messagesEl || !formEl || !inputEl) return null;
 
@@ -381,6 +489,12 @@
       state: "connecting",
       selfId: "",
       panelOpen: false,
+      activeChannel: "lobby",
+      lobbyMessageIds: new Set(),
+      dmMessageIds: new Map(),
+      dmUnread: new Map(),
+      onlineUsers: [],
+      recentThreads: new Map(),
       messageIds: new Set(),
       api: null,
     };
@@ -437,6 +551,41 @@
       profilePopover.hidden = true;
       profilePopover.setAttribute("aria-hidden", "true");
       pendingProfileUserId = "";
+      if (profileMessageBtn) profileMessageBtn.hidden = true;
+    };
+
+    const getChannelMessageIds = (channel) => {
+      if (channel === "lobby") return session.lobbyMessageIds;
+      if (!session.dmMessageIds.has(channel)) session.dmMessageIds.set(channel, new Set());
+      return session.dmMessageIds.get(channel);
+    };
+
+    const syncActiveMessageIds = () => {
+      session.messageIds = getChannelMessageIds(session.activeChannel);
+    };
+
+    const getPeerProfile = (userId) => {
+      const id = String(userId || "").trim();
+      return userProfiles.get(id) || { userId: id, name: "Guest", avatar: "", isOwner: false };
+    };
+
+    const trackRecentThread = (userId, profile = {}) => {
+      const id = String(userId || "").trim();
+      const name = String(profile.name || "").trim();
+      if (!id || !name) return;
+      const key = dmThreadKey(name);
+      if (!key) return;
+      session.recentThreads.set(key, {
+        userId: id,
+        name,
+        avatar: String(profile.avatar || "").trim(),
+        isOwner: Boolean(profile.isOwner),
+      });
+    };
+
+    const getActivePeer = () => {
+      if (session.activeChannel === "lobby") return null;
+      return getPeerProfile(session.activeChannel);
     };
 
     const showProfilePopover = (profile = {}) => {
@@ -444,8 +593,9 @@
 
       const name = String(profile.name || "Guest").trim() || "Guest";
       const bio = String(profile.bio || "").trim();
-      const isOwner = Boolean(profile.isOwner);
       const loading = Boolean(profile.loading);
+      const userId = String(profile.userId || "").trim();
+      const isSelf = Boolean(profile.isSelf) || (userId && userId === session.selfId);
 
       applyAvatarToElement(profileAvatarEl, name, profile.avatar);
       profileNameEl.textContent = name;
@@ -454,24 +604,246 @@
         profileTagsEl.appendChild(createMemberPill());
       }
       profileBioEl.textContent = loading ? "Loading profile…" : bio || "No bio yet.";
+
+      if (profileMessageBtn) {
+        const canMessage = !isSelf && userId && session.state === "live";
+        profileMessageBtn.hidden = !canMessage;
+        profileMessageBtn.dataset.userId = canMessage ? userId : "";
+        profileMessageBtn.dataset.userName = canMessage ? name : "";
+      }
+
       profilePopover.hidden = false;
       profilePopover.setAttribute("aria-hidden", "false");
       profileCloseBtn?.focus({ preventScroll: true });
     };
 
+    const openSelfProfile = (fallback = {}) => {
+      const identity = readProfileIdentity();
+      const name = String(identity.name || fallback.name || "Guest").trim() || "Guest";
+      showProfilePopover({
+        userId: session.selfId,
+        name,
+        bio: identity.bio || "",
+        avatar: identity.avatar || "",
+        isOwner: isOwnerDisplayName(name) || Boolean(fallback.isOwner),
+        isSelf: true,
+        loading: false,
+      });
+    };
+
+    const openDmChannel = async (userId, fallback = {}) => {
+      let id = String(userId || "").trim();
+      if (!id || id === session.selfId) return;
+
+      let profile = userProfiles.get(id) || fallback;
+      const onlineMatch = session.onlineUsers.find(
+        (user) =>
+          user.userId &&
+          normalizeDisplayNameKey(user.name) === normalizeDisplayNameKey(profile.name || fallback.name),
+      );
+      if (onlineMatch) {
+        id = onlineMatch.userId;
+        profile = onlineMatch;
+      }
+
+      trackRecentThread(id, profile);
+      closeProfilePopover();
+      await switchChannel(id, profile);
+      inputEl?.focus({ preventScroll: true });
+    };
+
     const openUserProfile = (userId, fallback = {}) => {
       const id = String(userId || "").trim();
-      if (!id || id === session.selfId) return;
+      if (!id) return;
+      if (id === session.selfId || fallback.isSelf) {
+        openSelfProfile(fallback);
+        return;
+      }
 
       const cached = userProfiles.get(id);
       showProfilePopover({
         userId: id,
         name: cached?.name || fallback.name || "Guest",
         bio: cached?.bio || "",
+        avatar: cached?.avatar || "",
         isOwner: Boolean(cached?.isOwner ?? fallback.isOwner),
         loading: session.state === "live",
       });
       if (session.state === "live") requestUserProfile(id);
+    };
+
+    const requestDmHistory = (userId, userName) => {
+      const id = String(userId || "").trim();
+      if (!id || !session.socket || session.socket.readyState !== WebSocket.OPEN) return;
+      try {
+        session.socket.send(
+          JSON.stringify({
+            type: "dm_history",
+            withUserId: id,
+            withUserName: String(userName || getPeerProfile(id).name || "").trim(),
+          }),
+        );
+      } catch {
+        // ignore
+      }
+    };
+
+    const renderDmHistory = (userId, history, peerName) => {
+      if (session.activeChannel !== userId) return;
+      syncActiveMessageIds();
+      messagesEl.querySelectorAll(".community-chat-msg").forEach((node) => node.remove());
+      session.messageIds.clear();
+      (history || []).forEach((entry) => {
+        renderMessage(dmToRenderMessage(entry, session.selfId), {
+          isSelf: entry.fromUserId === session.selfId,
+        });
+      });
+      if (peerName) persistDmThread(peerName, history, getHistoryMaxSize(session.config));
+      syncMessageAvatars();
+      updateUi();
+    };
+
+    const switchChannel = async (channel, meta = {}) => {
+      const nextChannel = channel === "lobby" ? "lobby" : String(channel || "").trim();
+      if (!nextChannel) return;
+      session.activeChannel = nextChannel;
+      session.dmUnread.set(nextChannel, 0);
+      syncActiveMessageIds();
+      closeProfilePopover();
+      renderSidebar();
+
+      messagesEl.querySelectorAll(".community-chat-msg").forEach((node) => node.remove());
+      session.messageIds.clear();
+
+      if (nextChannel === "lobby") {
+        await loadAndRenderHistory();
+        updateUi();
+        return;
+      }
+
+      const peer = userProfiles.get(nextChannel) || meta;
+      trackRecentThread(nextChannel, peer);
+      const local = getDmThread(peer.name);
+      local.forEach((entry) => {
+        renderMessage(dmToRenderMessage(entry, session.selfId), {
+          isSelf: entry.fromUserId === session.selfId,
+        });
+      });
+      requestDmHistory(nextChannel, peer.name);
+      updateUi();
+    };
+
+    const createSidebarUserButton = (user, { recent = false } = {}) => {
+      const userId = String(user.userId || user.id || "").trim();
+      const name = String(user.name || "").trim();
+      if (!userId || !name || userId === session.selfId) return null;
+
+      const isOnline = session.onlineUsers.some((entry) => entry.userId === userId);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "community-chat-sidebar-item";
+      button.dataset.dmUser = userId;
+      button.setAttribute("role", "listitem");
+      button.setAttribute("aria-label", recent && !isOnline ? `Recent chat with ${name}` : `Message ${name}`);
+      if (session.activeChannel === userId) {
+        button.classList.add("is-active");
+        button.setAttribute("aria-current", "page");
+      }
+
+      const avatar = createChatAvatar(name, user.avatar || "");
+      avatar.classList.add("community-chat-sidebar-avatar");
+      const label = document.createElement("span");
+      label.className = "community-chat-sidebar-item-label";
+      label.textContent = name;
+
+      button.appendChild(avatar);
+      button.appendChild(label);
+
+      const unread = session.dmUnread.get(userId) || 0;
+      if (unread > 0 && session.activeChannel !== userId) {
+        const badge = document.createElement("span");
+        badge.className = "community-chat-sidebar-unread";
+        badge.textContent = unread > 9 ? "9+" : String(unread);
+        button.appendChild(badge);
+      }
+
+      if (recent && !isOnline) {
+        button.classList.add("is-offline");
+      }
+
+      button.addEventListener("click", () => {
+        void openDmChannel(userId, user);
+      });
+      return button;
+    };
+
+    const renderSidebar = () => {
+      if (lobbyBtn) {
+        const inLobby = session.activeChannel === "lobby";
+        lobbyBtn.classList.toggle("is-active", inLobby);
+        lobbyBtn.toggleAttribute("aria-current", inLobby);
+      }
+
+      if (onlineListEl) {
+        onlineListEl.replaceChildren();
+        session.onlineUsers
+          .filter((user) => user.userId && user.userId !== session.selfId)
+          .forEach((user) => {
+            const button = createSidebarUserButton(user);
+            if (button) onlineListEl.appendChild(button);
+          });
+        if (!onlineListEl.children.length) {
+          const empty = document.createElement("p");
+          empty.className = "community-chat-sidebar-empty";
+          empty.textContent = session.state === "live" ? "No one else online" : "Chat offline";
+          onlineListEl.appendChild(empty);
+        }
+      }
+
+      if (recentListEl && recentSectionEl) {
+        recentListEl.replaceChildren();
+        const onlineIds = new Set(session.onlineUsers.map((user) => user.userId));
+        const recent = [...session.recentThreads.values()].filter(
+          (thread) => thread.userId && thread.userId !== session.selfId && !onlineIds.has(thread.userId),
+        );
+        recent.forEach((thread) => {
+          const button = createSidebarUserButton(thread, { recent: true });
+          if (button) recentListEl.appendChild(button);
+        });
+        recentSectionEl.hidden = recent.length === 0;
+      }
+    };
+
+    const handleIncomingDm = (dm) => {
+      const peerUserId = dm.fromUserId === session.selfId ? dm.toUserId : dm.fromUserId;
+      const peerName = dm.fromUserId === session.selfId ? dm.toName : dm.fromName;
+      const peerAvatar = dm.fromUserId === session.selfId ? dm.toAvatar : dm.fromAvatar;
+      const peerIsOwner = dm.fromUserId === session.selfId ? dm.toIsOwner : dm.fromIsOwner;
+
+      upsertUserProfile(peerUserId, {
+        name: peerName,
+        avatar: peerAvatar,
+        isOwner: Boolean(peerIsOwner),
+      });
+      trackRecentThread(peerUserId, { name: peerName, avatar: peerAvatar, isOwner: peerIsOwner });
+      persistDmThread(peerName, [dm], getHistoryMaxSize(session.config));
+
+      const ids = getChannelMessageIds(peerUserId);
+      if (ids.has(dm.id)) {
+        renderSidebar();
+        return;
+      }
+
+      if (session.activeChannel === peerUserId) {
+        syncActiveMessageIds();
+        renderMessage(dmToRenderMessage(dm, session.selfId), {
+          isSelf: dm.fromUserId === session.selfId,
+        });
+      } else {
+        ids.add(dm.id);
+        session.dmUnread.set(peerUserId, (session.dmUnread.get(peerUserId) || 0) + 1);
+      }
+      renderSidebar();
     };
 
     const setState = (state) => {
@@ -492,20 +864,39 @@
     const updateUi = () => {
       const offline = session.state !== "live";
       const nameOk = isNameAllowed();
+      const peer = getActivePeer();
+      const inDm = session.activeChannel !== "lobby";
 
       if (sendBtn) sendBtn.disabled = offline || !nameOk || !inputEl.value.trim();
       if (inputEl) {
         inputEl.disabled = offline || !nameOk;
         inputEl.maxLength = Number(session.config.limits?.max_message_length) || 500;
-        inputEl.placeholder = nameOk
-          ? session.config.ui?.placeholder || DEFAULT_CONFIG.ui.placeholder
-          : session.config.ui?.name_required_message || DEFAULT_CONFIG.ui.name_required_message;
+        if (!nameOk) {
+          inputEl.placeholder =
+            session.config.ui?.name_required_message || DEFAULT_CONFIG.ui.name_required_message;
+        } else if (inDm && peer?.name) {
+          inputEl.placeholder =
+            session.config.ui?.dm_placeholder || DEFAULT_CONFIG.ui.dm_placeholder;
+        } else {
+          inputEl.placeholder = session.config.ui?.placeholder || DEFAULT_CONFIG.ui.placeholder;
+        }
       }
 
-      if (titleEl && session.config.ui?.title) titleEl.textContent = session.config.ui.title;
+      if (titleEl) {
+        if (inDm && peer?.name) {
+          const prefix = session.config.ui?.dm_title_prefix || DEFAULT_CONFIG.ui.dm_title_prefix;
+          titleEl.textContent = `${prefix} ${peer.name}`;
+        } else {
+          titleEl.textContent = session.config.ui?.title || DEFAULT_CONFIG.ui.title;
+        }
+      }
 
       if (statusEl) {
         statusEl.textContent = session.state === "live" ? "Online" : "Offline";
+      }
+
+      if (profileMessageBtn && profileMessageBtn.dataset.userId) {
+        profileMessageBtn.hidden = offline || profileMessageBtn.dataset.userId === session.selfId;
       }
     };
 
@@ -548,29 +939,28 @@
       nameWrap.appendChild(nameLabel);
       if (isOwnerDisplayName(message.name)) nameWrap.appendChild(createOwnerPill());
 
+      const trigger = document.createElement("button");
+      trigger.type = "button";
+      trigger.className = "community-chat-profile-trigger";
+      trigger.setAttribute("aria-label", self ? "View your profile" : `View ${message.name || "Guest"}'s profile`);
       if (self) {
-        const identity = document.createElement("div");
-        identity.className = "community-chat-msg-identity";
-        identity.appendChild(avatar);
-        identity.appendChild(nameWrap);
-        head.appendChild(identity);
+        trigger.appendChild(avatar);
+        trigger.appendChild(nameWrap);
+        head.appendChild(trigger);
         head.appendChild(time);
       } else {
-        const trigger = document.createElement("button");
-        trigger.type = "button";
-        trigger.className = "community-chat-profile-trigger";
-        trigger.setAttribute("aria-label", `View ${message.name || "Guest"}'s profile`);
         trigger.appendChild(nameWrap);
         trigger.appendChild(avatar);
-        trigger.addEventListener("click", () => {
-          openUserProfile(message.userId, {
-            name: message.name,
-            isOwner: Boolean(message.isOwner),
-          });
-        });
         head.appendChild(time);
         head.appendChild(trigger);
       }
+      trigger.addEventListener("click", () => {
+        openUserProfile(message.userId || session.selfId, {
+          name: message.name,
+          isOwner: Boolean(message.isOwner),
+          isSelf: self,
+        });
+      });
 
       item.appendChild(head);
 
@@ -586,6 +976,7 @@
     const renderHistory = (history) => {
       if (!history?.length && messagesEl.querySelector(".community-chat-msg")) return;
 
+      syncActiveMessageIds();
       messagesEl.querySelectorAll(".community-chat-msg").forEach((node) => node.remove());
       session.messageIds.clear();
       (history || []).forEach((message) => {
@@ -593,6 +984,16 @@
       });
       syncMessageAvatars();
       updateUi();
+    };
+
+    const loadAndRenderHistory = async (...sources) => {
+      if (session.activeChannel !== "lobby") return;
+      const fromLocal = readLocalChatHistory();
+      const fromHttp = session.wsUrl ? await fetchChatHistory(session.wsUrl) : [];
+      const merged = mergeHistoryMessages(fromLocal, ...sources, fromHttp);
+      if (!merged.length) return;
+      renderHistory(merged);
+      persistChatHistory(merged);
     };
 
     const persistChatHistory = (messages) => {
@@ -605,33 +1006,28 @@
       persistChatHistory(mergeHistoryMessages(readLocalChatHistory(), [normalized]));
     };
 
-    const loadAndRenderHistory = async (...sources) => {
-      const fromLocal = readLocalChatHistory();
-      const fromHttp = session.wsUrl ? await fetchChatHistory(session.wsUrl) : [];
-      const merged = mergeHistoryMessages(fromLocal, ...sources, fromHttp);
-      if (!merged.length) return;
-      renderHistory(merged);
-      persistChatHistory(merged);
-    };
-
     const renderPresence = ({ online, chatOpen, users } = {}) => {
       const count = Number.isFinite(chatOpen) ? chatOpen : online;
       if (onlineEl) onlineEl.textContent = formatChatOpenLabel(count);
       syncOnlineDisplayNames(users);
-      (users || []).forEach((user) => {
-        const entry =
+      session.onlineUsers = (users || [])
+        .map((user) =>
           typeof user === "string"
-            ? { name: user, isOwner: isOwnerDisplayName(user) }
+            ? { userId: "", name: user, avatar: "", isOwner: isOwnerDisplayName(user) }
             : {
                 userId: user?.userId || user?.id || "",
                 name: user?.name || "",
                 bio: user?.bio || "",
                 avatar: user?.avatar || "",
                 isOwner: Boolean(user?.isOwner),
-              };
+              },
+        )
+        .filter((user) => user.userId && user.name);
+      session.onlineUsers.forEach((entry) => {
         if (entry.userId) upsertUserProfile(entry.userId, entry);
       });
       syncMessageAvatars();
+      renderSidebar();
     };
 
     const sendPanelOpenState = (open) => {
@@ -660,8 +1056,12 @@
       const text = inputEl.value.trim();
       if (!text || session.state !== "live" || !isNameAllowed()) return;
       try {
-        session.socket?.send(JSON.stringify({ type: "message", text }));
-        global.MorningRoastProfileTags?.recordChatMessage?.();
+        if (session.activeChannel === "lobby") {
+          session.socket?.send(JSON.stringify({ type: "message", text }));
+          global.MorningRoastProfileTags?.recordChatMessage?.();
+        } else {
+          session.socket?.send(JSON.stringify({ type: "dm", toUserId: session.activeChannel, text }));
+        }
         inputEl.value = "";
         updateUi();
       } catch {
@@ -704,7 +1104,11 @@
         if (generation !== session.generation || session.socket !== socket) return;
         session.reconnectMs = RECONNECT_BASE_MS;
         setState("live");
-        void loadAndRenderHistory();
+        if (session.activeChannel === "lobby") {
+          void loadAndRenderHistory();
+        } else {
+          void switchChannel(session.activeChannel, getPeerProfile(session.activeChannel));
+        }
         sendJoin();
         sendPanelOpenState(session.panelOpen);
       });
@@ -730,7 +1134,12 @@
               setOwnerDisplayNames(message.config.owners.display_names);
               global.dispatchEvent(new CustomEvent("morning-roast:owners-config"));
             }
-            await loadAndRenderHistory(message.history || []);
+            await (session.activeChannel === "lobby"
+              ? loadAndRenderHistory(message.history || [])
+              : Promise.resolve());
+            if (session.activeChannel !== "lobby") {
+              requestDmHistory(session.activeChannel, getPeerProfile(session.activeChannel).name);
+            }
             renderPresence({ online: message.online, chatOpen: message.chatOpen, users: [] });
             updateUi();
             break;
@@ -748,10 +1157,29 @@
             syncMessageAvatars();
             updateUi();
             break;
-          case "message":
-            renderMessage(message, { isSelf: isSelfMessage(message) });
+          case "message": {
+            const ids = getChannelMessageIds("lobby");
+            if (ids.has(message.id)) break;
+            if (session.activeChannel === "lobby") {
+              syncActiveMessageIds();
+              renderMessage(message, { isSelf: isSelfMessage(message) });
+            } else {
+              ids.add(message.id);
+            }
             persistChatMessage(message);
             updateUi();
+            break;
+          }
+          case "dm":
+            handleIncomingDm(message);
+            updateUi();
+            break;
+          case "dm_history":
+            if (message.withUserId && session.activeChannel === message.withUserId) {
+              renderDmHistory(message.withUserId, message.history || [], message.withUserName);
+            } else if (message.withUserId && message.withUserName) {
+              persistDmThread(message.withUserName, message.history || [], getHistoryMaxSize(session.config));
+            }
             break;
           case "presence":
             renderPresence(message);
@@ -779,6 +1207,12 @@
               });
               global.dispatchEvent(new CustomEvent("morning-roast:display-name-blocked"));
             }
+            if (message.code === "user_offline") {
+              global.Toast?.notify?.({
+                message: message.message || session.config.ui?.dm_offline_message || DEFAULT_CONFIG.ui.dm_offline_message,
+                type: "error",
+              });
+            }
             break;
           default:
             break;
@@ -801,6 +1235,22 @@
     });
 
     inputEl.addEventListener("input", updateUi);
+
+    lobbyBtn?.addEventListener("click", () => {
+      void switchChannel("lobby");
+    });
+
+    sidebarEl?.addEventListener("mouseleave", () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && sidebarEl.contains(active)) active.blur();
+    });
+
+    profileMessageBtn?.addEventListener("click", () => {
+      const userId = profileMessageBtn.dataset.userId || "";
+      const userName = profileMessageBtn.dataset.userName || "";
+      if (!userId) return;
+      void openDmChannel(userId, { name: userName });
+    });
 
     profileCloseBtn?.addEventListener("click", closeProfilePopover);
     profilePopover?.addEventListener("click", (event) => {
@@ -856,10 +1306,14 @@
         setOwnerDisplayNames(session.config.owners.display_names);
       }
       session.wsUrl = resolveChatWsUrl(session.config);
+      hydrateRecentThreadsFromStorage(trackRecentThread);
+      renderSidebar();
       updateUi();
-      const localHistory = readLocalChatHistory();
-      if (localHistory.length) renderHistory(localHistory);
-      await loadAndRenderHistory();
+      if (session.activeChannel === "lobby") {
+        const localHistory = readLocalChatHistory();
+        if (localHistory.length) renderHistory(localHistory);
+        await loadAndRenderHistory();
+      }
       connect();
     })();
 

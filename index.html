@@ -1462,6 +1462,12 @@
                       <span class="profile-avatar" id="profile-avatar">
                         <img id="profile-avatar-image" class="profile-avatar-image" alt="" hidden />
                         <span class="profile-avatar-fallback" id="profile-avatar-fallback">?</span>
+                        <span class="profile-avatar-overlay" aria-hidden="true">
+                          <span class="profile-avatar-overlay-inner">
+                            <i class="ri-camera-line" aria-hidden="true"></i>
+                            <span>Camera</span>
+                          </span>
+                        </span>
                       </span>
                       <span class="profile-avatar-edit" aria-hidden="true"><i class="ri-camera-line"></i></span>
                     </button>
@@ -3559,31 +3565,54 @@
               </div>
             </div>
 
-            <div id="community-chat-messages" class="site-assistant-messages" aria-live="polite" aria-relevant="additions"></div>
+            <div class="community-chat-body">
+              <aside id="community-chat-sidebar" class="community-chat-sidebar" aria-label="Chat sidebar">
+                <div class="community-chat-sidebar-section">
+                  <p class="community-chat-sidebar-label">Channels</p>
+                  <button type="button" id="community-chat-lobby-btn" class="community-chat-sidebar-item is-active" data-channel="lobby" aria-current="page">
+                    <i class="ri-group-line" aria-hidden="true"></i>
+                    <span class="community-chat-sidebar-item-label">Lobby</span>
+                  </button>
+                </div>
+                <div class="community-chat-sidebar-section">
+                  <p class="community-chat-sidebar-label">Online</p>
+                  <div id="community-chat-online-list" class="community-chat-sidebar-list" role="list"></div>
+                </div>
+                <div class="community-chat-sidebar-section" id="community-chat-recent-section" hidden>
+                  <p class="community-chat-sidebar-label">Recent</p>
+                  <div id="community-chat-recent-list" class="community-chat-sidebar-list" role="list"></div>
+                </div>
+              </aside>
 
-            <div id="community-chat-profile-popover" class="community-chat-profile-popover" hidden role="dialog" aria-modal="true" aria-labelledby="community-chat-profile-name">
-              <div class="community-chat-profile-card">
-                <button type="button" id="community-chat-profile-close" class="community-chat-profile-close" aria-label="Close profile">
-                  <i class="ri-close-line" aria-hidden="true"></i>
-                </button>
-                <div class="community-chat-profile-head">
-                  <span class="community-chat-avatar community-chat-avatar--lg" id="community-chat-profile-avatar" aria-hidden="true"></span>
-                  <div class="community-chat-profile-meta">
-                    <h4 id="community-chat-profile-name"></h4>
+              <div class="community-chat-main">
+                <div id="community-chat-messages" class="site-assistant-messages" aria-live="polite" aria-relevant="additions"></div>
+
+                <div id="community-chat-profile-popover" class="community-chat-profile-popover" hidden role="dialog" aria-modal="true" aria-labelledby="community-chat-profile-name">
+                  <div class="community-chat-profile-card">
+                    <button type="button" id="community-chat-profile-close" class="community-chat-profile-close" aria-label="Close profile">
+                      <i class="ri-close-line" aria-hidden="true"></i>
+                    </button>
+                    <div class="community-chat-profile-head">
+                      <span class="community-chat-avatar community-chat-avatar--lg" id="community-chat-profile-avatar" aria-hidden="true"></span>
+                      <div class="community-chat-profile-meta">
+                        <h4 id="community-chat-profile-name"></h4>
+                      </div>
+                    </div>
+                    <div id="community-chat-profile-tags" class="community-chat-profile-tags"></div>
+                    <p id="community-chat-profile-bio" class="community-chat-profile-bio"></p>
+                    <button type="button" id="community-chat-profile-message" class="community-chat-profile-message" hidden>Message</button>
                   </div>
                 </div>
-                <div id="community-chat-profile-tags" class="community-chat-profile-tags"></div>
-                <p id="community-chat-profile-bio" class="community-chat-profile-bio"></p>
+
+                <form id="community-chat-form" class="site-assistant-form community-chat-form" autocomplete="off">
+                  <label class="visually-hidden" for="community-chat-input">Chat message</label>
+                  <input id="community-chat-input" class="site-assistant-input community-chat-input" type="text" maxlength="500" placeholder="Message the lobby…" />
+                  <button type="submit" class="site-assistant-send community-chat-send" id="community-chat-send" aria-label="Send message" disabled>
+                    <i class="ri-send-plane-2-line" aria-hidden="true"></i>
+                  </button>
+                </form>
               </div>
             </div>
-
-            <form id="community-chat-form" class="site-assistant-form community-chat-form" autocomplete="off">
-              <label class="visually-hidden" for="community-chat-input">Chat message</label>
-              <input id="community-chat-input" class="site-assistant-input community-chat-input" type="text" maxlength="500" placeholder="Message the lobby…" />
-              <button type="submit" class="site-assistant-send community-chat-send" id="community-chat-send" aria-label="Send message" disabled>
-                <i class="ri-send-plane-2-line" aria-hidden="true"></i>
-              </button>
-            </form>
           </div>
           <button type="button" id="community-chat-toggle" class="site-assistant-toggle community-chat-toggle" aria-controls="community-chat-panel" aria-expanded="false" aria-label="Open community chat">
             <i class="ri-chat-1-line community-chat-toggle-open" aria-hidden="true"></i>
