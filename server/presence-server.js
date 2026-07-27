@@ -63,10 +63,19 @@ const chatRoom = chatSettings.enabled === false ? null : createChatRoom(chatConf
 const publicChatConfig = getPublicChatConfig(chatConfigRoot);
 const handleAssistantRequest = createAssistantHandler({ isOriginAllowed });
 
+const lineupPublicBaseUrl = (() => {
+  const configured = String(process.env.PUBLIC_BASE_URL || "").trim();
+  if (configured) return configured.replace(/\/$/, "");
+  const renderHost = String(process.env.RENDER_EXTERNAL_HOSTNAME || "").trim();
+  if (renderHost) return `https://${renderHost}`;
+  return "";
+})();
+
 const lineupSubmissionsRoutes = createLineupSubmissionsRoutes({
   chatRoom,
   store: lineupSubmissionsStore,
   corsOrigin: ALLOWED_ORIGINS.includes("*") ? "*" : ALLOWED_ORIGINS[0] || "*",
+  publicBaseUrl: lineupPublicBaseUrl,
 });
 chatDeps.lineupSubmissionsRoutes = lineupSubmissionsRoutes;
 

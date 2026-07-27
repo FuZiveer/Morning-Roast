@@ -32,6 +32,17 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "");
 }
 
+function validateVideoFile(videoBuffer, { mime = "video/mp4", originalName = "lineup.mp4" } = {}) {
+  if (!videoBuffer?.length) return { error: "missing_video" };
+  const ext = path.extname(originalName).toLowerCase();
+  const allowedExt = new Set([".mp4", ".webm", ".mov"]);
+  const safeExt = allowedExt.has(ext) ? ext : ".mp4";
+  const allowedMime = /^video\/(mp4|webm|quicktime)$/i;
+  if (!allowedMime.test(String(mime || ""))) return { error: "invalid_video_type" };
+  if (videoBuffer.length > 50 * 1024 * 1024) return { error: "video_too_large" };
+  return { safeExt };
+}
+
 function normalizeSubmission(entry) {
   if (!entry || typeof entry !== "object") return null;
   const id = String(entry.id || "").trim();
@@ -71,6 +82,7 @@ function normalizeSubmission(entry) {
     reviewedAt: Number(entry.reviewedAt) || null,
     reviewedBy: String(entry.reviewedBy || "").trim() || null,
     search: String(entry.search || "").trim().toLowerCase(),
+    updatedAt: Number(entry.updatedAt) || null,
   };
 
   if (game === "valorant") {
@@ -103,7 +115,9 @@ function buildSearchText(submission) {
 
 function toPublicSubmission(submission, { videoBaseUrl = "" } = {}) {
   if (!submission) return null;
-  const videoUrl = videoBaseUrl ? `${videoBaseUrl.replace(/\/$/, "")}/lineups/video/${submission.id}` : "";
+  const base = videoBaseUrl ? `${videoBaseUrl.replace(/\/$/, "")}/lineups/video/${submission.id}` : "";
+  const videoUrl =
+    base && submission.updatedAt ? `${base}?v=${submission.updatedAt}` : base;
   return {
     id: submission.id,
     game: submission.game,
@@ -190,6 +204,10 @@ function createLineupSubmissionsStore({ filePath = resolveStorePath(), uploadsDi
       .sort((a, b) => (b.reviewedAt || b.submittedAt) - (a.reviewedAt || a.submittedAt));
   }
 
+  function listApprovedForOwner() {
+    return listApproved();
+  }
+
   function getById(id) {
     return submissions[String(id || "").trim()] || null;
   }
@@ -215,12 +233,9 @@ function createLineupSubmissionsStore({ filePath = resolveStorePath(), uploadsDi
     }
     if (!videoBuffer?.length) return { error: "missing_video" };
 
-    const ext = path.extname(originalName).toLowerCase();
-    const allowedExt = new Set([".mp4", ".webm", ".mov"]);
-    const safeExt = allowedExt.has(ext) ? ext : ".mp4";
-    const allowedMime = /^video\/(mp4|webm|quicktime)$/i;
-    if (!allowedMime.test(String(mime || ""))) return { error: "invalid_video_type" };
-    if (videoBuffer.length > 50 * 1024 * 1024) return { error: "video_too_large" };
+    const validated = validateVideoFile(videoBuffer, { mime, originalName });
+    if (validated.error) return validated;
+    const { safeExt } = validated;
 
     const id = crypto.randomUUID();
     const videoId = `community-${id.slice(0, 8)}`;
@@ -266,11 +281,121 @@ function createLineupSubmissionsStore({ filePath = resolveStorePath(), uploadsDi
     return { submission: entry };
   }
 
-  function reviewSubmission(id, action, reviewerName = "") {
+  function applySubmissionMetadata(entry, metadata = {}) {
+    if (!entry) return { error: "not_found" };
+
+    const nextTitle = metadata.title != null ? String(metadata.title || "").trim().slice(0, 120) : "";
+    const nextMap = metadata.map != null ? slugify(metadata.map) : "";
+
+    if (nextTitle) entry.title = nextTitle;
+    if (nextMap) entry.map = nextMap;
+
+    if (metadata.title != null && !entry.title) return { error: "invalid_fields" };
+    if (metadata.map != null && !entry.map) return { error: "invalid_fields" };
+
+    if (metadata.game != null) {
+      const nextGame = String(metadata.game || "").trim().toLowerCase();
+      if (!VALID_GAMES.has(nextGame)) return { error: "invalid_fields" };
+      if (entry.game !== nextGame) {
+        entry.game = nextGame;
+        if (nextGame === "valorant") {
+          delete entry.utility;
+        } else {
+          delete entry.agent;
+          delete entry.ability;
+        }
+      }
+    }
+
+    if (metadata.side != null) {
+      const nextSide = String(metadata.side || "").trim().toLowerCase();
+      if (!VALID_SIDES.has(nextSide)) return { error: "invalid_fields" };
+      entry.side = nextSide;
+    }
+
+    const submitterName =
+      metadata.submitterName != null
+        ? String(metadata.submitterName || "").trim().slice(0, 32)
+        : metadata.name != null
+          ? String(metadata.name || "").trim().slice(0, 32)
+          : "";
+    if (metadata.submitterName != null || metadata.name != null) {
+      if (!submitterName) return { error: "invalid_fields" };
+      entry.submittedBy = entry.submittedBy && typeof entry.submittedBy === "object" ? entry.submittedBy : {};
+      entry.submittedBy.name = submitterName;
+    }
+
+    entry.search = buildSearchText(entry);
+    entry.updatedAt = Date.now();
+    return { submission: entry };
+  }
+
+  function updateSubmissionMetadata(id, metadata = {}, editorName = "") {
+    const entry = getById(id);
+    if (!entry || entry.status === "rejected") return { error: "not_found" };
+
+    const result = applySubmissionMetadata(entry, metadata);
+    if (result.error) return result;
+
+    if (editorName) entry.updatedBy = String(editorName || "").trim() || null;
+    save();
+    return { submission: entry };
+  }
+
+  function replaceSubmissionVideo(id, videoBuffer, { mime = "video/mp4", originalName = "lineup.mp4" } = {}, editorName = "") {
+    const entry = getById(id);
+    if (!entry || entry.status === "rejected") return { error: "not_found" };
+
+    const validated = validateVideoFile(videoBuffer, { mime, originalName });
+    if (validated.error) return validated;
+    const { safeExt } = validated;
+
+    const previousFilename = entry.videoFilename;
+    const videoFilename = `${entry.id}${safeExt}`;
+    const nextPath = path.join(uploadsDir, videoFilename);
+    const previousPath = path.join(uploadsDir, previousFilename);
+
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    fs.writeFileSync(nextPath, videoBuffer);
+
+    if (previousFilename !== videoFilename) {
+      try {
+        if (fs.existsSync(previousPath)) fs.unlinkSync(previousPath);
+      } catch {
+        // ignore cleanup errors
+      }
+    }
+
+    entry.videoFilename = videoFilename;
+    entry.updatedAt = Date.now();
+    if (editorName) entry.updatedBy = String(editorName || "").trim() || null;
+    save();
+    return { submission: entry };
+  }
+
+  function deleteSubmission(id, deleterName = "") {
+    const entry = getById(id);
+    if (!entry || entry.status === "rejected") return { error: "not_found" };
+
+    const filePathOnDisk = path.join(uploadsDir, entry.videoFilename);
+    try {
+      if (fs.existsSync(filePathOnDisk)) fs.unlinkSync(filePathOnDisk);
+    } catch {
+      // ignore cleanup errors
+    }
+
+    delete submissions[id];
+    save();
+    return { submission: entry, deletedBy: String(deleterName || "").trim() || null };
+  }
+
+  function reviewSubmission(id, action, reviewerName = "", metadata = {}) {
     const entry = getById(id);
     if (!entry || entry.status !== "pending") return { error: "not_found" };
 
     if (action === "approve") {
+      const applied = applySubmissionMetadata(entry, metadata);
+      if (applied.error) return applied;
       entry.status = "approved";
     } else if (action === "reject") {
       entry.status = "rejected";
@@ -299,7 +424,11 @@ function createLineupSubmissionsStore({ filePath = resolveStorePath(), uploadsDi
     getById,
     getVideoPath,
     createPendingSubmission,
+    updateSubmissionMetadata,
+    replaceSubmissionVideo,
+    deleteSubmission,
     reviewSubmission,
+    listApprovedForOwner,
     toPublicSubmission,
     toOwnerSubmission,
   };

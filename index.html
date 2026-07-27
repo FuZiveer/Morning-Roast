@@ -1520,7 +1520,19 @@
         <div class="box-container-holder">
           <div class="box-container">
             <div class="box-holder lineup-game-panel">
-              <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> Game</h4>
+              <div class="lineup-game-panel-top">
+                <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> Game</h4>
+                <div class="lineup-panel-top-actions">
+                  <button type="button" class="lineup-submit-lineup-btn lineup-submit-lineup-owner-btn hidden" id="lineup-submit-lineup-owner-btn" hidden aria-label="Submit a lineup">
+                    <i class="ri-upload-2-line" aria-hidden="true"></i>
+                    <span>Submit A Lineup</span>
+                  </button>
+                  <button type="button" class="lineup-submit-lineup-btn" id="lineup-submit-lineup-btn" aria-label="Submit a lineup">
+                    <i class="ri-upload-2-line" aria-hidden="true"></i>
+                    <span>Submit lineup</span>
+                  </button>
+                </div>
+              </div>
               <div class="custom-dropdown lineup-game-dropdown" id="lineup-game-selector" data-active-game="">
                 <div class="selected-view" id="lineup-game-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="lineup-game-list" aria-label="Lineup game">
                   <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -1616,10 +1628,6 @@
                     <i class="ri-heart-fill" aria-hidden="true"></i>
                     <span>Favorites</span>
                   </button>
-                  <button type="button" class="lineup-submit-lineup-btn" id="lineup-submit-lineup-btn" aria-label="Submit a lineup">
-                    <i class="ri-upload-2-line" aria-hidden="true"></i>
-                    <span>Submit lineup</span>
-                  </button>
                   <div class="lineup-difficulty-filter" id="lineup-difficulty-filter" role="group" aria-label="Difficulty">
                     <span class="lineup-difficulty-heading lineup-difficulty-filter-heading">
                       <span class="lineup-difficulty-label">Difficulty</span>
@@ -1669,7 +1677,7 @@
                 <div class="lineup-community-section hidden" id="lineup-valorant-community-section" hidden>
                   <div class="lineup-community-section-head">
                     <h4 class="settings-section-title"><i class="ri-group-line" aria-hidden="true"></i> Community lineups</h4>
-                    <p class="lineup-community-section-note">Submitted by other players and approved by FuZiveer.</p>
+                    <p class="lineup-community-section-note">Submitted by other players and approved by <span class="lineup-community-owner-inline">FuZiveer <span class="owner-pill">Owner</span></span>.</p>
                   </div>
                   <div class="lineup-video-grid lineup-video-grid--community" id="lineup-valorant-community-grid" data-lineup-source="community"></div>
                   <p class="lineup-empty-state lineup-community-empty hidden" id="lineup-valorant-community-empty" hidden>No community lineups yet.</p>
@@ -1787,7 +1795,7 @@
                 <div class="lineup-community-section hidden" id="lineup-cs2-community-section" hidden>
                   <div class="lineup-community-section-head">
                     <h4 class="settings-section-title"><i class="ri-group-line" aria-hidden="true"></i> Community lineups</h4>
-                    <p class="lineup-community-section-note">Submitted by other players and approved by FuZiveer.</p>
+                    <p class="lineup-community-section-note">Submitted by other players and approved by <span class="lineup-community-owner-inline">FuZiveer <span class="owner-pill">Owner</span></span>.</p>
                   </div>
                   <div class="lineup-video-grid lineup-video-grid--community" id="lineup-cs2-community-grid" data-lineup-source="community"></div>
                   <p class="lineup-empty-state lineup-community-empty hidden" id="lineup-cs2-community-empty" hidden>No community lineups yet.</p>
@@ -3484,56 +3492,127 @@
       </div>
     </div>
 
-    <div id="lineup-submit-overlay" class="lineup-submit-overlay trainer-settings-overlay" hidden>
-      <div class="lineup-submit-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-submit-modal-title">
-        <div class="lineup-submit-modal-head">
-          <h3 id="lineup-submit-modal-title">Submit a lineup</h3>
+    <div id="lineup-submit-overlay" class="lineup-flow-overlay trainer-settings-overlay" hidden>
+      <div class="lineup-flow-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-submit-modal-title">
+        <div class="modal-header">
+          <h3 id="lineup-submit-modal-title"><i class="ri-upload-2-line" aria-hidden="true"></i> Submit a lineup</h3>
           <button type="button" class="close-modal" id="lineup-submit-modal-close" aria-label="Close">
             <i class="ri-close-line" aria-hidden="true"></i>
           </button>
         </div>
-        <form id="lineup-submit-form" class="lineup-submit-form" autocomplete="off">
-          <p class="lineup-submit-intro">Your lineup goes to FuZiveer for review before it appears in Community lineups.</p>
-          <label class="lineup-submit-field">
+        <form id="lineup-submit-form" class="lineup-flow-form lineup-flow-form--steps" autocomplete="off">
+          <p class="lineup-flow-intro">Your lineup goes to FuZiveer for review before it appears in Community lineups.</p>
+          <div class="lineup-form-field" data-submit-step="username">
+            <span>Username</span>
+            <input type="text" class="lineup-form-input" id="lineup-submit-username" name="submitterName" maxlength="32" required placeholder="Your display name" aria-label="Username" aria-describedby="lineup-submit-username-hint" />
+            <span class="lineup-form-hint lineup-form-hint--error hidden" id="lineup-submit-username-hint" hidden>FuZiveer is reserved for the site owner.</span>
+          </div>
+          <div class="lineup-form-field lineup-form-step-hidden" data-submit-step="game" hidden>
+            <span>Game</span>
+            <div class="custom-dropdown lineup-game-dropdown" id="lineup-submit-game-dropdown" data-value="">
+              <div class="selected-view" id="lineup-submit-game-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="lineup-submit-game-list" aria-label="Lineup game">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <div class="input-wrapper">
+                  <input type="text" class="game-search" id="lineup-submit-game-display" placeholder="Select game" autocomplete="off" />
+                  <button type="button" id="lineup-submit-game-clear" class="clear-btn" aria-label="Clear game" hidden>&times;</button>
+                </div>
+                <span class="lineup-submit-trail-icon" id="lineup-submit-game-trail" aria-hidden="true">
+                  <i class="ri-gamepad-line lineup-submit-trail-fallback" aria-hidden="true"></i>
+                  <img class="lineup-submit-trail-image game-option-icon" alt="" width="18" height="18" decoding="async" hidden />
+                </span>
+              </div>
+              <div class="pref-dropdown-list hidden" id="lineup-submit-game-list" role="listbox" aria-labelledby="lineup-submit-game-trigger"></div>
+              <input type="hidden" id="lineup-submit-game" name="game" required />
+            </div>
+          </div>
+          <div class="lineup-form-field lineup-form-step-hidden" data-submit-step="title" hidden>
             <span>Title</span>
-            <input type="text" id="lineup-submit-title" name="title" maxlength="120" required placeholder="e.g. A Site Default Smoke" />
-          </label>
-          <label class="lineup-submit-field">
+            <input type="text" class="lineup-form-input" id="lineup-submit-title" name="title" maxlength="120" required placeholder="e.g. A Site Default Smoke" aria-label="Title" />
+          </div>
+          <div class="lineup-form-field lineup-form-step-hidden" data-submit-step="map" hidden>
             <span>Map</span>
-            <select id="lineup-submit-map" name="map" required></select>
-          </label>
-          <label class="lineup-submit-field">
+            <div class="custom-dropdown lineup-game-dropdown" id="lineup-submit-map-dropdown" data-value="">
+              <div class="selected-view" id="lineup-submit-map-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="lineup-submit-map-list" aria-label="Lineup map">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <div class="input-wrapper">
+                  <input type="text" class="game-search" id="lineup-submit-map-display" placeholder="Select map" autocomplete="off" />
+                  <button type="button" id="lineup-submit-map-clear" class="clear-btn" aria-label="Clear map" hidden>&times;</button>
+                </div>
+                <span class="lineup-submit-trail-icon" id="lineup-submit-map-trail" aria-hidden="true">
+                  <i class="ri-earth-line lineup-submit-trail-fallback" aria-hidden="true"></i>
+                  <img class="lineup-submit-trail-image" alt="" width="18" height="18" decoding="async" hidden />
+                </span>
+              </div>
+              <div class="pref-dropdown-list hidden" id="lineup-submit-map-list" role="listbox" aria-labelledby="lineup-submit-map-trigger"></div>
+              <input type="hidden" id="lineup-submit-map" name="map" required />
+            </div>
+          </div>
+          <div class="lineup-form-field lineup-form-step-hidden" data-submit-step="side" hidden>
             <span>Side</span>
-            <select id="lineup-submit-side" name="side" required>
-              <option value="attacker">Attacker</option>
-              <option value="defender">Defender</option>
-            </select>
-          </label>
-          <label class="lineup-submit-field">
-            <span>Callout</span>
-            <input type="text" id="lineup-submit-callout" name="callout" maxlength="80" placeholder="Optional spot name" />
-          </label>
-          <label class="lineup-submit-field">
+            <div class="custom-dropdown lineup-game-dropdown" id="lineup-submit-side-dropdown" data-value="">
+              <div class="selected-view" id="lineup-submit-side-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="lineup-submit-side-list" aria-label="Lineup side">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <div class="input-wrapper">
+                  <input type="text" class="game-search" id="lineup-submit-side-display" placeholder="Select side" autocomplete="off" />
+                  <button type="button" id="lineup-submit-side-clear" class="clear-btn" aria-label="Clear side" hidden>&times;</button>
+                </div>
+                <span class="lineup-submit-trail-icon" id="lineup-submit-side-trail" aria-hidden="true">
+                  <i class="ri-team-line lineup-submit-trail-fallback" aria-hidden="true"></i>
+                </span>
+              </div>
+              <div class="pref-dropdown-list hidden" id="lineup-submit-side-list" role="listbox" aria-labelledby="lineup-submit-side-trigger">
+                <button type="button" class="pref-dropdown-option" data-submit-value="attacker" role="option"><span>Attacker</span></button>
+                <button type="button" class="pref-dropdown-option" data-submit-value="defender" role="option"><span>Defender</span></button>
+              </div>
+              <input type="hidden" id="lineup-submit-side" name="side" required />
+            </div>
+          </div>
+          <div class="lineup-form-field lineup-form-step-hidden" data-submit-step="difficulty" hidden>
             <span>Difficulty</span>
-            <select id="lineup-submit-difficulty" name="difficulty" required>
-              <option value="1">1 star</option>
-              <option value="2">2 stars</option>
-              <option value="3">3 stars</option>
-              <option value="4">4 stars</option>
-              <option value="5">5 stars</option>
-            </select>
-          </label>
-          <label class="lineup-submit-field hidden" id="lineup-submit-agent-field" hidden>
+            <div class="custom-dropdown lineup-game-dropdown" id="lineup-submit-difficulty-dropdown" data-value="">
+              <div class="selected-view" id="lineup-submit-difficulty-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="lineup-submit-difficulty-list" aria-label="Lineup difficulty">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <div class="input-wrapper">
+                  <input type="text" class="game-search" id="lineup-submit-difficulty-display" placeholder="Select difficulty" autocomplete="off" />
+                  <button type="button" id="lineup-submit-difficulty-clear" class="clear-btn" aria-label="Clear difficulty" hidden>&times;</button>
+                </div>
+                <span class="lineup-submit-trail-icon" id="lineup-submit-difficulty-trail" aria-hidden="true">
+                  <i class="ri-star-fill lineup-submit-trail-fallback" aria-hidden="true"></i>
+                </span>
+              </div>
+              <div class="pref-dropdown-list hidden" id="lineup-submit-difficulty-list" role="listbox" aria-labelledby="lineup-submit-difficulty-trigger">
+                <button type="button" class="pref-dropdown-option" data-submit-value="1" role="option"><span>1 star</span></button>
+                <button type="button" class="pref-dropdown-option" data-submit-value="2" role="option"><span>2 stars</span></button>
+                <button type="button" class="pref-dropdown-option" data-submit-value="3" role="option"><span>3 stars</span></button>
+                <button type="button" class="pref-dropdown-option" data-submit-value="4" role="option"><span>4 stars</span></button>
+                <button type="button" class="pref-dropdown-option" data-submit-value="5" role="option"><span>5 stars</span></button>
+              </div>
+              <input type="hidden" id="lineup-submit-difficulty" name="difficulty" required />
+            </div>
+          </div>
+          <div class="lineup-form-field lineup-form-step-hidden" id="lineup-submit-agent-field" data-submit-step="agent" hidden>
             <span>Agent</span>
-            <input type="text" id="lineup-submit-agent" name="agent" maxlength="40" placeholder="e.g. Sova" />
-          </label>
-          <label class="lineup-submit-field hidden" id="lineup-submit-ability-field" hidden>
+            <input type="text" class="lineup-form-input" id="lineup-submit-agent" name="agent" maxlength="40" placeholder="e.g. Sova" aria-label="Agent" />
+          </div>
+          <div class="lineup-form-field lineup-form-step-hidden" id="lineup-submit-ability-field" data-submit-step="ability" hidden>
             <span>Ability</span>
-            <input type="text" id="lineup-submit-ability" name="ability" maxlength="40" placeholder="e.g. Recon Bolt" />
-          </label>
-          <label class="lineup-submit-field hidden" id="lineup-submit-utility-field" hidden>
+            <input type="text" class="lineup-form-input" id="lineup-submit-ability" name="ability" maxlength="40" placeholder="e.g. Recon Bolt" aria-label="Ability" />
+          </div>
+          <div class="lineup-form-field lineup-form-step-hidden" id="lineup-submit-utility-field" data-submit-step="utility" hidden>
             <span>Utility</span>
-            <select id="lineup-submit-utility" name="utility">
+            <select class="lineup-form-select" id="lineup-submit-utility" name="utility" aria-label="Utility">
               <option value="">Select utility</option>
               <option value="smoke">Smoke</option>
               <option value="molotov">Molotov</option>
@@ -3541,30 +3620,39 @@
               <option value="he">HE grenade</option>
               <option value="flashbang">Flashbang</option>
             </select>
-          </label>
-          <label class="lineup-submit-field">
-            <span>Video (MP4, WebM, or MOV — max 50 MB)</span>
-            <input type="file" id="lineup-submit-video" name="video" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" required />
-          </label>
-          <p id="lineup-submit-status" class="lineup-submit-status" role="status" aria-live="polite"></p>
-          <div class="lineup-submit-actions">
-            <button type="button" class="button secondary" id="lineup-submit-cancel">Cancel</button>
-            <button type="submit" class="button primary" id="lineup-submit-send">Send for review</button>
+          </div>
+          <div class="lineup-form-field lineup-form-step-hidden" data-submit-step="video" hidden>
+            <span>Video</span>
+            <div class="lineup-form-file-wrap">
+              <input type="file" class="lineup-form-file" id="lineup-submit-video" name="video" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" required aria-label="Lineup video" />
+              <span class="lineup-form-file-text" data-placeholder="Select file">Select file</span>
+            </div>
+            <span class="lineup-form-hint">MP4, WebM, or MOV — max 50 MB</span>
+          </div>
+          <p id="lineup-submit-status" class="lineup-flow-status" role="status" aria-live="polite"></p>
+          <div class="lineup-flow-actions lineup-form-step-hidden" data-submit-step="actions" hidden>
+            <button type="button" class="lineup-flow-btn lineup-flow-btn-cancel" id="lineup-submit-cancel">Cancel</button>
+            <button type="submit" class="lineup-flow-btn lineup-flow-btn-save" id="lineup-submit-send">Send for review</button>
           </div>
         </form>
       </div>
     </div>
 
-    <div id="lineup-review-overlay" class="lineup-review-overlay trainer-settings-overlay" hidden>
-      <div class="lineup-review-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-review-modal-title">
-        <div class="lineup-review-modal-head">
-          <h3 id="lineup-review-modal-title">Review lineup submissions</h3>
+    <div id="lineup-review-overlay" class="lineup-flow-overlay trainer-settings-overlay" hidden>
+      <div class="lineup-flow-modal lineup-flow-modal--wide modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-review-modal-title">
+        <div class="modal-header">
+          <h3 id="lineup-review-modal-title"><i class="ri-shield-check-line" aria-hidden="true"></i> Review lineups</h3>
           <button type="button" class="close-modal" id="lineup-review-modal-close" aria-label="Close">
             <i class="ri-close-line" aria-hidden="true"></i>
           </button>
         </div>
-        <div id="lineup-review-list" class="lineup-review-list" aria-live="polite"></div>
-        <p id="lineup-review-empty" class="lineup-review-empty hidden" hidden>No pending submissions.</p>
+        <div class="lineup-flow-body">
+          <section class="lineup-review-section">
+            <h4 class="settings-section-title"><i class="ri-time-line" aria-hidden="true"></i> Pending review</h4>
+            <div id="lineup-review-list" class="lineup-review-list" aria-live="polite"></div>
+            <p id="lineup-review-empty" class="lineup-flow-empty hidden" hidden>No pending submissions.</p>
+          </section>
+        </div>
       </div>
     </div>
 
@@ -3725,13 +3813,21 @@
                 <span class="community-chat-status-dot site-assistant-status" aria-hidden="true"></span>
                 <div>
                   <h3 id="community-chat-title">Community Chat</h3>
-                  <p class="site-assistant-subtitle"><span id="community-chat-status">Offline</span> · <span id="community-chat-open-count">0 members have chat open</span></p>
+                  <p id="community-chat-subtitle" class="site-assistant-subtitle">Offline</p>
                 </div>
               </div>
               <div class="site-assistant-header-actions">
                 <button type="button" id="community-chat-dm-close" class="community-chat-dm-close site-assistant-clear" aria-label="Back to public chat" hidden>
                   <i class="ri-arrow-left-line" aria-hidden="true"></i>
                 </button>
+                <div class="community-chat-members-wrap">
+                  <button type="button" id="community-chat-members-toggle" class="site-assistant-clear community-chat-members-toggle" aria-label="Show Morning Roast members" aria-expanded="false" aria-controls="community-chat-members-popover">
+                    <i class="ri-group-line" aria-hidden="true"></i>
+                  </button>
+                  <div id="community-chat-members-popover" class="community-chat-members-popover" hidden role="dialog" aria-label="Morning Roast members">
+                    <div id="community-chat-members-list" class="community-chat-members-list" role="list"></div>
+                  </div>
+                </div>
                 <button type="button" id="community-chat-close" class="site-assistant-close" aria-label="Close community chat">
                   <i class="ri-close-line" aria-hidden="true"></i>
                 </button>

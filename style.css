@@ -55,7 +55,7 @@
   --control-focus-glow: 0 0 0.75rem hsl(from var(--accent-color) h s l / 0.22);
   --dropdown-list-max-height: 250px;
   --glider-height: 3.75rem;
-  --search-icon-size: calc(1.25rem * var(--text-size-scale, 1));
+  --search-icon-size: 1.25rem;
   --overlay-bg: 0 0% 0% / 0.85;
   --sidebar-collapsed-width: calc(3.75rem + 3px);
   --sidebar-expanded-width: calc(12.5rem + 1px);
@@ -2391,10 +2391,11 @@ html.glass-theme .home-inline-link:focus-visible {
   padding-right: 2.1875rem !important;
 }
 
-.section .box-container-holder .box-container .box-holder .selected-view {
+.section .box-container-holder .box-container .box-holder .selected-view,
+.lineup-flow-form .lineup-game-dropdown .selected-view {
   display: flex;
   align-items: center;
-  height: calc(3rem * var(--text-size-scale, 1));
+  height: 3rem;
   background-color: hsl(var(--surface-inset));
   border: var(--border-width) solid hsl(var(--border-subtle));
   border-radius: 1rem;
@@ -2408,7 +2409,8 @@ html.glass-theme .home-inline-link:focus-visible {
     box-shadow var(--button-motion-duration) var(--button-motion-ease);
 }
 
-.section .box-container-holder .box-container .box-holder .selected-view .input-wrapper {
+.section .box-container-holder .box-container .box-holder .selected-view .input-wrapper,
+.lineup-flow-form .lineup-game-dropdown .selected-view .input-wrapper {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -2416,23 +2418,19 @@ html.glass-theme .home-inline-link:focus-visible {
   justify-content: center;
 }
 
-.section .box-container-holder .box-container .box-holder .selected-view:hover:not(:focus-within) {
+.section .box-container-holder .box-container .box-holder .selected-view:hover:not(:focus-within),
+.lineup-flow-form .lineup-game-dropdown .selected-view:hover:not(:focus-within) {
   border-color: var(--control-border-hover);
 }
 
-.section .box-container-holder .box-container .box-holder .selected-view:focus-within {
+.section .box-container-holder .box-container .box-holder .selected-view:focus-within,
+.lineup-flow-form .lineup-game-dropdown .selected-view:focus-within {
   border-color: var(--control-border-focus);
   box-shadow: var(--control-focus-glow);
 }
 
-.section .box-container-holder .box-container .box-holder .selected-view:hover .game-search,
-.section .box-container-holder .box-container .box-holder .selected-view:focus-within .game-search,
-.selected-view:hover .game-search,
-.selected-view:focus-within .game-search {
-  --search-input-text-size: 0.825rem;
-}
-
-.section .box-container-holder .box-container .box-holder .game-search {
+.section .box-container-holder .box-container .box-holder .game-search,
+.lineup-flow-form .lineup-game-dropdown .game-search {
   background: transparent;
   border: none;
   color: white;
@@ -2446,16 +2444,17 @@ html.glass-theme .home-inline-link:focus-visible {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   transform: none;
-  transition: font-size var(--button-motion-duration) var(--button-motion-ease);
 }
 
-.section .box-container-holder .box-container .box-holder .game-search::-moz-placeholder {
+.section .box-container-holder .box-container .box-holder .game-search::-moz-placeholder,
+.lineup-flow-form .lineup-game-dropdown .game-search::-moz-placeholder {
   color: hsl(0, 0%, 27%);
   text-transform: uppercase;
   font-size: inherit;
 }
 
-.section .box-container-holder .box-container .box-holder .game-search::placeholder {
+.section .box-container-holder .box-container .box-holder .game-search::placeholder,
+.lineup-flow-form .lineup-game-dropdown .game-search::placeholder {
   color: hsl(0, 0%, 27%);
   text-transform: uppercase;
   font-size: inherit;
@@ -2502,15 +2501,33 @@ html.glass-theme .home-inline-link:focus-visible {
 .input-container-inner:hover > .icon-sens,
 .input-container-inner:hover > .icon-dpi,
 .input-container-inner:focus-within > .icon-sens,
-.input-container-inner:focus-within > .icon-dpi,
-.selected-view:hover > .search-icon,
-.selected-view:focus-within > .search-icon,
+.input-container-inner:focus-within > .icon-dpi {
+  filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
+  transform: translateZ(0) scale(1);
+}
+
 .settings-general-option:hover .trainer-settings-icon,
 .settings-general-option:focus-visible .trainer-settings-icon,
 .settings-general-option:hover > .settings-general-arrow,
 .settings-general-option:focus-visible > .settings-general-arrow {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
   transform: translateZ(0) scale(1.1);
+}
+
+.selected-view:hover > .search-icon,
+.selected-view:focus-within > .search-icon {
+  filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
+  transform: translateZ(0) scale(1);
+}
+
+.selected-view:hover > :is(.icon-game, .game-trigger-icon, .lineup-submit-trail-icon, .lineup-map-chevron),
+.selected-view:focus-within > :is(.icon-game, .game-trigger-icon, .lineup-submit-trail-icon) {
+  filter: none;
+  transform: translateZ(0) scale(1);
+}
+
+.selected-view:focus-within > .lineup-map-chevron {
+  transform: rotate(180deg) scale(1);
 }
 
 .icon-game {
@@ -2954,7 +2971,7 @@ html.glass-theme .home-inline-link:focus-visible {
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: calc(2.75rem * var(--text-size-scale, 1));
+  min-height: 2.75rem;
   padding: 0 0.75rem 0 2.5rem;
   border-radius: 0.875rem;
   border: var(--border-width) solid hsl(var(--border-subtle));
@@ -2993,7 +3010,7 @@ html.glass-theme .home-inline-link:focus-visible {
 .settings-search-wrap:hover .settings-search-icon,
 .settings-search-wrap:focus-within .settings-search-icon {
   filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
-  transform: translateZ(0) scale(1.1);
+  transform: translateZ(0) scale(1);
 }
 
 .settings-search-input {
@@ -3005,14 +3022,8 @@ html.glass-theme .home-inline-link:focus-visible {
   padding: 0.5rem 2rem 0.5rem 0;
 }
 
-.settings-search-wrap:hover .settings-search-input,
-.settings-search-wrap:focus-within .settings-search-input {
-  --search-input-text-size: 0.9625rem;
-}
-
-:is(.game-search, .settings-search-input, .site-assistant-input, .site-assistant-edit-input) {
-  font-size: calc(var(--search-input-text-size, 0.875rem) * var(--text-size-scale, 1));
-  transition: font-size var(--button-motion-duration) var(--button-motion-ease);
+:is(.settings-search-input, .site-assistant-input, .site-assistant-edit-input, .game-search) {
+  font-size: var(--search-input-text-size, 0.875rem);
 }
 
 .game-search {
@@ -3622,9 +3633,23 @@ html.glass-theme .home-inline-link:focus-visible {
 #trainer-aspect-list.pref-dropdown-list-portal,
 #bg-backdrop-list.pref-dropdown-list-portal,
 #font-family-list.pref-dropdown-list-portal,
-#crosshair-converter-direction-list.pref-dropdown-list-portal {
+#crosshair-converter-direction-list.pref-dropdown-list-portal,
+#lineup-submit-game-list.pref-dropdown-list-portal,
+#lineup-submit-map-list.pref-dropdown-list-portal,
+#lineup-submit-side-list.pref-dropdown-list-portal,
+#lineup-submit-difficulty-list.pref-dropdown-list-portal {
   max-height: var(--dropdown-list-max-height);
   overflow-y: auto;
+}
+
+#lineup-submit-game-list.pref-dropdown-list-portal,
+#lineup-submit-map-list.pref-dropdown-list-portal,
+#lineup-submit-side-list.pref-dropdown-list-portal,
+#lineup-submit-difficulty-list.pref-dropdown-list-portal,
+.lineup-submit-dropdown-list-portal.pref-dropdown-list-portal,
+.lineup-review-dropdown-list.pref-dropdown-list-portal {
+  z-index: 12250;
+  isolation: isolate;
 }
 
 #profile-mode-list,
@@ -5891,14 +5916,13 @@ html.glass-theme .community-chat-profile-loading {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   transform: none;
-  transition: font-size var(--button-motion-duration) var(--button-motion-ease);
 }
 
 .input-container-inner:hover .bottom-input,
 .input-container-inner:focus-within .bottom-input,
 .input-container-inner:hover .game-input-style,
 .input-container-inner:focus-within .game-input-style {
-  font-size: calc(0.825rem * var(--text-size-scale, 1));
+  font-size: calc(0.75rem * var(--text-size-scale, 1));
 }
 
 .game-input-style::-moz-placeholder,
@@ -5911,6 +5935,11 @@ html.glass-theme .community-chat-profile-loading {
 .bottom-input::placeholder {
   color: hsl(0, 0%, 27%);
   text-transform: uppercase;
+}
+
+.custom-dropdown .clear-btn,
+.pref-dropdown .clear-btn {
+  font-size: 1.125rem;
 }
 
 .clear-btn {
@@ -6152,6 +6181,23 @@ body.reduce-motion .sens-finder-hint {
 
 #sensitivity-converter-tab .result-container > .tab-action-bar {
   margin-top: 0;
+}
+
+#sensitivity-converter-tab .selected-view:hover > .search-icon,
+#sensitivity-converter-tab .selected-view:focus-within > .search-icon,
+#sensitivity-converter-tab .selected-view:hover > :is(.icon-game, .game-trigger-icon),
+#sensitivity-converter-tab .selected-view:focus-within > :is(.icon-game, .game-trigger-icon) {
+  transform: translateZ(0) scale(1);
+}
+
+#sensitivity-converter-tab .swap-button:hover:not(:active) svg,
+#sensitivity-converter-tab .swap-button:focus-visible svg {
+  transform: translateZ(0) rotate(var(--swap-btn-rotate, 0deg)) scale(1);
+}
+
+#sensitivity-converter-tab .tab-action-menu :is(.copy-button, .reset-button, .share-button).tab-action-menu-item:hover :is(i, .icon-reset),
+#sensitivity-converter-tab .tab-action-menu :is(.copy-button, .reset-button, .share-button).tab-action-menu-item:focus-visible :is(i, .icon-reset) {
+  transform: translateZ(0) scale(1);
 }
 
 .tab-action-bar--end {
@@ -9649,7 +9695,7 @@ body.username-onboarding-open {
   border: var(--border-width) solid hsl(var(--border-subtle));
   border-radius: 1rem;
   color: hsl(var(--text-primary));
-  font-size: calc(0.75rem * var(--text-size-scale, 1));
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -9691,7 +9737,7 @@ body.username-onboarding-open {
   justify-content: center;
   width: 1em;
   height: 1em;
-  font-size: calc(1rem * var(--text-size-scale, 1));
+  font-size: 1rem;
   font-weight: 400;
   font-style: normal;
   line-height: 1;
@@ -9715,7 +9761,7 @@ body.username-onboarding-open {
 #trainer-timer-icon,
 #profile-mode-icon,
 #profile-timer-icon {
-  font-size: calc(1.25rem * var(--text-size-scale, 1));
+  font-size: 1.25rem;
 }
 
 .pref-dropdown-trigger:hover .pref-dropdown-icon,
@@ -9740,7 +9786,7 @@ body.username-onboarding-open {
 }
 
 .pref-dropdown-chevron {
-  font-size: calc(1.1rem * var(--text-size-scale, 1));
+  font-size: 1.1rem;
   color: hsl(var(--text-description));
   transition:
     transform var(--button-motion-duration) var(--button-motion-ease),
@@ -9784,6 +9830,12 @@ body.username-onboarding-open {
   right: auto;
   left: auto;
   z-index: 10050;
+}
+
+/* Lineup flow modals use z-index 12000 — portaled pickers must stack above them. */
+.lineup-submit-dropdown-list-portal.pref-dropdown-list-portal,
+.lineup-review-dropdown-list.pref-dropdown-list-portal {
+  z-index: 12250;
 }
 
 #theme-settings-overlay .trainer-settings-sections,
@@ -9929,7 +9981,7 @@ body.username-onboarding-open {
   border: none;
   border-radius: 0.75rem;
   color: hsl(var(--text-muted));
-  font-size: calc(0.72rem * var(--text-size-scale, 1));
+  font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -9943,7 +9995,7 @@ body.username-onboarding-open {
 }
 
 .pref-dropdown-option-icon {
-  font-size: calc(0.95rem * var(--text-size-scale, 1));
+  font-size: 0.95rem;
   opacity: 0.75;
 }
 
@@ -9979,7 +10031,7 @@ body.username-onboarding-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: calc(0.62rem * var(--text-size-scale, 1));
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -9990,12 +10042,23 @@ body.username-onboarding-open {
 
 .pref-dropdown-option:hover,
 .pref-dropdown-option.hover {
-  background-color: hsl(var(--surface-raised));
-  color: hsl(var(--text-primary));
+  background: var(--accent-color) !important;
+  background-color: var(--accent-color) !important;
+  color: hsl(0, 0%, 100%);
   font-weight: 600;
   border: none;
   box-shadow: none;
   outline: none;
+}
+
+.section .box-container-holder .box-container .box-holder .game-option:hover,
+.section .box-container-holder .box-container .box-holder .game-option.hover,
+.dropdown-list .game-option:hover,
+.dropdown-list .game-option.hover,
+.dropdown-list-portal .game-option:hover,
+.dropdown-list-portal .game-option.hover {
+  background: var(--accent-color) !important;
+  color: hsl(0, 0%, 100%);
 }
 
 .pref-dropdown-option:hover .pref-dropdown-option-icon,
@@ -10003,16 +10066,27 @@ body.username-onboarding-open {
 .pref-dropdown-option:hover .game-option-icon,
 .pref-dropdown-option.hover .game-option-icon {
   opacity: 1;
+  color: hsl(0, 0%, 100%);
+  filter: none;
 }
 
-.pref-dropdown-option.active {
-  background-color: hsl(from var(--accent-color) h s l / 0.12);
-  color: var(--accent-color);
+.pref-dropdown-option.active,
+.pref-dropdown-option.active.hover,
+.pref-dropdown-option.active:hover {
+  background-color: var(--accent-color);
+  color: hsl(0, 0%, 100%);
+  font-weight: 600;
 }
 
 .pref-dropdown-option.active .pref-dropdown-option-icon,
-.pref-dropdown-option.active .game-option-icon {
+.pref-dropdown-option.active .game-option-icon,
+.pref-dropdown-option.active.hover .pref-dropdown-option-icon,
+.pref-dropdown-option.active.hover .game-option-icon,
+.pref-dropdown-option.active:hover .pref-dropdown-option-icon,
+.pref-dropdown-option.active:hover .game-option-icon {
   opacity: 1;
+  color: hsl(0, 0%, 100%);
+  filter: none;
 }
 
 body.reduce-motion .pref-dropdown-chevron {
@@ -10999,10 +11073,6 @@ html.glass-theme
     .tab-action-menu-trigger:hover,
     .crosshair-preset-btn:hover,
     .lineup-favorites-filter:hover,
-    .pref-dropdown-option:hover,
-    .pref-dropdown-option.hover,
-    .game-option:hover,
-    .game-option.hover,
     .nav-bar .button-container .button:hover,
     .nav-menu-container .button-container .button:hover,
     .nav-menu-container .nav-more-toggle:hover,
@@ -11040,6 +11110,77 @@ html.glass-theme .site-assistant-stack.is-open .site-assistant-toggle:focus-visi
   box-shadow: var(--glass-shadow);
 }
 
+html.glass-theme :is(.lineup-flow-modal, .lineup-flow-overlay .modal-content) {
+  background-color: var(--glass-surface-raised);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+html.glass-theme :is(
+    #lineup-submit-game-list,
+    #lineup-submit-map-list,
+    #lineup-submit-side-list,
+    #lineup-submit-difficulty-list
+  ).pref-dropdown-list-portal,
+html.glass-theme :is(
+    .lineup-submit-dropdown-list-portal,
+    .lineup-review-dropdown-list
+  ).pref-dropdown-list-portal {
+  background-color: var(--glass-surface-raised);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+html.glass-theme .lineup-flow-form .pref-dropdown-option:hover .lineup-submit-side-option-text,
+html.glass-theme .lineup-flow-form .pref-dropdown-option.hover .lineup-submit-side-option-text,
+html.glass-theme .lineup-flow-form .pref-dropdown-option.active .lineup-submit-side-option-text,
+html.glass-theme .lineup-submit-dropdown-list-portal .pref-dropdown-option:hover .lineup-submit-side-option-text,
+html.glass-theme .lineup-submit-dropdown-list-portal .pref-dropdown-option.hover .lineup-submit-side-option-text,
+html.glass-theme .lineup-submit-dropdown-list-portal .pref-dropdown-option.active .lineup-submit-side-option-text {
+  background: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  color: hsl(0, 0%, 100%);
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+}
+
+html.glass-theme .lineup-review-item.setting-block {
+  background-color: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-border);
+}
+
+html.glass-theme .lineup-form-input,
+html.glass-theme .lineup-form-select,
+html.glass-theme .lineup-form-file-wrap,
+html.glass-theme .lineup-flow-form .lineup-game-dropdown .selected-view {
+  background-color: var(--glass-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-border);
+}
+
+html.glass-theme .lineup-flow-form :is(.lineup-form-input, .lineup-form-select, .lineup-form-file-wrap, .lineup-game-dropdown .selected-view):hover,
+html.glass-theme .lineup-review-item-fields :is(.lineup-form-input, .lineup-form-select, .lineup-form-file-wrap):hover,
+html.glass-theme .lineup-flow-form :is(.lineup-form-input, .lineup-form-select):focus-within,
+html.glass-theme .lineup-review-item-fields :is(.lineup-form-input, .lineup-form-select):focus-within,
+html.glass-theme .lineup-flow-form .lineup-game-dropdown .selected-view:focus-within,
+html.glass-theme .lineup-flow-form .lineup-game-dropdown.is-open .selected-view {
+  border-color: var(--accent-color);
+  box-shadow: var(--control-focus-glow);
+}
+
+html.glass-theme .lineup-flow-form .lineup-form-file-wrap:focus-within,
+html.glass-theme .lineup-review-item-fields .lineup-form-file-wrap:focus-within {
+  border-color: var(--glass-border);
+  box-shadow: none;
+}
+
 html.glass-theme .trainer-settings-overlay {
   background: hsl(var(--overlay-bg));
   backdrop-filter: blur(12px);
@@ -11057,30 +11198,70 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .drop
 
 html.glass-theme .pref-dropdown-option:hover,
 html.glass-theme .pref-dropdown-option.hover {
-  background-color: var(--glass-surface-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  background: var(--accent-color) !important;
+  background-color: var(--accent-color) !important;
+  color: hsl(0, 0%, 100%);
   box-shadow: none;
-  color: hsl(var(--text-primary));
+}
+
+html.glass-theme .lineup-submit-dropdown-list-portal .pref-dropdown-option:not(:hover):not(.hover):not(.active),
+html.glass-theme #lineup-submit-map-list .pref-dropdown-option:not(:hover):not(.hover):not(.active),
+html.glass-theme #lineup-submit-side-list .pref-dropdown-option:not(:hover):not(.hover):not(.active),
+html.glass-theme #lineup-submit-difficulty-list .pref-dropdown-option:not(:hover):not(.hover):not(.active) {
+  background: transparent;
+  background-color: transparent;
+  color: hsl(var(--text-muted));
+}
+
+html.glass-theme .pref-dropdown-option.active,
+html.glass-theme .pref-dropdown-option.active:hover,
+html.glass-theme .pref-dropdown-option.active.hover {
+  background: var(--accent-color);
+  color: hsl(0, 0%, 100%);
+  box-shadow: none;
 }
 
 html.glass-theme .section .box-container-holder .box-container .box-holder .game-option:hover,
 html.glass-theme .section .box-container-holder .box-container .box-holder .game-option.hover {
-  background: var(--glass-surface-strong) !important;
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.05);
-  color: hsl(var(--text-primary));
+  background: var(--accent-color) !important;
+  color: hsl(0, 0%, 100%);
+  box-shadow: none;
 }
 
 html.glass-theme .section .box-container-holder .box-container .box-holder .game-option:hover .game-name,
 html.glass-theme .section .box-container-holder .box-container .box-holder .game-option.hover .game-name {
-  color: hsl(var(--text-primary));
+  color: hsl(0, 0%, 100%);
   font-weight: 600;
 }
 
 .lineup-game-panel {
   width: 100%;
+}
+
+.lineup-game-panel-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+
+.lineup-game-panel-top .settings-section-title {
+  margin: 0;
+}
+
+.lineup-panel-top-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.lineup-submit-lineup-owner-btn.hidden,
+.lineup-submit-lineup-btn.hidden {
+  display: none;
 }
 
 .lineup-filters-panel {
@@ -11182,7 +11363,7 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .game
   gap: 0.375rem;
   padding: 0.45rem 0.75rem;
   border-radius: 999px;
-  border: 1px solid hsl(var(--black-sheep));
+  border: 2px solid hsl(var(--black-sheep));
   background: hsl(var(--rich-black));
   color: hsl(var(--text-primary));
   font-size: calc(0.8125rem * var(--text-size-scale, 1));
@@ -11223,7 +11404,7 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .game
   flex-shrink: 0;
   padding: 0.45rem 0.85rem;
   border-radius: 999px;
-  border: 1px solid var(--accent-color);
+  border: 2px solid var(--accent-color);
   background: transparent;
   color: var(--accent-color);
   cursor: pointer;
@@ -11252,121 +11433,573 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .game
   font-size: calc(0.8125rem * var(--text-size-scale, 1));
 }
 
+.lineup-community-owner-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .lineup-video-card--community {
   box-shadow: 0 0 0 0.125rem color-mix(in srgb, var(--accent-color) 22%, hsl(var(--black-sheep)));
 }
 
 .lineup-community-author {
-  margin: 0.15rem 0 0.35rem;
+  margin: 0;
   color: hsl(var(--text-muted));
   font-size: calc(0.75rem * var(--text-size-scale, 1));
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.lineup-submit-overlay,
-.lineup-review-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 12000;
+.lineup-video-card-headline {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: hsl(0 0% 0% / 0.72);
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
-.lineup-submit-overlay[hidden],
-.lineup-review-overlay[hidden] {
+.lineup-video-card-headline-sep {
+  width: 0.2rem;
+  height: 0.2rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: currentColor;
+  color: hsl(var(--text-muted));
+  opacity: 0.75;
+}
+
+.lineup-video-card-headline .lineup-video-title {
+  min-width: 0;
+}
+
+.lineup-flow-overlay {
+  z-index: 12000;
+}
+
+.lineup-flow-overlay[hidden] {
   display: none;
 }
 
-.lineup-submit-modal,
-.lineup-review-modal {
-  width: min(100%, 34rem);
+.lineup-flow-modal {
+  width: min(100%, 36rem);
   max-height: min(90vh, 44rem);
   overflow: auto;
-  padding: 1.25rem;
-  border-radius: 1rem;
-  background: hsl(var(--rich-black));
-  border: 1px solid hsl(var(--black-sheep));
+  padding: 0;
+  position: relative;
+  z-index: 1;
 }
 
-.lineup-review-modal {
-  width: min(100%, 42rem);
+.lineup-flow-modal--wide {
+  width: min(100%, 46rem);
+  max-height: min(90vh, 52rem);
 }
 
-.lineup-submit-modal-head,
-.lineup-review-modal-head {
-  display: flex;
+.lineup-flow-modal .modal-header h3 {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
 }
 
-.lineup-submit-modal-head h3,
-.lineup-review-modal-head h3 {
+.lineup-flow-body {
+  display: grid;
+  gap: 1.5rem;
+  padding: 0 2.5rem 2.5rem;
+}
+
+.lineup-flow-form {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+}
+
+.lineup-form-field.lineup-form-step-hidden,
+.lineup-flow-actions.lineup-form-step-hidden {
+  display: none !important;
+}
+
+.lineup-flow-form .lineup-game-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.lineup-flow-form .lineup-game-dropdown .game-search {
+  padding-right: 2.1875rem !important;
+}
+
+.lineup-flow-form .lineup-game-dropdown.is-open .selected-view:focus-within {
+  border-color: var(--control-border-focus);
+  box-shadow: var(--control-focus-glow);
+}
+
+.lineup-submit-trail-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  line-height: 1;
+  color: hsl(0, 0%, 27%);
+  transform: translateZ(0) scale(1);
+  transition:
+    color var(--button-motion-duration) var(--button-motion-ease),
+    transform var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.lineup-submit-trail-icon.has-value:has(.lineup-submit-trail-image:not([hidden])) {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.lineup-submit-trail-icon.has-value:not(:has(.lineup-submit-trail-fallback)) {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: hsl(from var(--accent-color) h s l / 0.15);
+  color: var(--accent-color);
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+#lineup-submit-side-trail.has-value,
+.lineup-submit-trail-icon[data-review-trail="side"].has-value {
+  min-width: 1.625rem;
+  width: auto;
+  height: 1.375rem;
+  padding: 0 0.4rem;
+  font-size: 0.625rem;
+}
+
+#lineup-submit-difficulty-trail.has-value {
+  width: 24px;
+  min-width: 24px;
+  max-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.lineup-submit-trail-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.lineup-submit-trail-fallback[hidden],
+.lineup-submit-trail-image[hidden] {
+  display: none !important;
+}
+
+.lineup-submit-trail-icon.has-value .lineup-submit-trail-fallback {
+  display: none !important;
+}
+
+.lineup-submit-trail-icon:not(.has-value) .lineup-submit-trail-image {
+  display: none !important;
+}
+
+.lineup-submit-trail-icon.has-value .lineup-submit-trail-image:not([hidden]) {
+  display: block;
+}
+
+.lineup-submit-trail-icon .lineup-submit-trail-image {
+  width: 1.125rem;
+  height: 1.125rem;
+  object-fit: contain;
+  border-radius: 0.25rem;
+}
+
+.lineup-flow-form .lineup-game-dropdown .selected-view:hover .lineup-submit-trail-icon:not(.has-value),
+.lineup-flow-form .lineup-game-dropdown .selected-view:focus-within .lineup-submit-trail-icon:not(.has-value) {
+  color: var(--accent-color);
+  transform: translateZ(0) scale(1);
+}
+
+.lineup-flow-form .lineup-game-dropdown .selected-view:hover .lineup-submit-trail-icon.has-value:not(:has(.lineup-submit-trail-fallback)),
+.lineup-flow-form .lineup-game-dropdown .selected-view:focus-within .lineup-submit-trail-icon.has-value:not(:has(.lineup-submit-trail-fallback)) {
+  background: hsl(from var(--accent-color) h s l / 0.22);
+  color: var(--accent-color);
+}
+
+.lineup-submit-side-option-text {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: hsl(from var(--accent-color) h s l / 0.15);
+  color: var(--accent-color);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  pointer-events: none;
+  transition:
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.lineup-flow-form .pref-dropdown-option:hover .lineup-submit-side-option-text,
+.lineup-flow-form .pref-dropdown-option.hover .lineup-submit-side-option-text,
+.lineup-flow-form .pref-dropdown-option.active .lineup-submit-side-option-text,
+.lineup-flow-form .pref-dropdown-option.active:hover .lineup-submit-side-option-text,
+.lineup-flow-form .pref-dropdown-option.active.hover .lineup-submit-side-option-text,
+.lineup-submit-dropdown-list-portal .pref-dropdown-option:hover .lineup-submit-side-option-text,
+.lineup-submit-dropdown-list-portal .pref-dropdown-option.hover .lineup-submit-side-option-text,
+.lineup-submit-dropdown-list-portal .pref-dropdown-option.active .lineup-submit-side-option-text,
+.lineup-submit-dropdown-list-portal .pref-dropdown-option.active:hover .lineup-submit-side-option-text,
+.lineup-submit-dropdown-list-portal .pref-dropdown-option.active.hover .lineup-submit-side-option-text {
+  background: hsl(0 0% 100% / 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: hsl(0, 0%, 100%);
+  box-shadow: inset 0 0 0 1px hsl(0 0% 100% / 0.18);
+}
+
+.lineup-flow-form .pref-dropdown-option:hover .lineup-map-option-icon,
+.lineup-flow-form .pref-dropdown-option.hover .lineup-map-option-icon,
+.lineup-flow-form .pref-dropdown-option.active .lineup-map-option-icon,
+.lineup-submit-dropdown-list-portal .pref-dropdown-option:hover .lineup-map-option-icon,
+.lineup-submit-dropdown-list-portal .pref-dropdown-option.hover .lineup-map-option-icon,
+.lineup-submit-dropdown-list-portal .pref-dropdown-option.active .lineup-map-option-icon {
+  background: hsl(0 0% 100% / 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-color: hsl(0 0% 100% / 0.18);
+  opacity: 1;
+}
+
+.lineup-flow-form .pref-dropdown-option:is(:hover, .hover, .active) .game-option-icon,
+.lineup-submit-dropdown-list-portal .pref-dropdown-option:is(:hover, .hover, .active) .game-option-icon,
+.lineup-review-dropdown-list.pref-dropdown-list-portal .pref-dropdown-option:is(:hover, .hover, .active) .game-option-icon {
+  background-color: hsl(var(--black-sheep));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: var(--border-width) solid #212121;
+  opacity: 0.9;
+  filter: none;
+  color: inherit;
+}
+
+.lineup-flow-intro {
   margin: 0;
-}
-
-.lineup-submit-intro {
-  margin: 0 0 1rem;
+  padding-bottom: 0.15rem;
   color: hsl(var(--text-muted));
   font-size: calc(0.875rem * var(--text-size-scale, 1));
+  line-height: 1.5;
 }
 
-.lineup-submit-form {
+.lineup-form-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.lineup-form-field.hidden {
+  display: none;
+}
+
+.lineup-flow-form .lineup-form-field > span:first-child {
+  font-size: calc(0.8125rem * var(--text-size-scale, 1));
+  color: hsl(var(--text-muted));
+  line-height: 1.4;
+}
+
+.lineup-form-label {
+  font-size: calc(0.72rem * var(--text-size-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: hsl(var(--text-muted));
+}
+
+.lineup-form-hint {
+  font-size: calc(0.75rem * var(--text-size-scale, 1));
+  color: hsl(var(--text-muted));
+  line-height: 1.4;
+}
+
+.lineup-form-hint--error {
+  color: hsl(0, 72%, 46%);
+}
+
+.lineup-form-input.lineup-form-input--invalid {
+  border-color: hsl(0, 72%, 46%);
+}
+
+.lineup-form-input.lineup-form-input--invalid:focus {
+  border-color: hsl(0, 72%, 46%);
+  box-shadow: 0 0 0 0.1875rem color-mix(in srgb, hsl(0, 72%, 46%) 28%, transparent);
+}
+
+.lineup-form-input,
+.lineup-form-select,
+.lineup-form-file-wrap {
+  width: 100%;
+  min-height: calc(3rem * var(--text-size-scale, 1));
+  padding: 0 1rem;
+  border-radius: 1rem;
+  border: var(--border-width) solid hsl(var(--border-subtle));
+  background-color: hsl(var(--surface-inset));
+  color: hsl(var(--text-primary));
+  box-sizing: border-box;
+  font-size: calc(0.875rem * var(--text-size-scale, 1));
+  transition:
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease),
+    background-color var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.lineup-form-input:focus,
+.lineup-form-select:focus {
+  outline: none;
+}
+
+.lineup-flow-form :is(.lineup-form-input, .lineup-form-select, .lineup-form-file-wrap):hover,
+.lineup-review-item-fields :is(.lineup-form-input, .lineup-form-select, .lineup-form-file-wrap):hover {
+  border-color: var(--control-border-hover);
+}
+
+.lineup-flow-form :is(.lineup-form-input, .lineup-form-select):focus-within,
+.lineup-review-item-fields :is(.lineup-form-input, .lineup-form-select):focus-within {
+  border-color: var(--control-border-focus);
+  box-shadow: var(--control-focus-glow);
+}
+
+.lineup-flow-form .lineup-form-file-wrap:focus-within,
+.lineup-review-item-fields .lineup-form-file-wrap:focus-within {
+  border-color: hsl(var(--border-subtle));
+  box-shadow: none;
+}
+
+.lineup-flow-form .lineup-game-dropdown.is-open .selected-view {
+  border-color: var(--control-border-focus);
+  box-shadow: var(--control-focus-glow);
+}
+
+.lineup-form-input::placeholder {
+  color: hsl(var(--text-faint));
+}
+
+.lineup-form-select {
+  appearance: none;
+  padding-right: 2.75rem;
+  cursor: pointer;
+  font-weight: 500;
+  background-image:
+    linear-gradient(45deg, transparent 50%, hsl(var(--text-muted)) 50%),
+    linear-gradient(135deg, hsl(var(--text-muted)) 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.15rem) calc(50% + 0.12rem),
+    calc(100% - 0.85rem) calc(50% + 0.12rem);
+  background-size:
+    0.4rem 0.4rem,
+    0.4rem 0.4rem;
+  background-repeat: no-repeat;
+}
+
+.lineup-form-select:hover,
+.lineup-form-select:focus {
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--accent-color) 50%),
+    linear-gradient(135deg, var(--accent-color) 50%, transparent 50%);
+}
+
+.lineup-form-select option {
+  background: hsl(var(--rich-black));
+  color: hsl(var(--text-primary));
+}
+
+.lineup-form-file-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+
+.lineup-form-file-wrap .lineup-form-file {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: inherit;
+  background: transparent;
+  color: transparent;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.lineup-form-file-wrap .lineup-form-file::file-selector-button,
+.lineup-form-file-wrap .lineup-form-file::-webkit-file-upload-button {
+  display: none;
+}
+
+.lineup-form-file-text {
+  width: 100%;
+  padding: 0 1rem;
+  text-align: center;
+  color: hsl(var(--text-muted));
+  font-size: calc(0.875rem * var(--text-size-scale, 1));
+  font-weight: 500;
+  line-height: 1.2;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lineup-form-file-wrap.has-file .lineup-form-file-text {
+  color: hsl(var(--text-primary));
+}
+
+.lineup-flow-form .lineup-form-file-wrap:hover .lineup-form-file-text,
+.lineup-review-item-fields .lineup-form-file-wrap:hover .lineup-form-file-text {
+  color: hsl(0, 0%, 100%);
+}
+
+.lineup-flow-status,
+.lineup-flow-empty {
+  margin: 0;
+  color: hsl(var(--text-muted));
+  font-size: calc(0.8125rem * var(--text-size-scale, 1));
+}
+
+.lineup-flow-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  padding-top: 0.65rem;
+}
+
+.lineup-flow-btn {
+  border: var(--border-width) solid hsl(var(--black-sheep));
+  border-radius: 0.75rem;
+  padding: 0.7rem 1.35rem;
+  min-height: calc(2.75rem * var(--text-size-scale, 1));
+  font: inherit;
+  font-size: calc(0.9rem * var(--text-size-scale, 1));
+  font-weight: 600;
+  cursor: pointer;
+  background: hsl(var(--eerie-black));
+  color: hsl(var(--text-primary));
+  transition:
+    background-color var(--button-motion-duration) var(--button-motion-ease),
+    border-color var(--button-motion-duration) var(--button-motion-ease),
+    color var(--button-motion-duration) var(--button-motion-ease),
+    filter var(--button-motion-duration) var(--button-motion-ease),
+    box-shadow var(--button-motion-duration) var(--button-motion-ease);
+}
+
+.lineup-flow-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.lineup-flow-btn:focus-visible {
+  outline: none;
+  border-color: var(--control-border-focus);
+  box-shadow: var(--control-focus-glow);
+}
+
+.lineup-flow-btn-save {
+  border-color: hsl(from var(--accent-color) h s l / 0.45);
+  background: hsl(from var(--accent-color) h s l / 0.12);
+  color: var(--accent-color);
+}
+
+.lineup-flow-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.lineup-flow-modal .modal-header {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.lineup-flow-modal.modal-content {
+  padding-bottom: 2rem;
+}
+
+.lineup-flow-action-primary {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.lineup-review-section {
   display: grid;
   gap: 0.85rem;
 }
 
-.lineup-submit-field {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.lineup-submit-field.hidden {
-  display: none;
-}
-
-.lineup-submit-field span {
-  font-size: calc(0.8125rem * var(--text-size-scale, 1));
-  color: hsl(var(--text-muted));
-}
-
-.lineup-submit-field input,
-.lineup-submit-field select {
-  width: 100%;
-}
-
-.lineup-submit-status {
-  min-height: 1.25rem;
+.lineup-review-section .settings-section-title {
   margin: 0;
-  color: hsl(var(--text-muted));
-  font-size: calc(0.8125rem * var(--text-size-scale, 1));
-}
-
-.lineup-submit-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
 }
 
 .lineup-review-list {
   display: grid;
-  gap: 1rem;
-}
-
-.lineup-review-item {
-  display: grid;
   gap: 0.85rem;
-  padding: 1rem;
-  border-radius: 0.85rem;
-  border: 1px solid hsl(var(--black-sheep));
-  background: hsl(var(--black-sheep) / 0.25);
 }
 
-.lineup-review-item-title {
-  margin: 0 0 0.25rem;
+.lineup-review-item.setting-block {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  margin: 0;
+  padding: 1rem;
+  border-radius: 1rem;
+  gap: 0.85rem;
+}
+
+.lineup-review-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.lineup-review-item-fields {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.lineup-review-item-fields.lineup-flow-form {
+  margin-top: 0;
+}
+
+.lineup-review-item-fields .lineup-form-field > span:first-child {
+  font-size: calc(0.8125rem * var(--text-size-scale, 1));
+  color: hsl(var(--text-muted));
+  line-height: 1.4;
 }
 
 .lineup-review-item-meta,
@@ -11379,19 +12012,27 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .game
 .lineup-review-item-video {
   width: 100%;
   max-height: 14rem;
-  border-radius: 0.65rem;
+  border-radius: 0.85rem;
   background: #000;
+  border: var(--border-width) solid hsl(var(--border-subtle));
 }
 
 .lineup-review-item-actions {
-  display: flex;
-  gap: 0.65rem;
+  width: 100%;
+  margin-top: 0;
+  padding-top: 0.25rem;
 }
 
-.lineup-review-empty {
-  margin: 0;
-  text-align: center;
-  color: hsl(var(--text-muted));
+.lineup-submit-overlay,
+.lineup-review-overlay,
+.lineup-flow-overlay {
+  pointer-events: none;
+}
+
+.lineup-submit-overlay.active,
+.lineup-review-overlay.active,
+.lineup-flow-overlay.active {
+  pointer-events: auto;
 }
 
 .lineup-videos-panel-head .lineup-difficulty-filter {
@@ -11563,7 +12204,7 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .game
 }
 
 .lineup-map-trigger-icon i {
-  font-size: calc(1.25rem * var(--text-size-scale, 1));
+  font-size: 1.25rem;
   color: hsl(0, 0%, 58%);
   filter: drop-shadow(0 0 0.125rem hsl(from var(--accent-color) h s l / 0.4));
   transition:
@@ -11601,7 +12242,7 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .game
 
 .lineup-map-chevron {
   flex-shrink: 0;
-  font-size: calc(1.125rem * var(--text-size-scale, 1));
+  font-size: 1.125rem;
   color: hsl(0, 0%, 27%);
   transition:
     transform 300ms ease,
@@ -11660,7 +12301,8 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .game
 
 .lineup-search-wrap:hover .settings-search-icon,
 .lineup-search-wrap:focus-within .settings-search-icon {
-  transform: translateY(-50%) translateZ(0) scale(1.1);
+  filter: drop-shadow(0 0 0.3125rem hsl(from var(--accent-color) h s l / 0.8));
+  transform: translateY(-50%) translateZ(0) scale(1);
 }
 
 .lineup-search-wrap .settings-search-input {
@@ -11713,9 +12355,13 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .game
   opacity: 1;
 }
 
-.lineup-game-dropdown .pref-dropdown-option.active .game-option-icon,
-.lineup-game-dropdown .pref-dropdown-option:hover .game-option-icon {
-  opacity: 1;
+.lineup-game-dropdown .pref-dropdown-option:is(:hover, .hover, .active) .game-option-icon {
+  background-color: hsl(var(--black-sheep));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: var(--border-width) solid #212121;
+  opacity: 0.9;
+  filter: none;
 }
 
 .lineup-game-empty {
@@ -13243,6 +13889,8 @@ html.glass-theme .section .box-container-holder .box-container .box-holder .game
 .lineup-difficulty-label {
   font-size: calc(0.75rem * var(--text-size-scale, 1));
   font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .lineup-difficulty-dot {
@@ -13413,7 +14061,7 @@ html.glass-theme #crosshair-converter-direction-list {
   min-width: 0;
   pointer-events: none;
   color: hsl(0, 0%, 100%);
-  font-size: calc(0.75rem * var(--text-size-scale, 1));
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -13429,7 +14077,7 @@ html.glass-theme #crosshair-converter-direction-list {
 }
 
 .crosshair-direction-option-arrow {
-  font-size: calc(0.95rem * var(--text-size-scale, 1));
+  font-size: 0.95rem;
   font-weight: normal;
   line-height: 1;
   color: var(--accent-color);
@@ -13744,8 +14392,14 @@ button.scrollToTop {
   transition-timing-function: var(--button-motion-ease);
 }
 
-:is(button, .pref-dropdown-trigger, .pref-dropdown-option, .pref-dropdown-value, .app-sidebar-item, .app-sidebar-label, .app-sidebar-logo-label, .game-search, .nav-bar .button-container .button, .nav-menu-container .button-container .button, .nav-menu-container .nav-more-menu .button, .toggle-btn, .timer-btn, .spread-btn, .app-status-trigger, .settings-general-option, .in-text-button, .lineup-difficulty-tag, .lineup-favorites-filter, .crosshair-preset-btn, .lineup-video-options-item, .selected-view, .topic-indicator) {
+:is(button, .app-sidebar-item, .app-sidebar-label, .app-sidebar-logo-label, .nav-bar .button-container .button, .nav-menu-container .button-container .button, .nav-menu-container .nav-more-menu .button, .toggle-btn, .timer-btn, .spread-btn, .app-status-trigger, .settings-general-option, .in-text-button, .lineup-difficulty-tag, .lineup-favorites-filter, .crosshair-preset-btn, .lineup-video-options-item, .topic-indicator) {
   transition-property: background-color, border-color, color, box-shadow, opacity, filter, font-size;
+  transition-duration: var(--button-motion-duration);
+  transition-timing-function: var(--button-motion-ease);
+}
+
+:is(.game-search, .selected-view, .pref-dropdown-trigger, .pref-dropdown-option, .pref-dropdown-value) {
+  transition-property: background-color, border-color, color, box-shadow, opacity, filter;
   transition-duration: var(--button-motion-duration);
   transition-timing-function: var(--button-motion-ease);
 }
@@ -14120,6 +14774,117 @@ html.glass-theme .community-chat-panel .community-chat-input:focus {
   align-items: center;
   gap: 0.4rem;
   flex-shrink: 0;
+}
+
+.community-chat-members-wrap {
+  position: relative;
+}
+
+.community-chat-members-toggle.active {
+  border-color: var(--control-border-focus);
+  color: hsl(0, 0%, 100%);
+}
+
+.community-chat-members-popover {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 10004;
+  display: flex;
+  flex-direction: column;
+  width: min(18rem, calc(100vw - 2rem));
+  max-height: min(16rem, calc(100vh - 8rem));
+  box-sizing: border-box;
+  padding: 0.35rem;
+  border: var(--border-width) solid hsl(0, 0%, 15%);
+  border-radius: 0.75rem;
+  background-color: hsl(0 0% 11% / 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 0.75rem 1.5rem hsl(0 0% 0% / 0.35);
+  overflow: hidden;
+}
+
+.community-chat-members-popover[hidden] {
+  display: none !important;
+}
+
+.community-chat-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.community-chat-members-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: hsl(0, 0%, 92%);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.community-chat-members-item:hover,
+.community-chat-members-item:focus-visible {
+  background-color: hsl(0, 0%, 18%);
+  outline: none;
+}
+
+.community-chat-members-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(0.82rem * var(--text-size-scale, 1));
+  font-weight: 600;
+}
+
+.community-chat-members-status {
+  flex: 0 0 auto;
+  font-size: calc(0.72rem * var(--text-size-scale, 1));
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.community-chat-members-status.is-online {
+  color: hsl(140, 58%, 58%);
+}
+
+.community-chat-members-status.is-offline {
+  color: hsl(var(--text-muted));
+}
+
+.community-chat-members-empty {
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  color: hsl(var(--text-inactive));
+  font-size: calc(0.8rem * var(--text-size-scale, 1));
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+}
+
+html.glass-theme .community-chat-members-popover {
+  border-color: var(--glass-border);
+  background-color: var(--glass-surface-raised);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: none;
+}
+
+html.glass-theme .community-chat-members-item:hover,
+html.glass-theme .community-chat-members-item:focus-visible {
+  background-color: var(--sidebar-button-hover-bg);
 }
 
 .site-assistant-clear,
@@ -14668,7 +15433,7 @@ html.glass-theme .community-chat-panel .community-chat-input:focus {
 .site-assistant-input {
   flex: 1 1 auto;
   min-width: 0;
-  height: calc(2.4rem * var(--text-size-scale, 1));
+  height: 2.4rem;
   border-radius: 0.85rem;
   border: var(--border-width) solid hsl(var(--border-subtle));
   background-color: hsl(var(--surface-inset));

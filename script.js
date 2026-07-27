@@ -533,6 +533,47 @@ function notifyCopied(body) {
   Toast.notify({ message: plain || "Copied to clipboard", type: "success" });
 }
 
+function stripEmptyNativeTitles(root = document) {
+  const nodes = [];
+  if (root instanceof Element) {
+    if (root.hasAttribute("title")) nodes.push(root);
+    root.querySelectorAll("[title]").forEach((el) => nodes.push(el));
+  } else if (root instanceof Document || root === document) {
+    document.querySelectorAll("[title]").forEach((el) => nodes.push(el));
+  }
+  nodes.forEach((el) => {
+    if (!String(el.getAttribute("title") ?? "").trim()) el.removeAttribute("title");
+  });
+}
+
+function initEmptyTitleGuard() {
+  stripEmptyNativeTitles();
+  if (initEmptyTitleGuard._init) return;
+  initEmptyTitleGuard._init = true;
+
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === "attributes" && mutation.attributeName === "title") {
+        const el = mutation.target;
+        if (el instanceof Element && el.hasAttribute("title") && !String(el.getAttribute("title") ?? "").trim()) {
+          el.removeAttribute("title");
+        }
+        return;
+      }
+      mutation.addedNodes.forEach((node) => {
+        if (node instanceof Element) stripEmptyNativeTitles(node);
+      });
+    });
+  });
+
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["title"],
+  });
+}
+
 function attachUiTooltip(element, text, { placement = "top", id = "" } = {}) {
   if (!(element instanceof HTMLElement)) return;
   const label = String(text ?? "").trim();
@@ -2900,7 +2941,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v292";
+const APP_CACHE_VERSION = "morning-roast-v345";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -9468,6 +9509,8 @@ function refreshLineupVideoCards(root = document) {
     loadLineupVideoPoster(card);
   });
 
+  enhanceLineupVideoEmbeds(scope);
+
   enhanceLineupVideoCardFoots(scope);
   scope.querySelectorAll(".lineup-video-card").forEach((card) => ensureLineupVideoFavoriteButton(card));
   initLineupCardTilt(scope);
@@ -10025,11 +10068,49 @@ function renderLineupVideoUtilityBadge(card) {
   badge.classList.remove("lineup-video-utility-badge--cs2-t", "lineup-video-utility-badge--cs2-ct");
 }
 
+function isLineupCuratedGridCard(card) {
+  const gridId = card.closest(".lineup-video-grid")?.id || "";
+  return gridId === "lineup-valorant-grid" || gridId === "lineup-cs2-grid";
+}
+
+function ensureLineupVideoCardAuthor(card) {
+  if (!isLineupCuratedGridCard(card)) return;
+
+  const body = card.querySelector(".lineup-video-card-foot-body") || card.querySelector(".lineup-video-card-foot");
+  if (!body) return;
+  if (body.querySelector(".lineup-video-card-headline .lineup-community-author")) return;
+
+  const title =
+    body.querySelector(":scope > .lineup-video-title") || body.querySelector(".lineup-video-card-headline .lineup-video-title");
+  if (!title) return;
+
+  let headline = title.closest(".lineup-video-card-headline");
+  if (!headline) {
+    headline = document.createElement("div");
+    headline.className = "lineup-video-card-headline";
+    title.replaceWith(headline);
+    headline.appendChild(title);
+  }
+
+  if (headline.querySelector(".lineup-community-author")) return;
+
+  const sep = document.createElement("span");
+  sep.className = "lineup-video-card-headline-sep";
+  sep.setAttribute("aria-hidden", "true");
+  headline.appendChild(sep);
+
+  const author = document.createElement("p");
+  author.className = "lineup-community-author";
+  author.textContent = "By FuZiveer";
+  headline.appendChild(author);
+}
+
 function enhanceLineupVideoCardFoots(root = document) {
   root.querySelectorAll(".lineup-video-card").forEach((card) => {
     renderLineupVideoCardMapIcon(card);
     renderLineupVideoAgentBadge(card);
     renderLineupVideoUtilityBadge(card);
+    ensureLineupVideoCardAuthor(card);
   });
 }
 
@@ -12083,11 +12164,12 @@ function initLineupVideoModal() {
   // Bind open/close first so a later setup error can't leave clicks dead.
   document.querySelectorAll(".lineup-video-grid").forEach((grid) => {
     grid.addEventListener("click", (event) => {
-      const playTrigger = event.target.closest(".lineup-video-play-trigger");
-      if (!playTrigger || !grid.contains(playTrigger)) return;
-
-      const card = playTrigger.closest(".lineup-video-card");
+      const card = event.target.closest(".lineup-video-card");
       if (!card || !grid.contains(card) || card.classList.contains("lineup-video-card--no-source")) return;
+
+      const playTrigger = event.target.closest(".lineup-video-play-trigger");
+      const embed = event.target.closest(".lineup-video-embed");
+      if (!playTrigger && !embed) return;
 
       const src = getLineupVideoUrl(card);
       if (!src) return;
@@ -16434,6 +16516,7 @@ function initChangelogDateFilter() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initEmptyTitleGuard();
   initAppLoadingScreen();
   initAppSidebar();
   const presenceEl = document.getElementById("app-sidebar-presence");
@@ -17033,3 +17116,9 @@ window.switchTab = switchTab;
 window.cycleTabFromLogo = cycleTabFromLogo;
 window.scrollToTop = scrollToTop;
 window.resolveAppAssetUrl = resolveAppAssetUrl;
+window.getGameIconSrc = getGameIconSrc;
+window.renderGameOptionIcon = renderGameOptionIcon;
+window.getLineupMapIconSrc = getLineupMapIconSrc;
+window.renderLineupMapOptionIcon = renderLineupMapOptionIcon;
+window.getActiveLineupGame = getActiveLineupGame;
+window.setLineupGame = setLineupGame;

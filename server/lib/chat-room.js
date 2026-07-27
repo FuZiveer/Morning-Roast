@@ -632,10 +632,59 @@ function createChatRoom(config, deps = {}) {
       return;
     }
     const pending = routes.listPendingForOwner().map((entry) => routes.toOwnerSubmission(entry));
+    const approved = routes.listApprovedForOwner().map((entry) => routes.toOwnerSubmission(entry));
     send(client, {
       type: "lineup_submission_list",
       pending,
+      approved,
       pendingCount: pending.length,
+    });
+  }
+
+  function handleLineupSubmissionEdit(client, message) {
+    if (!isOwnerDisplayName(client.displayName)) {
+      sendError(client, "forbidden", "Owner access required.");
+      return;
+    }
+    const routes = deps.lineupSubmissionsRoutes;
+    if (!routes) {
+      sendError(client, "unavailable", "Lineup submissions are unavailable.");
+      return;
+    }
+
+    const submissionId = String(message.submissionId || message.id || "").trim();
+    const title = message.title != null ? String(message.title || "").trim() : undefined;
+    const map = message.map != null ? String(message.map || "").trim() : undefined;
+    const game = message.game != null ? String(message.game || "").trim().toLowerCase() : undefined;
+    const side = message.side != null ? String(message.side || "").trim().toLowerCase() : undefined;
+    const submitterName =
+      message.submitterName != null
+        ? String(message.submitterName || "").trim()
+        : message.name != null
+          ? String(message.name || "").trim()
+          : undefined;
+
+    const metadata = {};
+    if (title != null) metadata.title = title;
+    if (map != null) metadata.map = map;
+    if (game != null) metadata.game = game;
+    if (side != null) metadata.side = side;
+    if (submitterName != null) metadata.submitterName = submitterName;
+
+    if (!submissionId || !Object.keys(metadata).length) {
+      sendError(client, "invalid_message", "Invalid edit request.");
+      return;
+    }
+
+    const result = routes.editSubmissionViaWs(submissionId, metadata, client.displayName);
+    if (result.error) {
+      sendError(client, "not_found", "Submission not found.");
+      return;
+    }
+
+    send(client, {
+      type: "lineup_submission_updated",
+      submission: routes.toOwnerSubmission(result.submission),
     });
   }
 
@@ -657,7 +706,15 @@ function createChatRoom(config, deps = {}) {
       return;
     }
 
-    const result = routes.reviewSubmissionViaWs(submissionId, action, client.displayName);
+    const metadata = {};
+    if (message.title != null) metadata.title = message.title;
+    if (message.map != null) metadata.map = message.map;
+    if (message.game != null) metadata.game = message.game;
+    if (message.side != null) metadata.side = message.side;
+    if (message.submitterName != null) metadata.submitterName = message.submitterName;
+    else if (message.name != null) metadata.submitterName = message.name;
+
+    const result = routes.reviewSubmissionViaWs(submissionId, action, client.displayName, metadata);
     if (result.error) {
       sendError(client, "not_found", "Submission not found or already reviewed.");
       return;
@@ -669,6 +726,29 @@ function createChatRoom(config, deps = {}) {
       submission: routes.toOwnerSubmission(result.submission),
       pendingCount: routes.listPendingForOwner().length,
     });
+  }
+
+  function handleLineupSubmissionDelete(client, message) {
+    if (!isOwnerDisplayName(client.displayName)) {
+      sendError(client, "forbidden", "Owner access required.");
+      return;
+    }
+    const routes = deps.lineupSubmissionsRoutes;
+    if (!routes) {
+      sendError(client, "unavailable", "Lineup submissions are unavailable.");
+      return;
+    }
+
+    const submissionId = String(message.submissionId || message.id || "").trim();
+    if (!submissionId) {
+      sendError(client, "invalid_message", "Invalid delete request.");
+      return;
+    }
+
+    const result = routes.deleteSubmissionViaWs(submissionId, client.displayName);
+    if (result.error) {
+      sendError(client, "not_found", "Submission not found.");
+    }
   }
 
   function handleConnection(client) {
@@ -732,6 +812,12 @@ function createChatRoom(config, deps = {}) {
         case "lineup_submission_review":
           handleLineupSubmissionReview(client, message);
           break;
+        case "lineup_submission_edit":
+          handleLineupSubmissionEdit(client, message);
+          break;
+        case "lineup_submission_delete":
+          handleLineupSubmissionDelete(client, message);
+          break;
         default:
           break;
       }
@@ -778,6 +864,7 @@ function createChatRoom(config, deps = {}) {
     },
     verifyClientIdentity,
     verifyOwnerIdentity,
+    isOwnerDisplayName,
     notifyOwners,
     broadcastAll,
   };

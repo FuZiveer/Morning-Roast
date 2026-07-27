@@ -95,6 +95,16 @@
     return profilesByName.get(key) || null;
   }
 
+  function listSavedProfiles() {
+    return [...profilesByName.entries()]
+      .map(([key, entry]) => {
+        const profile = normalizeSavedProfile(entry, key);
+        return { key, ...profile };
+      })
+      .filter((profile) => profile.name && profile.name !== "Guest")
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   function upsertSavedProfile(profile = {}) {
     const name = String(profile.name || "").trim();
     const key = normalizeDisplayNameKey(name);
@@ -526,10 +536,6 @@
     }
   }
 
-  function formatChatOpenLabel(count) {
-    const total = Math.max(0, Number(count) || 0);
-    return total === 1 ? "1 member has chat open" : `${total} members have chat open`;
-  }
 
   async function fetchChatHistory(wsUrl) {
     const httpUrl = resolveHistoryHttpUrl(wsUrl);
@@ -871,9 +877,11 @@
     const formEl = root.querySelector("#community-chat-form");
     const inputEl = root.querySelector("#community-chat-input");
     const sendBtn = root.querySelector("#community-chat-send");
-    const statusEl = root.querySelector("#community-chat-status");
-    const onlineEl = root.querySelector("#community-chat-open-count");
+    const subtitleEl = root.querySelector("#community-chat-subtitle");
     const titleEl = root.querySelector("#community-chat-title");
+    const membersToggle = root.querySelector("#community-chat-members-toggle");
+    const membersPopover = root.querySelector("#community-chat-members-popover");
+    const membersListEl = root.querySelector("#community-chat-members-list");
     const profilePopover = root.querySelector("#community-chat-profile-popover");
     const profileLoadingEl = root.querySelector("#community-chat-profile-loading");
     const profileCloseBtn = root.querySelector("#community-chat-profile-close");
@@ -1838,6 +1846,114 @@
       return button;
     };
 
+    const createMemberItem = (profile, onlineUser = null) => {
+      const name = String(profile?.name || onlineUser?.name || "").trim();
+      if (!name) return null;
+
+      const userId = String(onlineUser?.userId || "").trim();
+      const isOnline = Boolean(onlineUser?.userId);
+      if (isOnline && userId === session.selfId) return null;
+
+      const row = document.createElement("button");
+      row.type = "button";
+      row.role = "listitem";
+      row.className = "community-chat-members-item";
+      row.classList.toggle("is-online", isOnline);
+      row.classList.toggle("is-offline", !isOnline);
+      row.setAttribute("aria-label", isOnline ? `${name} (online)` : `${name} (offline)`);
+
+      const label = document.createElement("span");
+      label.className = "community-chat-members-name";
+      label.textContent = name;
+      row.appendChild(label);
+
+      const status = document.createElement("span");
+      status.className = "community-chat-members-status";
+      status.classList.toggle("is-online", isOnline);
+      status.classList.toggle("is-offline", !isOnline);
+      status.textContent = isOnline ? "Online" : "Offline";
+      row.appendChild(status);
+
+      row.addEventListener("click", () => {
+        setMembersPopoverOpen(false);
+        if (isOnline) {
+          openUserProfile(userId, onlineUser || profile);
+          return;
+        }
+        showProfilePopover({
+          userId: "",
+          name: profile.name,
+          bio: getProfileForDisplayName(profile.name)?.bio || "",
+          avatar: profile.avatar || "",
+          isOwner: Boolean(profile.isOwner),
+          loading: false,
+        });
+      });
+
+      return row;
+    };
+
+    const renderMembersList = () => {
+      if (!membersListEl) return;
+      membersListEl.replaceChildren();
+
+      const onlineByName = new Map(
+        session.onlineUsers
+          .filter((user) => user.userId && user.name)
+          .map((user) => [normalizeDisplayNameKey(user.name), user]),
+      );
+
+      const membersByKey = new Map();
+      listSavedProfiles().forEach((profile) => {
+        membersByKey.set(profile.key, profile);
+      });
+      session.onlineUsers.forEach((user) => {
+        const key = normalizeDisplayNameKey(user.name);
+        if (!key || membersByKey.has(key)) return;
+        membersByKey.set(key, {
+          key,
+          name: user.name,
+          avatar: user.avatar || "",
+          bio: user.bio || "",
+          isOwner: Boolean(user.isOwner),
+        });
+      });
+
+      const members = [...membersByKey.values()].sort((a, b) => {
+        const aOnline = onlineByName.has(a.key);
+        const bOnline = onlineByName.has(b.key);
+        if (aOnline !== bOnline) return aOnline ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      if (!members.length) {
+        const empty = document.createElement("p");
+        empty.className = "community-chat-members-empty";
+        empty.textContent = "No members yet.";
+        membersListEl.appendChild(empty);
+        return;
+      }
+
+      members.forEach((member) => {
+        const onlineUser = onlineByName.get(member.key) || null;
+        const item = createMemberItem(member, onlineUser);
+        if (item) membersListEl.appendChild(item);
+      });
+    };
+
+    let membersPopoverOpen = false;
+
+    const setMembersPopoverOpen = (open) => {
+      if (!membersPopover || !membersToggle) return;
+      membersPopoverOpen = Boolean(open);
+      membersToggle.setAttribute("aria-expanded", membersPopoverOpen ? "true" : "false");
+      membersToggle.classList.toggle("active", membersPopoverOpen);
+      membersPopover.hidden = !membersPopoverOpen;
+      if (membersPopoverOpen) {
+        renderMembersList();
+      }
+    };
+
     const renderFriendsMenu = () => {
       if (!friendsOnlineListEl) return;
       friendsOnlineListEl.replaceChildren();
@@ -1972,9 +2088,6 @@
       if (state === "disabled") {
         session.pendingChannelLoad = false;
       }
-      if (state !== "live" && onlineEl) {
-        onlineEl.textContent = formatChatOpenLabel(0);
-      }
       refreshMessagesLoading();
       updateUi();
     };
@@ -2015,8 +2128,17 @@
         }
       }
 
-      if (statusEl) {
-        statusEl.textContent = session.state === "live" ? "Online" : "Offline";
+      if (subtitleEl) {
+        if (session.state === "live") {
+          subtitleEl.textContent = "Connected to chat";
+        } else if (session.state === "connecting") {
+          subtitleEl.textContent =
+            session.config.ui?.connecting_message || DEFAULT_CONFIG.ui.connecting_message;
+        } else if (session.state === "disabled") {
+          subtitleEl.textContent = session.config.ui?.offline_message || DEFAULT_CONFIG.ui.offline_message;
+        } else {
+          subtitleEl.textContent = "Offline";
+        }
       }
 
       if (profileMessageBtn && profileMessageBtn.dataset.userId) {
@@ -2157,8 +2279,6 @@
     };
 
     const renderPresence = ({ online, chatOpen, users } = {}) => {
-      const count = Number.isFinite(chatOpen) ? chatOpen : online;
-      if (onlineEl) onlineEl.textContent = formatChatOpenLabel(count);
       syncOnlineDisplayNames(users);
       session.onlineUsers = (users || [])
         .map((user) =>
@@ -2179,6 +2299,7 @@
       syncSavedFriendAvatarsFromOnline(session.onlineUsers);
       hydrateMessageProfiles();
       renderSidebar();
+      if (membersPopoverOpen) renderMembersList();
       refreshActiveProfileActions();
     };
 
@@ -2391,6 +2512,9 @@
           case "lineup_submission_reviewed":
             global.MorningRoastLineupSubmissions?.handleChatMessage?.(message);
             break;
+          case "lineup_submission_updated":
+            global.MorningRoastLineupSubmissions?.handleChatMessage?.(message);
+            break;
           case "error":
             if (message.code === "name_required") {
               updateUi();
@@ -2491,6 +2615,26 @@
       void switchChannel("lobby");
     });
 
+    membersToggle?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setMembersPopoverOpen(!membersPopoverOpen);
+    });
+
+    membersPopover?.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    document.addEventListener("click", () => {
+      if (membersPopoverOpen) setMembersPopoverOpen(false);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && membersPopoverOpen) {
+        setMembersPopoverOpen(false);
+        membersToggle?.focus();
+      }
+    });
+
     sidebarEl?.addEventListener("transitionend", (event) => {
       if (event.propertyName === "width") {
         syncChatFriendsMenuPosition();
@@ -2528,6 +2672,7 @@
       }
       if (event.key === CHAT_PROFILES_STORAGE_KEY) {
         hydrateMessageProfiles();
+        if (membersPopoverOpen) renderMembersList();
       }
     });
 
@@ -2542,6 +2687,7 @@
         session.generation += 1;
         closeSocket();
         closeProfilePopover();
+        setMembersPopoverOpen(false);
         userProfiles.clear();
         finishFriendsMenuClose();
         activeSession = null;
@@ -2753,5 +2899,6 @@
     addFriend: addSavedFriend,
     removeFriend: removeSavedFriend,
     getSavedProfile: getProfileForDisplayName,
+    getMembers: listSavedProfiles,
   };
 })(window);
