@@ -7,6 +7,8 @@
   const RECONNECT_MAX_MS = 30000;
   const CHAT_OPEN_EVENT = "morning-roast:chat-open";
   const ASSISTANT_OPEN_EVENT = "morning-roast:assistant-open";
+  const CHAT_HISTORY_STORAGE_KEY = "morningRoastChatHistory";
+  const CHAT_HISTORY_DEFAULT_MAX = 100;
 
   const DEFAULT_CONFIG = {
     enabled: true,
@@ -268,6 +270,64 @@
       }
     }
     return [...byId.values()].sort((a, b) => Number(a.at || 0) - Number(b.at || 0));
+  }
+
+  function getHistoryMaxSize(config) {
+    const size = Number(config?.limits?.history_size);
+    return Number.isFinite(size) && size > 0 ? size : CHAT_HISTORY_DEFAULT_MAX;
+  }
+
+  function normalizeStoredHistoryMessage(message) {
+    if (!message || typeof message !== "object") return null;
+    const id = String(message.id || "").trim();
+    const text = String(message.text || "").trim();
+    const at = Number(message.at);
+    if (!id || !text || !Number.isFinite(at)) return null;
+    const stored = {
+      id,
+      userId: String(message.userId || "").trim(),
+      name: String(message.name || "").trim() || "Guest",
+      text,
+      at,
+    };
+    if (message.isOwner) stored.isOwner = true;
+    return stored;
+  }
+
+  function readLocalChatHistory() {
+    try {
+      const raw = global.localStorage?.getItem(CHAT_HISTORY_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      const list = Array.isArray(parsed) ? parsed : parsed?.messages;
+      return (Array.isArray(list) ? list : [])
+        .map(normalizeStoredHistoryMessage)
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  function writeLocalChatHistory(messages, maxSize = CHAT_HISTORY_DEFAULT_MAX) {
+    if (!global.localStorage) return;
+    const normalized = mergeHistoryMessages(messages)
+      .map(normalizeStoredHistoryMessage)
+      .filter(Boolean)
+      .slice(-maxSize);
+    const payload = { version: 1, updatedAt: Date.now(), messages: normalized };
+    try {
+      global.localStorage.setItem(CHAT_HISTORY_STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      try {
+        const trimmed = normalized.slice(-Math.max(1, Math.floor(maxSize / 2)));
+        global.localStorage.setItem(
+          CHAT_HISTORY_STORAGE_KEY,
+          JSON.stringify({ version: 1, updatedAt: Date.now(), messages: trimmed }),
+        );
+      } catch {
+        // Storage full or unavailable.
+      }
+    }
   }
 
   async function fetchChatConfig(wsUrl) {
@@ -535,11 +595,23 @@
       updateUi();
     };
 
+    const persistChatHistory = (messages) => {
+      writeLocalChatHistory(messages, getHistoryMaxSize(session.config));
+    };
+
+    const persistChatMessage = (message) => {
+      const normalized = normalizeStoredHistoryMessage(message);
+      if (!normalized) return;
+      persistChatHistory(mergeHistoryMessages(readLocalChatHistory(), [normalized]));
+    };
+
     const loadAndRenderHistory = async (...sources) => {
+      const fromLocal = readLocalChatHistory();
       const fromHttp = session.wsUrl ? await fetchChatHistory(session.wsUrl) : [];
-      const merged = mergeHistoryMessages(...sources, fromHttp);
+      const merged = mergeHistoryMessages(fromLocal, ...sources, fromHttp);
       if (!merged.length) return;
       renderHistory(merged);
+      persistChatHistory(merged);
     };
 
     const renderPresence = ({ online, chatOpen, users } = {}) => {
@@ -589,6 +661,7 @@
       if (!text || session.state !== "live" || !isNameAllowed()) return;
       try {
         session.socket?.send(JSON.stringify({ type: "message", text }));
+        global.MorningRoastProfileTags?.recordChatMessage?.();
         inputEl.value = "";
         updateUi();
       } catch {
@@ -677,6 +750,7 @@
             break;
           case "message":
             renderMessage(message, { isSelf: isSelfMessage(message) });
+            persistChatMessage(message);
             updateUi();
             break;
           case "presence":
@@ -783,6 +857,8 @@
       }
       session.wsUrl = resolveChatWsUrl(session.config);
       updateUi();
+      const localHistory = readLocalChatHistory();
+      if (localHistory.length) renderHistory(localHistory);
       await loadAndRenderHistory();
       connect();
     })();

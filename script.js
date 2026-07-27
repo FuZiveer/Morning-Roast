@@ -2867,7 +2867,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v224";
+const APP_CACHE_VERSION = "morning-roast-v234";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -3571,9 +3571,11 @@ function syncProfileBioCount(length) {
 
 function persistProfileFields({ name, bio } = {}) {
   if (name != null) {
+    const previous = getSavedDisplayName();
     const value = String(name).trim().slice(0, PROFILE_DISPLAY_NAME_MAX);
     if (!value) return getSavedDisplayName() || null;
     localStorage.setItem(PROFILE_DISPLAY_NAME_KEY, value);
+    window.MorningRoastProfileTags?.onDisplayNameChanged?.(previous, value);
     syncProfileAvatar(value);
     syncProfilePreview(value);
     return value;
@@ -3744,7 +3746,7 @@ async function completeUsernameOnboarding(name) {
   if (nameInput) nameInput.value = value;
 
   window.MorningRoastChat?.initCommunityChat?.()?.refreshIdentity?.();
-  window.MorningRoastProfileTags?.checkUnlocks?.({ notify: true });
+  window.MorningRoastProfileTags?.checkUnlocks?.({ notify: true, force: true });
   closeUsernameOnboarding();
   return true;
 }
@@ -4305,6 +4307,8 @@ function setUiRefreshMode(mode) {
   localStorage.setItem("prefUiRefresh", normalizeUiRefreshMode(mode));
   localStorage.removeItem("prefHighRefresh");
   UiFpsCap.setMode(mode);
+  bgParticles.sync();
+  bgStars.sync();
 }
 
 UiFpsCap.setMode(normalizeUiRefreshMode(localStorage.getItem("prefUiRefresh") || localStorage.getItem("prefHighRefresh")));
@@ -14253,7 +14257,7 @@ const bgStars = {
   controller: null,
 
   motionAllowed() {
-    return !document.body.classList.contains("reduce-motion") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return !document.body.classList.contains("reduce-motion");
   },
 
   ensure() {
@@ -14438,7 +14442,7 @@ const bgParticles = {
   _lastTime: 0,
 
   motionAllowed() {
-    return !document.body.classList.contains("reduce-motion") && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return !document.body.classList.contains("reduce-motion");
   },
 
   init() {
@@ -14469,8 +14473,8 @@ const bgParticles = {
   },
 
   showStatic() {
-    this.stopAnimation();
     this._active = false;
+    this.stopAnimation();
     if (!this.canvas || !this.ctx) return;
     this.canvas.classList.add("is-active");
     this.resize(true);
@@ -14478,7 +14482,7 @@ const bgParticles = {
   },
 
   start() {
-    if (this._active || !this.canvas || !this.ctx) return;
+    if (!this.canvas || !this.ctx) return;
     this._active = true;
     this.canvas.classList.add("is-active");
     this.resize(true);
@@ -14495,14 +14499,15 @@ const bgParticles = {
   },
 
   startAnimation() {
-    if (!this._active || this._rafId != null) return;
+    if (!this._active) return;
+    this.stopAnimation();
     this._lastTime = 0;
-    this._rafId = requestAnimationFrame((time) => this.tick(time));
+    this._rafId = nativeRequestAnimationFrame((time) => this.tick(time));
   },
 
   stopAnimation() {
     if (this._rafId != null) {
-      cancelAnimationFrame(this._rafId);
+      nativeCancelAnimationFrame(this._rafId);
       this._rafId = null;
     }
     this._lastTime = 0;
@@ -14519,7 +14524,7 @@ const bgParticles = {
     this._lastTime = time;
 
     this.draw(dt);
-    this._rafId = requestAnimationFrame((nextTime) => this.tick(nextTime));
+    this._rafId = nativeRequestAnimationFrame((nextTime) => this.tick(nextTime));
   },
 
   resize(reseed) {
@@ -14637,6 +14642,44 @@ function applyBgBackdrop(mode, value) {
   syncGlassThemeFromBackdrop(normalizedMode);
 }
 
+function getBgBackdropLabelPool() {
+  return [...new Set([...Object.values(BG_PATTERN_LABELS), ...Object.values(BG_IMAGE_LABELS)])];
+}
+
+function syncBgBackdropTriggerWidth() {
+  const dropdown = document.getElementById("bg-backdrop-dropdown");
+  const trigger = document.getElementById("bg-backdrop-trigger");
+  if (!dropdown || !trigger) return;
+
+  let measurer = syncBgBackdropTriggerWidth._measurer;
+  if (!measurer) {
+    measurer = document.createElement("button");
+    measurer.type = "button";
+    measurer.className = "pref-dropdown-trigger";
+    measurer.setAttribute("aria-hidden", "true");
+    measurer.tabIndex = -1;
+    measurer.style.cssText = "position:absolute;top:-9999px;left:-9999px;visibility:hidden;pointer-events:none;width:max-content;";
+    measurer.innerHTML =
+      '<span class="pref-dropdown-value"><i class="ri-pulse-line pref-dropdown-icon" aria-hidden="true"></i><span data-bg-backdrop-measure-label></span></span><i class="ri-arrow-down-s-line pref-dropdown-chevron" aria-hidden="true"></i>';
+    document.body.appendChild(measurer);
+    syncBgBackdropTriggerWidth._measurer = measurer;
+  }
+
+  const labelEl = measurer.querySelector("[data-bg-backdrop-measure-label]");
+  if (!labelEl) return;
+
+  let maxWidth = 0;
+  for (const label of getBgBackdropLabelPool()) {
+    labelEl.textContent = label;
+    maxWidth = Math.max(maxWidth, measurer.offsetWidth);
+  }
+
+  if (maxWidth > 0) {
+    dropdown.style.width = `${maxWidth}px`;
+    dropdown.style.minWidth = `${maxWidth}px`;
+  }
+}
+
 function renderBgBackdropList(mode, activeValue) {
   const list = document.getElementById("bg-backdrop-list");
   if (!list) return;
@@ -14686,6 +14729,8 @@ function syncBgBackdropUi(mode, value) {
   if (normalizedMode !== "none") {
     renderBgBackdropList(normalizedMode, normalizedValue);
   }
+
+  requestAnimationFrame(() => syncBgBackdropTriggerWidth());
 }
 
 const prefDropdownPortalTrackers = new Map();
@@ -15309,6 +15354,7 @@ function initPreferences() {
       renderTargetSpreadPreviewCanvas(spreadPreviewAnim.scale);
     }
     requestAnimationFrame(() => updateAllToggleGliders());
+    requestAnimationFrame(() => syncBgBackdropTriggerWidth());
   };
   const applyContrast = (on) => {
     root.classList.toggle("high-contrast", on);
