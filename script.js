@@ -2900,7 +2900,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v286";
+const APP_CACHE_VERSION = "morning-roast-v292";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -10167,8 +10167,8 @@ function syncLineupSideFilterIcons(game = getActiveLineupGame()) {
 
 function getLineupGameForCard(card) {
   const grid = card.closest(".lineup-video-grid");
-  if (grid?.id === "lineup-cs2-grid") return "cs2";
-  if (grid?.id === "lineup-valorant-grid") return "valorant";
+  if (grid?.id === "lineup-cs2-grid" || grid?.id === "lineup-cs2-community-grid") return "cs2";
+  if (grid?.id === "lineup-valorant-grid" || grid?.id === "lineup-valorant-community-grid") return "valorant";
   return getActiveLineupGame();
 }
 
@@ -10200,16 +10200,17 @@ function applyLineupSearchHighlights(game = getActiveLineupGame()) {
   const lineupTab = document.getElementById("lineup-tab");
   if (lineupTab) clearSettingsSearchHighlights(lineupTab);
   if (!game) return;
-  const grid = getLineupGrid(game);
   const query = getLineupSearchQuery(game).trim();
-  if (!query || !grid) return;
+  if (!query) return;
 
   const filters = getLineupFilters(game);
 
-  grid.querySelectorAll(".lineup-video-card").forEach((card) => {
-    if (!lineupCardMatchesFilters(card, filters)) return;
-    const title = card.querySelector(".lineup-video-title");
-    if (title) highlightSearchMatches(title, query);
+  getLineupGridsForGame(game).forEach((grid) => {
+    grid.querySelectorAll(".lineup-video-card").forEach((card) => {
+      if (!lineupCardMatchesFilters(card, filters)) return;
+      const title = card.querySelector(".lineup-video-title");
+      if (title) highlightSearchMatches(title, query);
+    });
   });
 }
 
@@ -10528,13 +10529,16 @@ function showLineupGameList() {
 }
 
 function hideLineupMapList() {
+  const dropdown = document.querySelector(".lineup-map-dropdown");
   const list = document.getElementById("lineup-map-list");
   if (!list) return;
+  dropdown?.classList.remove("is-open");
   list.classList.add("hidden");
   unmountPrefDropdownPortal(list);
 }
 
 function showLineupMapList() {
+  const dropdown = document.querySelector(".lineup-map-dropdown");
   const list = document.getElementById("lineup-map-list");
   const trigger = document.getElementById("lineup-map-trigger");
   if (!list || !trigger) return;
@@ -10546,6 +10550,7 @@ function showLineupMapList() {
   initTrainerAspectDropdown.close?.();
   initBgBackdropControl.close?.();
 
+  dropdown?.classList.add("is-open");
   list.classList.remove("hidden");
   if (list.classList.contains("pref-dropdown-list-portal")) {
     startPrefDropdownPortalTracking(list, trigger);
@@ -11221,33 +11226,51 @@ async function runLineupFilterTransition(grid, game, filters) {
   updateLineupVideosScrollState(game);
 }
 
+function getLineupCommunityGrid(game = getActiveLineupGame()) {
+  if (!game) return null;
+  return document.getElementById(`lineup-${game}-community-grid`);
+}
+
+function getLineupGridsForGame(game = getActiveLineupGame()) {
+  return [getLineupGrid(game), getLineupCommunityGrid(game)].filter(Boolean);
+}
+
 function applyLineupFilters() {
   const game = getActiveLineupGame();
-  const grid = getLineupGrid(game);
-  if (!grid) return;
+  if (!game) return;
 
   const filters = getLineupFilters(game);
+  const grid = getLineupGrid(game);
+  const communityGrid = getLineupCommunityGrid(game);
 
-  const cards = grid.querySelectorAll(".lineup-video-card");
-  const staticEmpty = grid.querySelector(":scope > .lineup-empty-state:not(.lineup-filter-empty-state)");
+  if (grid) {
+    const cards = grid.querySelectorAll(".lineup-video-card");
+    const staticEmpty = grid.querySelector(":scope > .lineup-empty-state:not(.lineup-filter-empty-state)");
 
-  if (!cards.length) {
-    staticEmpty?.classList.remove("hidden");
-    staticEmpty && (staticEmpty.hidden = false);
-    setLineupFilterEmptyState(grid, false);
+    if (!cards.length) {
+      staticEmpty?.classList.remove("hidden");
+      staticEmpty && (staticEmpty.hidden = false);
+      setLineupFilterEmptyState(grid, false);
+    } else {
+      staticEmpty?.classList.add("hidden");
+      if (staticEmpty) staticEmpty.hidden = true;
+
+      if (!lineupFiltersWillAnimate(grid, filters)) {
+        applyLineupFiltersInstant(grid, game, filters);
+      } else {
+        runLineupFilterTransition(grid, game, filters);
+      }
+    }
+  }
+
+  if (communityGrid) {
+    applyLineupFiltersInstant(communityGrid, game, filters);
+  }
+
+  if (!grid && !communityGrid) return;
+  if (grid && !grid.querySelector(".lineup-video-card")) {
     updateLineupVideosScrollState(game);
-    return;
   }
-
-  staticEmpty?.classList.add("hidden");
-  if (staticEmpty) staticEmpty.hidden = true;
-
-  if (!lineupFiltersWillAnimate(grid, filters)) {
-    applyLineupFiltersInstant(grid, game, filters);
-    return;
-  }
-
-  runLineupFilterTransition(grid, game, filters);
 }
 
 function applyLineupGridStateInstant() {
@@ -11262,12 +11285,32 @@ function applyLineupGridStateInstant() {
   });
 
   const enterGrid = getLineupGrid(game);
-  if (!enterGrid) {
-    refreshLineupVideosFixedHeight(game);
-    return;
+  const filters = getLineupFilters(game);
+
+  function applyCommunityGridFilters() {
+    const communityGrid = getLineupCommunityGrid(game);
+    if (!communityGrid) return;
+    const communityCards = [...communityGrid.querySelectorAll(".lineup-video-card")];
+    const communityTargets = communityCards.filter((card) => lineupCardMatchesFilters(card, filters));
+    communityCards.forEach((card) => {
+      if (communityTargets.includes(card)) {
+        clearLineupCardLeaveTimer(card);
+        card.hidden = false;
+        card.classList.remove("hidden", "lineup-video-card--entering", "lineup-video-card--leaving");
+      } else {
+        hideLineupCardInstant(card);
+      }
+    });
+    setLineupFilterEmptyState(communityGrid, communityTargets.length === 0, { favoritesOnly: filters.favoritesOnly });
+    refreshLineupVideoCards(communityGrid);
   }
 
-  const filters = getLineupFilters(game);
+  if (!enterGrid) {
+    refreshLineupVideosFixedHeight(game);
+    applyCommunityGridFilters();
+    applyLineupSearchHighlights(game);
+    return;
+  }
 
   const allCards = [...enterGrid.querySelectorAll(".lineup-video-card")];
   const staticEmpty = enterGrid.querySelector(":scope > .lineup-empty-state:not(.lineup-filter-empty-state)");
@@ -11277,6 +11320,7 @@ function applyLineupGridStateInstant() {
     if (staticEmpty) staticEmpty.hidden = false;
     setLineupFilterEmptyState(enterGrid, false);
     refreshLineupVideosFixedHeight(game);
+    applyCommunityGridFilters();
     applyLineupSearchHighlights(game);
     return;
   }
@@ -11299,6 +11343,7 @@ function applyLineupGridStateInstant() {
   refreshLineupVideosFixedHeight(game);
   refreshLineupVideoCards(enterGrid);
   applyLineupSearchHighlights(game);
+  applyCommunityGridFilters();
 }
 
 function syncLineupFiltersUiControls() {
@@ -12365,6 +12410,7 @@ function initLineupTab() {
   initLineupMapDropdown();
   initLineupVideoModal();
   window.MorningRoastLineupComments?.init?.();
+  window.MorningRoastLineupSubmissions?.init?.();
   initLineupBadgeInfoPopovers();
   initLineupCardTilt();
   syncLineupGameSelectorUi();

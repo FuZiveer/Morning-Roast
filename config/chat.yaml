@@ -26,8 +26,8 @@ chat:
   ui:
     title: Community Chat
     description: Talk with other Morning Roast visitors in real time.
-    placeholder: Message public chat…
-    dm_placeholder: Message privately…
+    placeholder: Send a message
+    dm_placeholder: Send a message
     dm_offline_message: That user is offline.
     dm_title_prefix: "Chat with"
     public_chat_title: Public

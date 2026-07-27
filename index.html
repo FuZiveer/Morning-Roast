@@ -127,6 +127,7 @@
     <script defer src="tools/online-presence.js"></script>
     <script defer src="tools/community-chat.js"></script>
     <script defer src="tools/lineup-comments.js"></script>
+    <script defer src="tools/lineup-submissions.js"></script>
     <script defer src="tools/profile-tags.js"></script>
     <script defer src="script.js"></script>
   </head>
@@ -1615,6 +1616,10 @@
                     <i class="ri-heart-fill" aria-hidden="true"></i>
                     <span>Favorites</span>
                   </button>
+                  <button type="button" class="lineup-submit-lineup-btn" id="lineup-submit-lineup-btn" aria-label="Submit a lineup">
+                    <i class="ri-upload-2-line" aria-hidden="true"></i>
+                    <span>Submit lineup</span>
+                  </button>
                   <div class="lineup-difficulty-filter" id="lineup-difficulty-filter" role="group" aria-label="Difficulty">
                     <span class="lineup-difficulty-heading lineup-difficulty-filter-heading">
                       <span class="lineup-difficulty-label">Difficulty</span>
@@ -1629,6 +1634,13 @@
                     </div>
                   </div>
                 </div>
+              </div>
+              <div class="lineup-owner-review-banner hidden" id="lineup-owner-review-banner" hidden>
+                <div class="lineup-owner-review-banner-copy">
+                  <i class="ri-shield-check-line" aria-hidden="true"></i>
+                  <span id="lineup-owner-review-banner-text">Lineups waiting for your review</span>
+                </div>
+                <button type="button" class="lineup-owner-review-open-btn" id="lineup-owner-review-open-btn">Review</button>
               </div>
               <div class="lineup-videos-panel hidden" id="lineup-valorant-panel" data-lineup-game-panel="valorant" role="tabpanel" hidden>
                 <div class="lineup-video-grid" id="lineup-valorant-grid">
@@ -1653,6 +1665,14 @@
                       </div>
                     </div>
                   </article>
+                </div>
+                <div class="lineup-community-section hidden" id="lineup-valorant-community-section" hidden>
+                  <div class="lineup-community-section-head">
+                    <h4 class="settings-section-title"><i class="ri-group-line" aria-hidden="true"></i> Community lineups</h4>
+                    <p class="lineup-community-section-note">Submitted by other players and approved by FuZiveer.</p>
+                  </div>
+                  <div class="lineup-video-grid lineup-video-grid--community" id="lineup-valorant-community-grid" data-lineup-source="community"></div>
+                  <p class="lineup-empty-state lineup-community-empty hidden" id="lineup-valorant-community-empty" hidden>No community lineups yet.</p>
                 </div>
               </div>
 
@@ -1763,6 +1783,14 @@
                       </div>
                     </div>
                   </article>
+                </div>
+                <div class="lineup-community-section hidden" id="lineup-cs2-community-section" hidden>
+                  <div class="lineup-community-section-head">
+                    <h4 class="settings-section-title"><i class="ri-group-line" aria-hidden="true"></i> Community lineups</h4>
+                    <p class="lineup-community-section-note">Submitted by other players and approved by FuZiveer.</p>
+                  </div>
+                  <div class="lineup-video-grid lineup-video-grid--community" id="lineup-cs2-community-grid" data-lineup-source="community"></div>
+                  <p class="lineup-empty-state lineup-community-empty hidden" id="lineup-cs2-community-empty" hidden>No community lineups yet.</p>
                 </div>
               </div>
             </div>
@@ -3456,6 +3484,90 @@
       </div>
     </div>
 
+    <div id="lineup-submit-overlay" class="lineup-submit-overlay trainer-settings-overlay" hidden>
+      <div class="lineup-submit-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-submit-modal-title">
+        <div class="lineup-submit-modal-head">
+          <h3 id="lineup-submit-modal-title">Submit a lineup</h3>
+          <button type="button" class="close-modal" id="lineup-submit-modal-close" aria-label="Close">
+            <i class="ri-close-line" aria-hidden="true"></i>
+          </button>
+        </div>
+        <form id="lineup-submit-form" class="lineup-submit-form" autocomplete="off">
+          <p class="lineup-submit-intro">Your lineup goes to FuZiveer for review before it appears in Community lineups.</p>
+          <label class="lineup-submit-field">
+            <span>Title</span>
+            <input type="text" id="lineup-submit-title" name="title" maxlength="120" required placeholder="e.g. A Site Default Smoke" />
+          </label>
+          <label class="lineup-submit-field">
+            <span>Map</span>
+            <select id="lineup-submit-map" name="map" required></select>
+          </label>
+          <label class="lineup-submit-field">
+            <span>Side</span>
+            <select id="lineup-submit-side" name="side" required>
+              <option value="attacker">Attacker</option>
+              <option value="defender">Defender</option>
+            </select>
+          </label>
+          <label class="lineup-submit-field">
+            <span>Callout</span>
+            <input type="text" id="lineup-submit-callout" name="callout" maxlength="80" placeholder="Optional spot name" />
+          </label>
+          <label class="lineup-submit-field">
+            <span>Difficulty</span>
+            <select id="lineup-submit-difficulty" name="difficulty" required>
+              <option value="1">1 star</option>
+              <option value="2">2 stars</option>
+              <option value="3">3 stars</option>
+              <option value="4">4 stars</option>
+              <option value="5">5 stars</option>
+            </select>
+          </label>
+          <label class="lineup-submit-field hidden" id="lineup-submit-agent-field" hidden>
+            <span>Agent</span>
+            <input type="text" id="lineup-submit-agent" name="agent" maxlength="40" placeholder="e.g. Sova" />
+          </label>
+          <label class="lineup-submit-field hidden" id="lineup-submit-ability-field" hidden>
+            <span>Ability</span>
+            <input type="text" id="lineup-submit-ability" name="ability" maxlength="40" placeholder="e.g. Recon Bolt" />
+          </label>
+          <label class="lineup-submit-field hidden" id="lineup-submit-utility-field" hidden>
+            <span>Utility</span>
+            <select id="lineup-submit-utility" name="utility">
+              <option value="">Select utility</option>
+              <option value="smoke">Smoke</option>
+              <option value="molotov">Molotov</option>
+              <option value="incendiary">Incendiary</option>
+              <option value="he">HE grenade</option>
+              <option value="flashbang">Flashbang</option>
+            </select>
+          </label>
+          <label class="lineup-submit-field">
+            <span>Video (MP4, WebM, or MOV — max 50 MB)</span>
+            <input type="file" id="lineup-submit-video" name="video" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" required />
+          </label>
+          <p id="lineup-submit-status" class="lineup-submit-status" role="status" aria-live="polite"></p>
+          <div class="lineup-submit-actions">
+            <button type="button" class="button secondary" id="lineup-submit-cancel">Cancel</button>
+            <button type="submit" class="button primary" id="lineup-submit-send">Send for review</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="lineup-review-overlay" class="lineup-review-overlay trainer-settings-overlay" hidden>
+      <div class="lineup-review-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-review-modal-title">
+        <div class="lineup-review-modal-head">
+          <h3 id="lineup-review-modal-title">Review lineup submissions</h3>
+          <button type="button" class="close-modal" id="lineup-review-modal-close" aria-label="Close">
+            <i class="ri-close-line" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div id="lineup-review-list" class="lineup-review-list" aria-live="polite"></div>
+        <p id="lineup-review-empty" class="lineup-review-empty hidden" hidden>No pending submissions.</p>
+      </div>
+    </div>
+
     <div id="lineup-video-overlay" class="lineup-video-overlay trainer-settings-overlay">
       <div class="lineup-video-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="lineup-video-modal-title">
         <div class="lineup-video-modal-head">
@@ -3636,12 +3748,12 @@
                     </button>
                   </div>
 
-                  <button type="button" id="community-chat-messages-btn" class="community-chat-sidebar-item community-chat-messages-heading" aria-label="Cycle through messages">
+                  <button type="button" id="community-chat-messages-btn" class="community-chat-sidebar-item community-chat-messages-heading" aria-label="Cycle through private chats">
                     <span class="community-chat-sidebar-icon-wrap">
-                      <i class="ri-mail-line" aria-hidden="true"></i>
+                      <i class="ri-chat-private-line" aria-hidden="true"></i>
                       <span id="community-chat-friends-badge" class="community-chat-unread-badge community-chat-friends-badge" hidden aria-hidden="true"></span>
                     </span>
-                    <span class="community-chat-sidebar-label">Messages</span>
+                    <span class="community-chat-sidebar-label">Private</span>
                   </button>
                 </nav>
                 <div id="community-chat-friends-list" class="community-chat-dm-list"></div>
@@ -3663,6 +3775,13 @@
                     <button type="button" id="community-chat-profile-close" class="community-chat-profile-close" aria-label="Close profile">
                       <i class="ri-close-line" aria-hidden="true"></i>
                     </button>
+                    <div id="community-chat-profile-loading" class="community-chat-profile-loading" hidden role="status" aria-live="polite" aria-busy="true">
+                      <div class="community-chat-profile-loading-inner">
+                        <span class="community-chat-messages-loading-spinner" aria-hidden="true"></span>
+                        <p class="community-chat-profile-loading-text">Loading profile…</p>
+                      </div>
+                    </div>
+                    <div class="community-chat-profile-body">
                     <div class="community-chat-profile-head">
                       <span class="community-chat-avatar community-chat-avatar--lg" id="community-chat-profile-avatar" aria-hidden="true"></span>
                       <div class="community-chat-profile-meta">
@@ -3674,12 +3793,13 @@
                     <div class="community-chat-profile-actions" id="community-chat-profile-actions">
                       <button type="button" id="community-chat-profile-message" class="community-chat-profile-message" hidden>Message</button>
                     </div>
+                    </div>
                   </div>
                 </div>
 
                 <form id="community-chat-form" class="site-assistant-form community-chat-form" autocomplete="off">
                   <label class="visually-hidden" for="community-chat-input">Chat message</label>
-                  <input id="community-chat-input" class="site-assistant-input community-chat-input" type="text" maxlength="500" placeholder="Message public chat…" />
+                  <input id="community-chat-input" class="site-assistant-input community-chat-input" type="text" maxlength="500" placeholder="Send a message" />
                   <button type="submit" class="site-assistant-send community-chat-send" id="community-chat-send" aria-label="Send message" disabled>
                     <i class="ri-send-plane-2-line" aria-hidden="true"></i>
                   </button>

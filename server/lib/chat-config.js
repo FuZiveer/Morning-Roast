@@ -19,7 +19,7 @@ const DEFAULT_CONFIG = {
     ui: {
       title: "Community Chat",
       description: "Talk with other Morning Roast visitors in real time.",
-      placeholder: "Message the lobby…",
+      placeholder: "Send a message",
       empty_state: "No messages yet. Say hi!",
       offline_message: "Chat is offline. Try again in a moment.",
       name_required_message: "Set a display name on your Profile before chatting.",

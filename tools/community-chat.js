@@ -12,6 +12,7 @@
   const CHAT_CLOSED_DMS_KEY = "morningRoastChatClosedDms";
   const CHAT_FRIENDS_STORAGE_KEY = "morningRoastChatFriends";
   const CHAT_PROFILES_STORAGE_KEY = "morningRoastChatProfiles";
+  const CHAT_AUTHOR_ID_KEY = "morningRoastChatAuthorId";
   const CHAT_HISTORY_DEFAULT_MAX = 100;
 
   const DEFAULT_CONFIG = {
@@ -23,11 +24,11 @@
     ui: {
       title: "Community Chat",
       description: "Talk with other Morning Roast visitors in real time.",
-      placeholder: "Message public chat…",
-      dm_placeholder: "Message privately…",
+      placeholder: "Send a message",
+      dm_placeholder: "Send a message",
       dm_offline_message: "That user is offline.",
       dm_title_prefix: "Chat with",
-      messages_title: "Messages",
+      messages_title: "Private",
       messages_empty: "No messages yet. Open a profile to start a chat.",
       dm_empty: "No dms open",
       public_chat_title: "Public",
@@ -438,6 +439,35 @@
     };
   }
 
+  function readAuthorId() {
+    try {
+      return String(global.localStorage?.getItem(CHAT_AUTHOR_ID_KEY) || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function writeAuthorId(authorId) {
+    const id = String(authorId || "").trim();
+    if (!id || !global.localStorage) return;
+    try {
+      global.localStorage.setItem(CHAT_AUTHOR_ID_KEY, id);
+    } catch {
+      // Storage full or unavailable.
+    }
+  }
+
+  function getOrCreateAuthorId() {
+    const existing = readAuthorId();
+    if (existing) return existing;
+    const created =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `author-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    writeAuthorId(created);
+    return created;
+  }
+
   function resolveChatWsUrl(config) {
     const host = global.location?.hostname;
     const isLocalHost = host === "localhost" || host === "127.0.0.1";
@@ -845,6 +875,7 @@
     const onlineEl = root.querySelector("#community-chat-open-count");
     const titleEl = root.querySelector("#community-chat-title");
     const profilePopover = root.querySelector("#community-chat-profile-popover");
+    const profileLoadingEl = root.querySelector("#community-chat-profile-loading");
     const profileCloseBtn = root.querySelector("#community-chat-profile-close");
     const profileAvatarEl = root.querySelector("#community-chat-profile-avatar");
     const profileNameEl = root.querySelector("#community-chat-profile-name");
@@ -1176,16 +1207,17 @@
         profileTagsEl.dataset.tagsExpanded = "0";
         renderChatProfileTags(profileTagsEl, name);
       }
-      profileBioEl.textContent = loading
-        ? "Loading profile…"
-        : bio || "No bio yet.";
+      profileBioEl.textContent = bio || "No bio yet.";
 
       if (profileMessageBtn) {
-        const canMessage = !isSelf && resolvedUserId && session.state === "live";
         profileMessageBtn.hidden = !canMessage;
         profileMessageBtn.dataset.userId = canMessage ? resolvedUserId : "";
         profileMessageBtn.dataset.userName = canMessage ? name : "";
       }
+
+      if (profileLoadingEl) profileLoadingEl.hidden = !loading;
+      profilePopover?.toggleAttribute("aria-busy", loading);
+      profilePopover?.classList.toggle("is-profile-loading", loading);
 
       profilePopover.hidden = false;
       profilePopover.setAttribute("aria-hidden", "false");
@@ -1231,8 +1263,8 @@
         profile = onlineMatch;
       }
 
-      trackRecentThread(id, profile);
       reopenDmThread(profile.name || fallback.name || "");
+      trackRecentThread(id, profile);
       closeProfilePopover();
       await switchChannel(id, profile);
       inputEl?.focus({ preventScroll: true });
@@ -1268,7 +1300,7 @@
         isOwner: Boolean(
           onlineUser?.isOwner ?? resolvedCached?.isOwner ?? saved?.isOwner ?? fallback.isOwner,
         ),
-        loading: session.state === "live" && Boolean(onlineUser) && !bio,
+        loading: session.state === "live" && Boolean(onlineUser),
       });
       if (session.state === "live" && onlineUser) requestUserProfile(resolvedId);
     };
@@ -1315,12 +1347,12 @@
       session.dmUnread.set(nextChannel, 0);
       syncActiveMessageIds();
       closeProfilePopover();
-      renderSidebar();
 
       messagesEl.querySelectorAll(".community-chat-msg").forEach((node) => node.remove());
       session.messageIds.clear();
 
       if (nextChannel === "lobby") {
+        renderSidebar();
         await loadAndRenderHistory();
         finishChannelLoad();
         updateUi();
@@ -1328,7 +1360,10 @@
       }
 
       const peer = userProfiles.get(nextChannel) || meta;
+      reopenDmThread(peer.name);
       trackRecentThread(nextChannel, peer);
+      renderSidebar();
+
       const local = getDmThread(peer.name);
       local.forEach((entry) => {
         renderMessage(dmToRenderMessage(entry, session.selfId), {
@@ -2170,7 +2205,13 @@
       const identity = readProfileIdentity();
       try {
         session.socket.send(
-          JSON.stringify({ type: "join", name: identity.name, bio: identity.bio, avatar: identity.avatar }),
+          JSON.stringify({
+            type: "join",
+            name: identity.name,
+            bio: identity.bio,
+            avatar: identity.avatar,
+            authorId: getOrCreateAuthorId(),
+          }),
         );
       } catch {
         // ignore
@@ -2185,7 +2226,11 @@
           session.socket?.send(JSON.stringify({ type: "message", text }));
           global.MorningRoastProfileTags?.recordChatMessage?.();
         } else {
+          const peer = getPeerProfile(session.activeChannel);
+          reopenDmThread(peer.name);
+          trackRecentThread(session.activeChannel, peer);
           session.socket?.send(JSON.stringify({ type: "dm", toUserId: session.activeChannel, text }));
+          renderSidebar();
         }
         inputEl.value = "";
         updateUi();
@@ -2275,6 +2320,7 @@
           case "joined":
             session.selfId = message.you?.id || session.selfId;
             chatSelfUserId = session.selfId;
+            if (message.you?.authorId) writeAuthorId(message.you.authorId);
             if (session.selfId) {
               upsertUserProfile(session.selfId, {
                 name: message.you?.name || readProfileIdentity().name,
@@ -2285,12 +2331,13 @@
             }
             syncMessageAvatars();
             updateUi();
+            global.MorningRoastLineupSubmissions?.onChatJoined?.();
             break;
           case "message": {
             const ids = getChannelMessageIds("lobby");
             if (ids.has(message.id)) break;
-            const self = isSelfMessage(message);
-            if (!self && (!session.panelOpen || session.activeChannel !== "lobby")) {
+            const isSelf = isSelfMessage(message);
+            if (!isSelf && (!session.panelOpen || session.activeChannel !== "lobby")) {
               session.lobbyUnread += 1;
               playChatPingSound();
             }
@@ -2339,6 +2386,11 @@
           case "lineup_comment_vote":
             global.dispatchEvent(new CustomEvent("morning-roast:lineup-comments", { detail: message }));
             break;
+          case "lineup_submission_pending":
+          case "lineup_submission_list":
+          case "lineup_submission_reviewed":
+            global.MorningRoastLineupSubmissions?.handleChatMessage?.(message);
+            break;
           case "error":
             if (message.code === "name_required") {
               updateUi();
@@ -2354,6 +2406,13 @@
             if (message.code === "rate_limited") {
               global.Toast?.notify?.({
                 message: message.message || "Slow down — wait a moment before sending another message.",
+                type: "error",
+              });
+              global.dispatchEvent(new CustomEvent("morning-roast:lineup-comments", { detail: { type: "lineup_comment_failed" } }));
+            }
+            if (message.code === "self_vote") {
+              global.Toast?.notify?.({
+                message: message.message || "You can't vote on your own comment.",
                 type: "error",
               });
               global.dispatchEvent(new CustomEvent("morning-roast:lineup-comments", { detail: { type: "lineup_comment_failed" } }));
@@ -2417,7 +2476,7 @@
 
     if (typeof global.attachUiTooltip === "function") {
       global.attachUiTooltip(lobbyBtn, "Public chat", { placement: "right" });
-      global.attachUiTooltip(messagesHeadingEl, "Cycle through messages", { placement: "right" });
+      global.attachUiTooltip(messagesHeadingEl, "Cycle through private chats", { placement: "right" });
     }
 
     lobbyBtn?.addEventListener("click", () => {
@@ -2666,6 +2725,8 @@
     toggleDock: () => dockApi?.toggle?.(),
     resolveChatWsUrl: (config) => activeSession?.wsUrl || resolveChatWsUrl(config || DEFAULT_CONFIG),
     readProfileIdentity,
+    getAuthorId: getOrCreateAuthorId,
+    readAuthorId,
     isOwnerDisplayName,
     getOwnerDisplayNames: () => [...ownerDisplayNames],
     getSelfUserId: () => chatSelfUserId,

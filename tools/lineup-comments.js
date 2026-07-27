@@ -64,7 +64,11 @@
       id,
       parentId,
       userId,
+      authorId: String(comment.authorId || "").trim(),
       name,
+      authorNameKeys: Array.isArray(comment.authorNameKeys)
+        ? comment.authorNameKeys.map(normalizeAuthorNameKey).filter(Boolean)
+        : [normalizeAuthorNameKey(name)].filter(Boolean),
       text,
       at,
       likes: Math.max(0, Number(comment.likes) || 0),
@@ -142,6 +146,34 @@
 
   function getSelfUserId() {
     return global.MorningRoastChat?.getSelfUserId?.() || "";
+  }
+
+  function getAuthorId() {
+    return global.MorningRoastChat?.getAuthorId?.() || global.MorningRoastChat?.readAuthorId?.() || "";
+  }
+
+  function normalizeAuthorNameKey(name) {
+    return String(name || "").trim().toLowerCase();
+  }
+
+  function isOwnComment(comment) {
+    if (!comment) return false;
+    const authorId = getAuthorId();
+    const selfUserId = getSelfUserId();
+    if (authorId && comment.authorId && authorId === comment.authorId) return true;
+    if (selfUserId && comment.userId === selfUserId) return true;
+    const identity = readProfileIdentity();
+    const nameKey = normalizeAuthorNameKey(identity.name);
+    if (
+      authorId &&
+      comment.authorId === authorId &&
+      nameKey &&
+      Array.isArray(comment.authorNameKeys) &&
+      comment.authorNameKeys.includes(nameKey)
+    ) {
+      return true;
+    }
+    return false;
   }
 
   function resolveCommentsHttpUrl(game, videoId) {
@@ -268,6 +300,7 @@
   }
 
   function renderVoteButtons(comment) {
+    if (isOwnComment(comment)) return "";
     const likeActive = comment.yourVote === 1 ? " is-active" : "";
     const dislikeActive = comment.yourVote === -1 ? " is-active" : "";
     return `
@@ -451,7 +484,8 @@
     const id = String(commentId || "").trim();
     const requestedVote = Number(vote);
     const comment = state.comments.find((entry) => entry.id === id);
-    const nextVote = comment && comment.yourVote === requestedVote ? 0 : requestedVote;
+    if (!comment || isOwnComment(comment)) return;
+    const nextVote = comment.yourVote === requestedVote ? 0 : requestedVote;
     ensureChatJoined();
     sendPayload({
       type: "lineup_comment_vote",

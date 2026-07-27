@@ -4,6 +4,8 @@ const { WebSocketServer, WebSocket } = require("ws");
 const { loadChatConfig, getPublicChatConfig } = require("./lib/chat-config");
 const { createChatRoom } = require("./lib/chat-room");
 const { createAssistantHandler } = require("./lib/assistant-handler");
+const { createLineupSubmissionsStore } = require("./lib/lineup-submissions-store");
+const { createLineupSubmissionsRoutes } = require("./lib/lineup-submissions-routes");
 
 const chatConfigRoot = loadChatConfig();
 const chatSettings = chatConfigRoot.chat || {};
@@ -55,9 +57,18 @@ function broadcastPresenceCount() {
   }
 }
 
-const chatRoom = chatSettings.enabled === false ? null : createChatRoom(chatConfigRoot);
+const chatDeps = {};
+const lineupSubmissionsStore = createLineupSubmissionsStore();
+const chatRoom = chatSettings.enabled === false ? null : createChatRoom(chatConfigRoot, chatDeps);
 const publicChatConfig = getPublicChatConfig(chatConfigRoot);
 const handleAssistantRequest = createAssistantHandler({ isOriginAllowed });
+
+const lineupSubmissionsRoutes = createLineupSubmissionsRoutes({
+  chatRoom,
+  store: lineupSubmissionsStore,
+  corsOrigin: ALLOWED_ORIGINS.includes("*") ? "*" : ALLOWED_ORIGINS[0] || "*",
+});
+chatDeps.lineupSubmissionsRoutes = lineupSubmissionsRoutes;
 
 const server = http.createServer((req, res) => {
   const pathname = new URL(req.url || "/", "http://localhost").pathname;
@@ -126,6 +137,10 @@ const server = http.createServer((req, res) => {
       "Cache-Control": "no-store",
     });
     res.end(JSON.stringify({ game, videoId, comments }));
+    return;
+  }
+
+  if (lineupSubmissionsRoutes.handleRequest(req, res, pathname)) {
     return;
   }
 

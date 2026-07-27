@@ -26,7 +26,7 @@ function stripUrls(text) {
     .replace(/\bwww\.\S+/gi, "[link removed]");
 }
 
-function createChatRoom(config) {
+function createChatRoom(config, deps = {}) {
   const chatConfig = config.chat || {};
   const limits = chatConfig.limits || {};
   const requirements = chatConfig.requirements || {};
@@ -56,6 +56,41 @@ function createChatRoom(config) {
     const normalized = sanitizeText(name, MAX_NAME_LENGTH).toLowerCase();
     if (!normalized) return false;
     return ownerDisplayNames.includes(normalized);
+  }
+
+  function getConnectedClient(userId) {
+    const id = String(userId || "").trim();
+    if (!id) return null;
+    for (const client of clients) {
+      if (client.userId === id && client.readyState === WebSocket.OPEN) return client;
+    }
+    return null;
+  }
+
+  function verifyClientIdentity(userId, displayName) {
+    const client = getConnectedClient(userId);
+    if (!client?.displayName) return false;
+    return normalizeDisplayNameKey(client.displayName) === normalizeDisplayNameKey(displayName);
+  }
+
+  function verifyOwnerIdentity(userId, displayName) {
+    if (!verifyClientIdentity(userId, displayName)) return false;
+    return isOwnerDisplayName(displayName);
+  }
+
+  function notifyOwners(message) {
+    const payload = serializeMessage(message);
+    for (const client of clients) {
+      if (!isOwnerDisplayName(client.displayName)) continue;
+      if (client.readyState === WebSocket.OPEN) client.send(payload);
+    }
+  }
+
+  function broadcastAll(message) {
+    const payload = serializeMessage(message);
+    for (const client of clients) {
+      if (client.readyState === WebSocket.OPEN) client.send(payload);
+    }
   }
 
   function withOwnerFlag(entry) {
@@ -235,16 +270,29 @@ function createChatRoom(config) {
       return;
     }
 
+    let authorId = String(message.authorId || client.authorId || "").trim();
+    if (!authorId) authorId = crypto.randomUUID();
+    client.authorId = authorId;
+
     const previousName = client.displayName;
     const previousAvatar = client.avatar;
     client.displayName = displayName;
     client.bio = bio;
     client.avatar = avatar;
 
+    if (authorId && displayName) {
+      lineupCommentsStore.updateAuthorIdentity(authorId, {
+        userId: client.userId,
+        name: displayName,
+        previousName,
+      });
+    }
+
     send(client, {
       type: "joined",
       you: {
         id: client.userId,
+        authorId: client.authorId,
         name: client.displayName,
         bio: client.bio,
         avatar: client.avatar,
@@ -485,7 +533,11 @@ function createChatRoom(config) {
       id: crypto.randomUUID(),
       parentId,
       userId: client.userId,
+      authorId: client.authorId || "",
       name: client.displayName,
+      authorNameKeys: lineupCommentsStore.normalizeAuthorNameKey(client.displayName)
+        ? [lineupCommentsStore.normalizeAuthorNameKey(client.displayName)]
+        : [],
       text,
       at: now,
       avatar: client.avatar || "",
@@ -533,7 +585,14 @@ function createChatRoom(config) {
       return;
     }
 
-    const updated = lineupCommentsStore.vote(lineupKey, commentId, client.userId, voteValue);
+    const updated = lineupCommentsStore.vote(lineupKey, commentId, client.userId, voteValue, {
+      authorId: client.authorId || "",
+      displayName: client.displayName,
+    });
+    if (updated?.error === "self_vote") {
+      sendError(client, "self_vote", "You can't vote on your own comment.");
+      return;
+    }
     if (!updated) {
       sendError(client, "invalid_message", "Comment not found.");
       return;
@@ -560,6 +619,56 @@ function createChatRoom(config) {
     if (client.chatPanelOpen === next) return;
     client.chatPanelOpen = next;
     broadcastPresence();
+  }
+
+  function handleLineupSubmissionList(client) {
+    if (!isOwnerDisplayName(client.displayName)) {
+      sendError(client, "forbidden", "Owner access required.");
+      return;
+    }
+    const routes = deps.lineupSubmissionsRoutes;
+    if (!routes) {
+      send(client, { type: "lineup_submission_list", pending: [], pendingCount: 0 });
+      return;
+    }
+    const pending = routes.listPendingForOwner().map((entry) => routes.toOwnerSubmission(entry));
+    send(client, {
+      type: "lineup_submission_list",
+      pending,
+      pendingCount: pending.length,
+    });
+  }
+
+  function handleLineupSubmissionReview(client, message) {
+    if (!isOwnerDisplayName(client.displayName)) {
+      sendError(client, "forbidden", "Owner access required.");
+      return;
+    }
+    const routes = deps.lineupSubmissionsRoutes;
+    if (!routes) {
+      sendError(client, "unavailable", "Lineup submissions are unavailable.");
+      return;
+    }
+
+    const submissionId = String(message.submissionId || message.id || "").trim();
+    const action = String(message.action || "").trim().toLowerCase();
+    if (!submissionId || (action !== "approve" && action !== "reject")) {
+      sendError(client, "invalid_message", "Invalid review request.");
+      return;
+    }
+
+    const result = routes.reviewSubmissionViaWs(submissionId, action, client.displayName);
+    if (result.error) {
+      sendError(client, "not_found", "Submission not found or already reviewed.");
+      return;
+    }
+
+    send(client, {
+      type: "lineup_submission_reviewed",
+      action,
+      submission: routes.toOwnerSubmission(result.submission),
+      pendingCount: routes.listPendingForOwner().length,
+    });
   }
 
   function handleConnection(client) {
@@ -617,6 +726,12 @@ function createChatRoom(config) {
         case "lineup_comment_vote":
           handleLineupCommentVote(client, message);
           break;
+        case "lineup_submission_list":
+          handleLineupSubmissionList(client);
+          break;
+        case "lineup_submission_review":
+          handleLineupSubmissionReview(client, message);
+          break;
         default:
           break;
       }
@@ -661,6 +776,10 @@ function createChatRoom(config) {
       if (!lineupKey) return [];
       return lineupCommentsStore.list(lineupKey, { viewerUserId });
     },
+    verifyClientIdentity,
+    verifyOwnerIdentity,
+    notifyOwners,
+    broadcastAll,
   };
 }
 

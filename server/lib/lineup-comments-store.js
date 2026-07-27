@@ -17,6 +17,45 @@ function buildLineupKey(game, videoId) {
   return `${nextGame}:${nextId}`;
 }
 
+function normalizeAuthorNameKey(name) {
+  return String(name || "").trim().toLowerCase();
+}
+
+function normalizeAuthorNameKeys(names, fallbackName = "") {
+  const keys = new Set();
+  for (const name of names || []) {
+    const key = normalizeAuthorNameKey(name);
+    if (key) keys.add(key);
+  }
+  const fallbackKey = normalizeAuthorNameKey(fallbackName);
+  if (fallbackKey) keys.add(fallbackKey);
+  return [...keys];
+}
+
+function isOwnComment(comment, { voterUserId = "", voterAuthorId = "", voterDisplayName = "" } = {}) {
+  if (!comment) return false;
+
+  const voterId = String(voterUserId || "").trim();
+  const authorId = String(voterAuthorId || "").trim();
+  const commentAuthorId = String(comment.authorId || "").trim();
+
+  if (voterId && comment.userId === voterId) return true;
+  if (authorId && commentAuthorId && authorId === commentAuthorId) return true;
+
+  const voterNameKey = normalizeAuthorNameKey(voterDisplayName);
+  if (
+    authorId &&
+    commentAuthorId === authorId &&
+    voterNameKey &&
+    Array.isArray(comment.authorNameKeys) &&
+    comment.authorNameKeys.includes(voterNameKey)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function normalizeComment(entry) {
   if (!entry || typeof entry !== "object") return null;
   const id = String(entry.id || "").trim();
@@ -49,7 +88,9 @@ function normalizeComment(entry) {
     id,
     parentId,
     userId,
+    authorId: String(entry.authorId || "").trim(),
     name,
+    authorNameKeys: normalizeAuthorNameKeys(entry.authorNameKeys, name),
     text,
     at,
     avatar: String(entry.avatar || ""),
@@ -66,7 +107,9 @@ function serializeComment(comment, viewerUserId = "") {
     id: comment.id,
     parentId: comment.parentId,
     userId: comment.userId,
+    authorId: comment.authorId || "",
     name: comment.name,
+    authorNameKeys: [...(comment.authorNameKeys || [])],
     text: comment.text,
     at: comment.at,
     avatar: comment.avatar || "",
@@ -163,7 +206,35 @@ function createLineupCommentsStore({ maxCommentsPerLineup = 200, filePath = reso
     return serializeComment(normalized);
   }
 
-  function vote(lineupKey, commentId, userId, voteValue) {
+  function updateAuthorIdentity(authorId, { userId = "", name = "", previousName = "" } = {}) {
+    const id = String(authorId || "").trim();
+    if (!id) return false;
+
+    const nextName = String(name || "").trim();
+    const prevName = String(previousName || "").trim();
+    const nextNameKey = normalizeAuthorNameKey(nextName);
+    const prevNameKey = normalizeAuthorNameKey(prevName);
+    const sessionUserId = String(userId || "").trim();
+    let changed = false;
+
+    for (const bucket of Object.values(lineups)) {
+      for (const comment of bucket.comments) {
+        if (String(comment.authorId || "").trim() !== id) continue;
+
+        if (sessionUserId) comment.userId = sessionUserId;
+        if (nextName) comment.name = nextName;
+        if (!Array.isArray(comment.authorNameKeys)) comment.authorNameKeys = [];
+        if (nextNameKey && !comment.authorNameKeys.includes(nextNameKey)) comment.authorNameKeys.push(nextNameKey);
+        if (prevNameKey && !comment.authorNameKeys.includes(prevNameKey)) comment.authorNameKeys.push(prevNameKey);
+        changed = true;
+      }
+    }
+
+    if (changed) save();
+    return changed;
+  }
+
+  function vote(lineupKey, commentId, userId, voteValue, voter = {}) {
     const key = String(lineupKey || "").trim();
     const id = String(commentId || "").trim();
     const voterId = String(userId || "").trim();
@@ -173,6 +244,17 @@ function createLineupCommentsStore({ maxCommentsPerLineup = 200, filePath = reso
 
     const comment = findComment(key, id);
     if (!comment) return null;
+
+    if (
+      nextVote !== 0 &&
+      isOwnComment(comment, {
+        voterUserId: voterId,
+        voterAuthorId: voter.authorId,
+        voterDisplayName: voter.displayName,
+      })
+    ) {
+      return { error: "self_vote" };
+    }
 
     const prevVote = comment.votes[voterId] || 0;
     if (prevVote === nextVote) {
@@ -199,11 +281,20 @@ function createLineupCommentsStore({ maxCommentsPerLineup = 200, filePath = reso
   return {
     filePath,
     buildLineupKey,
+    normalizeAuthorNameKey,
+    isOwnComment,
     list,
     pushComment,
+    updateAuthorIdentity,
     vote,
     reload: load,
   };
 }
 
-module.exports = { createLineupCommentsStore, buildLineupKey, resolveCommentsPath };
+module.exports = {
+  createLineupCommentsStore,
+  buildLineupKey,
+  normalizeAuthorNameKey,
+  isOwnComment,
+  resolveCommentsPath,
+};
