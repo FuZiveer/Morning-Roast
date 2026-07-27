@@ -1,13 +1,7 @@
-const fs = require("fs");
-const path = require("path");
+const { readJsonFile, writeJsonFile, resolveDataFile } = require("./safe-json-file");
 
 function resolveCommentsPath() {
-  const configured = process.env.LINEUP_COMMENTS_PATH;
-  if (configured) {
-    return path.isAbsolute(configured) ? configured : path.join(process.cwd(), configured);
-  }
-
-  return path.join(process.cwd(), "data", "lineup-comments.json");
+  return resolveDataFile("lineup-comments.json", "LINEUP_COMMENTS_PATH");
 }
 
 function buildLineupKey(game, videoId) {
@@ -121,48 +115,41 @@ function serializeComment(comment, viewerUserId = "") {
 
 function createLineupCommentsStore({ maxCommentsPerLineup = 200, filePath = resolveCommentsPath() } = {}) {
   let lineups = {};
+  let loadFailed = false;
 
   function load() {
-    try {
-      if (!fs.existsSync(filePath)) {
-        lineups = {};
-        return;
-      }
+    const result = readJsonFile(filePath, { lineups: {} }, "lineup comments");
+    loadFailed = result.source === "failed";
+    const raw = result.data?.lineups && typeof result.data.lineups === "object" ? result.data.lineups : {};
+    lineups = {};
 
-      const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
-      const raw = parsed?.lineups && typeof parsed.lineups === "object" ? parsed.lineups : {};
-      lineups = {};
-
-      for (const [key, bucket] of Object.entries(raw)) {
-        const lineupKey = String(key || "").trim();
-        if (!lineupKey) continue;
-        const comments = (Array.isArray(bucket?.comments) ? bucket.comments : [])
-          .map(normalizeComment)
-          .filter(Boolean);
-        if (comments.length) lineups[lineupKey] = { comments };
-      }
-    } catch (error) {
-      console.warn(`Failed to load lineup comments from ${filePath}:`, error.message);
-      lineups = {};
+    for (const [key, bucket] of Object.entries(raw)) {
+      const lineupKey = String(key || "").trim();
+      if (!lineupKey) continue;
+      const comments = (Array.isArray(bucket?.comments) ? bucket.comments : [])
+        .map(normalizeComment)
+        .filter(Boolean);
+      if (comments.length) lineups[lineupKey] = { comments };
     }
+    if (loadFailed && Object.keys(lineups).length) loadFailed = false;
   }
 
   function save() {
+    if (loadFailed && !Object.keys(lineups).length) {
+      console.warn("[data-persist] Skipping save of empty lineup comments after failed load");
+      return;
+    }
     try {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(
+      writeJsonFile(
         filePath,
-        JSON.stringify(
-          {
-            version: 1,
-            updatedAt: Date.now(),
-            lineups,
-          },
-          null,
-          0,
-        ),
-        "utf8",
+        {
+          version: 1,
+          updatedAt: Date.now(),
+          lineups,
+        },
+        "lineup comments",
       );
+      loadFailed = false;
     } catch (error) {
       console.warn(`Failed to save lineup comments to ${filePath}:`, error.message);
     }

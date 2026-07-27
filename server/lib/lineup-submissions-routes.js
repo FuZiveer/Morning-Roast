@@ -161,6 +161,10 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
     if (payload.side != null) metadata.side = payload.side;
     if (payload.submitterName != null) metadata.submitterName = payload.submitterName;
     else if (payload.name != null) metadata.submitterName = payload.name;
+    if (payload.difficulty != null) metadata.difficulty = payload.difficulty;
+    if (payload.agent != null) metadata.agent = payload.agent;
+    if (payload.ability != null) metadata.ability = payload.ability;
+    if (payload.utility != null) metadata.utility = payload.utility;
     return metadata;
   }
 

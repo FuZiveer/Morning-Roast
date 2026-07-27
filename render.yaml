@@ -8,9 +8,17 @@ services:
     startCommand: node server/presence-server.js
     healthCheckPath: /health
     autoDeploy: true
+    # Persistent disk keeps chat history, lineup videos, and comments across deploys.
+    # Requires a Render plan that supports disks (Starter or higher).
+    disk:
+      name: morning-roast-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: "20"
+      - key: DATA_DIR
+        value: /var/data
       - key: PRESENCE_PATH
         value: /presence
       - key: CHAT_PATH
@@ -18,7 +26,15 @@ services:
       - key: CHAT_CONFIG_PATH
         value: config/chat.yaml
       - key: CHAT_HISTORY_PATH
-        value: data/chat-history.json
+        value: /var/data/chat-history.json
+      - key: CHAT_DM_HISTORY_PATH
+        value: /var/data/chat-dm-history.json
+      - key: LINEUP_SUBMISSIONS_PATH
+        value: /var/data/lineup-submissions.json
+      - key: LINEUP_UPLOADS_DIR
+        value: /var/data/lineup-uploads
+      - key: LINEUP_COMMENTS_PATH
+        value: /var/data/lineup-comments.json
       - key: ASSISTANT_PATH
         value: /assistant/chat
       - key: POLLINATIONS_MODEL

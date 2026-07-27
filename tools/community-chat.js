@@ -2256,13 +2256,19 @@
       const fromLocal = readLocalChatHistory();
       const fromHttp = session.wsUrl ? await fetchChatHistory(session.wsUrl) : [];
       const merged = mergeHistoryMessages(fromLocal, ...sources, fromHttp);
-      if (!merged.length) return;
-      renderHistory(merged);
-      persistChatHistory(merged);
+      if (merged.length) {
+        renderHistory(merged);
+        persistChatHistory(merged);
+        return;
+      }
+      if (fromLocal.length) renderHistory(fromLocal);
     };
 
     const persistChatHistory = (messages) => {
-      writeLocalChatHistory(messages, getHistoryMaxSize(session.config));
+      const existing = readLocalChatHistory();
+      const merged = mergeHistoryMessages(existing, messages);
+      if (!merged.length && existing.length) return;
+      writeLocalChatHistory(merged.length ? merged : existing, getHistoryMaxSize(session.config));
     };
 
     const persistChatMessage = (message) => {

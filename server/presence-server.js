@@ -6,6 +6,7 @@ const { createChatRoom } = require("./lib/chat-room");
 const { createAssistantHandler } = require("./lib/assistant-handler");
 const { createLineupSubmissionsStore } = require("./lib/lineup-submissions-store");
 const { createLineupSubmissionsRoutes } = require("./lib/lineup-submissions-routes");
+const { logPersistedDataPaths } = require("./lib/log-persisted-data-paths");
 
 const chatConfigRoot = loadChatConfig();
 const chatSettings = chatConfigRoot.chat || {};
@@ -243,6 +244,7 @@ presenceWss.on("close", () => clearInterval(pingInterval));
 chatWss?.on("close", () => clearInterval(pingInterval));
 
 server.listen(PORT, () => {
+  logPersistedDataPaths();
   console.log(`Presence server listening on :${PORT}${PRESENCE_PATH}`);
   console.log(`Site assistant proxy listening on :${PORT}${ASSISTANT_PATH}`);
   if (chatRoom) console.log(`Community chat listening on :${PORT}${CHAT_PATH}`);

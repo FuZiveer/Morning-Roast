@@ -663,6 +663,10 @@ function createChatRoom(config, deps = {}) {
         : message.name != null
           ? String(message.name || "").trim()
           : undefined;
+    const difficulty = message.difficulty != null ? String(message.difficulty || "").trim() : undefined;
+    const agent = message.agent != null ? String(message.agent || "").trim() : undefined;
+    const ability = message.ability != null ? String(message.ability || "").trim() : undefined;
+    const utility = message.utility != null ? String(message.utility || "").trim().toLowerCase() : undefined;
 
     const metadata = {};
     if (title != null) metadata.title = title;
@@ -670,6 +674,10 @@ function createChatRoom(config, deps = {}) {
     if (game != null) metadata.game = game;
     if (side != null) metadata.side = side;
     if (submitterName != null) metadata.submitterName = submitterName;
+    if (difficulty != null) metadata.difficulty = difficulty;
+    if (agent != null) metadata.agent = agent;
+    if (ability != null) metadata.ability = ability;
+    if (utility != null) metadata.utility = utility;
 
     if (!submissionId || !Object.keys(metadata).length) {
       sendError(client, "invalid_message", "Invalid edit request.");

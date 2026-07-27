@@ -1,4 +1,8 @@
-const CACHE = "morning-roast-v345"; // Keep in sync with APP_CACHE_VERSION in script.js
+// Site update safety:
+// - Only previous static-asset cache buckets are deleted on activate.
+// - Never touches localStorage, chat history, lineup videos, or API data.
+// - Video/audio requests bypass the service worker entirely.
+const CACHE = "morning-roast-v362"; // Keep in sync with APP_CACHE_VERSION in script.js
 const ASSETS = [
   "./index.html",
   "./style.css",
@@ -9,6 +13,8 @@ const ASSETS = [
   "./tools/community-chat.js",
   "./tools/lineup-comments.js",
   "./tools/lineup-submissions.js",
+  "./tools/valorant-lineup-icons.js",
+  "./tools/lineup-map-posters.js",
   "./tools/profile-tags.js",
   "./script.js",
   "./assets/favicon.ico",

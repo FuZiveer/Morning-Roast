@@ -2941,7 +2941,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v345";
+const APP_CACHE_VERSION = "morning-roast-v362";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -2973,33 +2973,76 @@ function getAppAudioGain(baseGain = 0.05) {
 
 const resetDialogState = {
   pendingAction: null,
+  restore: null,
 };
 
+const CONFIRM_DIALOG_DEFAULTS = {
+  title: "Confirm reset",
+  okLabel: "Reset",
+};
+
+function readConfirmDialogLabels() {
+  return {
+    title: document.getElementById("confirm-reset-title")?.textContent?.trim() || CONFIRM_DIALOG_DEFAULTS.title,
+    okLabel: document.getElementById("confirm-reset-ok")?.textContent?.trim() || CONFIRM_DIALOG_DEFAULTS.okLabel,
+  };
+}
+
+function setConfirmDialogContent({ title, message, okLabel }) {
+  const titleEl = document.getElementById("confirm-reset-title");
+  const messageEl = document.getElementById("confirm-reset-message");
+  const okBtn = document.getElementById("confirm-reset-ok");
+  if (titleEl && title) titleEl.textContent = title;
+  if (messageEl && message != null) messageEl.textContent = message;
+  if (okBtn && okLabel) okBtn.textContent = okLabel;
+}
+
+function restoreConfirmDialogLabels() {
+  if (!resetDialogState.restore) return;
+  setConfirmDialogContent(resetDialogState.restore);
+  resetDialogState.restore = null;
+}
+
+function isElementOverlayOpen(el) {
+  if (!el?.classList.contains("active")) return false;
+  if (el.hidden) return false;
+  if (el.getAttribute("aria-hidden") === "true") return false;
+  return true;
+}
+
 function isScrollLockedByOverlay() {
-  return isUsernameOnboardingOpen() || document.getElementById("confirm-reset-overlay")?.classList.contains("active") || document.getElementById("profile-display-name-overlay")?.classList.contains("active") || document.getElementById("theme-settings-overlay")?.classList.contains("active") || document.getElementById("general-settings-overlay")?.classList.contains("active") || document.getElementById("trainer-settings-overlay")?.classList.contains("active") || document.getElementById("presence-activity-overlay")?.classList.contains("active") || document.getElementById("reaction-test-overlay")?.classList.contains("active") || document.getElementById("lineup-video-overlay")?.classList.contains("active") || document.getElementById("lineup-badge-info-overlay")?.classList.contains("active");
+  if (isUsernameOnboardingOpen()) return true;
+  return [...document.querySelectorAll(".trainer-settings-overlay, .lineup-flow-overlay, .lineup-video-overlay, .lineup-badge-info-overlay, .confirm-reset-overlay")].some(
+    isElementOverlayOpen,
+  );
 }
 
 function syncBodyScrollLock() {
-  document.body.style.overflow = isScrollLockedByOverlay() ? "hidden" : "";
+  const locked = isScrollLockedByOverlay();
+  document.documentElement.style.overflow = locked ? "hidden" : "";
+  document.body.style.overflow = locked ? "hidden" : "";
+  document.body.classList.toggle("overlay-scroll-locked", locked);
 }
 
 function closeConfirmReset() {
   const overlay = document.getElementById("confirm-reset-overlay");
   if (overlay) overlay.classList.remove("active");
   resetDialogState.pendingAction = null;
+  restoreConfirmDialogLabels();
   syncBodyScrollLock();
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 }
 
-function confirmBeforeReset(message, action) {
-  if (!isConfirmResetEnabled()) {
+function confirmBeforeReset(message, action, options = {}) {
+  const { title = CONFIRM_DIALOG_DEFAULTS.title, okLabel = CONFIRM_DIALOG_DEFAULTS.okLabel, force = false } = options;
+  if (!force && !isConfirmResetEnabled()) {
     action();
     return;
   }
   resetDialogState.pendingAction = action;
+  resetDialogState.restore = readConfirmDialogLabels();
+  setConfirmDialogContent({ title, message, okLabel });
   const overlay = document.getElementById("confirm-reset-overlay");
-  const messageEl = document.getElementById("confirm-reset-message");
-  if (messageEl) messageEl.textContent = message;
   if (overlay) overlay.classList.add("active");
   syncBodyScrollLock();
 }
@@ -3854,7 +3897,14 @@ async function completeUsernameOnboarding(name) {
   return true;
 }
 
+function notifyAppLoaded() {
+  if (window.__morningRoastAppLoaded) return;
+  window.__morningRoastAppLoaded = true;
+  window.dispatchEvent(new CustomEvent("morning-roast:app-loaded"));
+}
+
 function queueUsernameOnboardingAfterLoad() {
+  notifyAppLoaded();
   if (hasStoredDisplayName()) return;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => openUsernameOnboarding());
@@ -8950,40 +9000,12 @@ const LINEUP_CS2_UTILITY_DESCRIPTIONS = {
   flashbang: "Blinds players facing the burst. Pop it around corners before peeking to take duels, entry a site, or retake while enemies are white-screened. Bounce flashes to catch multiple angles.",
 };
 
-/** Valorant agent icons (valorant-api.com display icons). */
-const LINEUP_VALORANT_AGENT_ICONS = {
-  astra: "https://media.valorant-api.com/agents/41fb69c1-4189-7b37-f117-bcaf1e96f1bf/displayicon.png",
-  breach: "https://media.valorant-api.com/agents/5f8d3a7f-467b-97f3-062c-13acf203c006/displayicon.png",
-  brimstone: "https://media.valorant-api.com/agents/9f0d8ba9-4140-b941-57d3-a7ad57c6b417/displayicon.png",
-  chamber: "https://media.valorant-api.com/agents/22697a3d-45bf-8dd7-4fec-84a9e28c69d7/displayicon.png",
-  clove: "https://media.valorant-api.com/agents/1dbf2edd-4729-0984-3115-daa5eed44993/displayicon.png",
-  cypher: "https://media.valorant-api.com/agents/117ed9e3-49f3-6512-3ccf-0cada7e3823b/displayicon.png",
-  deadlock: "https://media.valorant-api.com/agents/cc8b64c8-4b25-4ff9-6e7f-37b4da43d235/displayicon.png",
-  fade: "https://media.valorant-api.com/agents/dade69b4-4f5a-8528-247b-219e5a1facd6/displayicon.png",
-  gekko: "https://media.valorant-api.com/agents/e370fa57-4757-3604-3648-499e1f642d3f/displayicon.png",
-  harbor: "https://media.valorant-api.com/agents/95b78ed7-4637-86d9-7e41-71ba8c293152/displayicon.png",
-  iso: "https://media.valorant-api.com/agents/0e38b510-41a8-5780-5e8f-568b2a4f2d6c/displayicon.png",
-  jett: "https://media.valorant-api.com/agents/add6443a-41bd-e414-f6ad-e58d267f4e95/displayicon.png",
-  kayo: "https://media.valorant-api.com/agents/601dbbe7-43ce-be57-2a40-4abd24953621/displayicon.png",
-  killjoy: "https://media.valorant-api.com/agents/1e58de9c-4950-5125-93e9-a0aee9f98746/displayicon.png",
-  miks: "https://media.valorant-api.com/agents/7c8a4701-4de6-9355-b254-e09bc2a34b72/displayicon.png",
-  neon: "https://media.valorant-api.com/agents/bb2a4828-46eb-8cd1-e765-15848195d751/displayicon.png",
-  omen: "https://media.valorant-api.com/agents/8e253930-4c05-31dd-1b6c-968525494517/displayicon.png",
-  phoenix: "https://media.valorant-api.com/agents/eb93336a-449b-9c1b-0a54-a891f7921d69/displayicon.png",
-  raze: "https://media.valorant-api.com/agents/f94c3b30-42be-e959-889c-5aa313dba261/displayicon.png",
-  reyna: "https://media.valorant-api.com/agents/a3bfb853-43b2-7238-a4f1-ad90e9e46bcc/displayicon.png",
-  sage: "https://media.valorant-api.com/agents/569fdd95-4d10-43ab-ca70-79becc718b46/displayicon.png",
-  skye: "https://media.valorant-api.com/agents/6f2a04ca-43e0-be17-7f36-b3908627744d/displayicon.png",
-  sova: "https://media.valorant-api.com/agents/320b2a48-4d9b-a075-30f1-1f93a9b638fa/displayicon.png",
-  tejo: "https://media.valorant-api.com/agents/b444168c-4e35-8076-db47-ef9bf368f384/displayicon.png",
-  veto: "https://media.valorant-api.com/agents/92eeef5d-43b5-1d4a-8d03-b3927a09034b/displayicon.png",
-  viper: "https://media.valorant-api.com/agents/707eab51-4836-f488-046a-cda6bf494859/displayicon.png",
-  vyse: "https://media.valorant-api.com/agents/efba5359-4016-a1e5-7626-b1ae76895940/displayicon.png",
-  waylay: "https://media.valorant-api.com/agents/df1cb487-4902-002e-5c17-d28e83e78588/displayicon.png",
-  yoru: "https://media.valorant-api.com/agents/7f94d92c-4234-0a36-9646-3a87eb8b5c89/displayicon.png",
-};
-const LINEUP_VALORANT_AGENT_LABELS = {
-  kayo: "KAY/O",
+/** Valorant agent/ability icons from tools/valorant-lineup-icons.js (valorant-api.com). */
+const LINEUP_VALORANT_AGENT_ICONS = globalThis.LINEUP_VALORANT_AGENT_ICONS || {};
+const LINEUP_VALORANT_AGENT_LABELS = globalThis.LINEUP_VALORANT_AGENT_LABELS || {};
+const LINEUP_VALORANT_AGENT_SLUG_ALIASES = {
+  "kay-o": "kayo",
+  "kay/o": "kayo",
 };
 
 const LINEUP_VALORANT_UTILITIES = new Set(["smoke", "flash", "molly", "recon"]);
@@ -8999,20 +9021,25 @@ const LINEUP_VALORANT_UTILITY_LABELS = {
   molly: "Molly",
   recon: "Recon",
 };
+const LINEUP_VALORANT_UTILITY_DESCRIPTIONS = {
+  smoke: "Creates a smoke cloud that blocks vision. Use it to take space safely, isolate angles, execute onto a site, or delay pushes while your team moves.",
+  flash: "Blinds enemies who look at the burst. Pop it before peeking to win entry duels, clear common off-angles, or set up a coordinated site take.",
+  molly: "Creates a fire zone that damages over time and denies space. Use it to clear corners, stop plants or defuses, stall retakes, or force enemies out of cover.",
+  recon: "Reveals enemy positions through walls or along a path. Use it to gather info before committing, check common holds, or set up picks for your team.",
+};
+const LINEUP_EMBED_BADGE_CLICK_SELECTOR =
+  ".lineup-video-agent-badge[data-lineup-agent-info], .lineup-video-ability-badge[data-lineup-ability-agent], .lineup-video-utility-badge[data-lineup-cs2-utility], .lineup-video-utility-badge[data-lineup-valorant-utility]";
+
+function isLineupEmbedBadgeClickTarget(target) {
+  return Boolean(target?.closest?.(LINEUP_EMBED_BADGE_CLICK_SELECTOR));
+}
 
 /** Valorant agent ability icons for lineup embed badges (agent:ability slug). */
-const LINEUP_VALORANT_ABILITY_ALIASES = {
+const LINEUP_VALORANT_ABILITY_ALIASES = globalThis.LINEUP_VALORANT_ABILITY_ALIASES || {
   "snare-trap": "chokehold",
   trap: "chokehold",
 };
-const LINEUP_VALORANT_ABILITY_ICONS = {
-  "veto:chokehold": {
-    src: "https://media.valorant-api.com/agents/92eeef5d-43b5-1d4a-8d03-b3927a09034b/abilities/ability1/displayicon.png",
-    label: "Chokehold",
-    description: "EQUIP a viscous fragment of your mutation. FIRE to throw. The fragment deploys upon hitting the ground, creating a trap to hold enemies in place. Held enemies are Deafened, and Decayed. Enemies can destroy the trap before activation.",
-    slot: "Ability 1",
-  },
-};
+const LINEUP_VALORANT_ABILITY_ICONS = globalThis.LINEUP_VALORANT_ABILITY_ICONS || {};
 
 const lineupValorantAgentInfoCache = new Map();
 const lineupValorantAbilityInfoCache = new Map();
@@ -9025,6 +9052,15 @@ const LINEUP_VALORANT_ABILITY_SLOT_LABELS = {
   Ultimate: "Ultimate",
   Passive: "Passive",
 };
+
+/** Card poster URLs from tools/lineup-map-posters.js (Valorant splash + CS2 thumbs). */
+const LINEUP_MAP_POSTERS = globalThis.LINEUP_MAP_POSTERS || {};
+const LINEUP_LOCAL_MAP_POSTERS = Object.fromEntries(
+  Object.entries(globalThis.LINEUP_LOCAL_MAP_POSTERS || { valorant: ["pearl"], cs2: ["mirage"] }).map(([game, slugs]) => [
+    game,
+    new Set((slugs || []).map((slug) => String(slug).toLowerCase())),
+  ])
+);
 
 /** Map icon URLs keyed by game and map slug (Valorant API + MurkyYT/cs2-map-icons). */
 const CS2_MAP_ICON_BASE = "https://raw.githubusercontent.com/MurkyYT/cs2-map-icons/main/images";
@@ -9113,13 +9149,26 @@ function getLineupVideoUrl(card) {
   return getLineupVideoAssetPath(card);
 }
 
+function getLineupMapPosterUrl(game, mapSlug) {
+  const slug = String(mapSlug || "").toLowerCase();
+  if (!game || !slug) return "";
+  return LINEUP_MAP_POSTERS[game]?.[slug] || "";
+}
+
 function getLineupVideoPosterAssetPath(card) {
   const direct = card?.dataset.lineupPosterUrl?.trim();
   if (direct) return resolveAppAssetUrl(direct);
 
   const game = getLineupGameForCard(card);
   const map = (card?.dataset.lineupMap || "").toLowerCase();
-  if (game && map) return resolveAppAssetUrl(`assets/lineups/${game}/${map}/thumbnail.webp`);
+  if (game && map) {
+    if (LINEUP_LOCAL_MAP_POSTERS[game]?.has(map)) {
+      return resolveAppAssetUrl(`assets/lineups/${game}/${map}/thumbnail.webp`);
+    }
+    const remotePoster = getLineupMapPosterUrl(game, map);
+    if (remotePoster) return remotePoster;
+    return resolveAppAssetUrl(`assets/lineups/${game}/${map}/thumbnail.webp`);
+  }
 
   const videoUrl = getLineupVideoAssetPath(card);
   if (!videoUrl) return "";
@@ -9512,7 +9561,9 @@ function refreshLineupVideoCards(root = document) {
   enhanceLineupVideoEmbeds(scope);
 
   enhanceLineupVideoCardFoots(scope);
-  scope.querySelectorAll(".lineup-video-card").forEach((card) => ensureLineupVideoFavoriteButton(card));
+  scope.querySelectorAll(".lineup-video-card").forEach((card) => {
+    ensureLineupVideoFavoriteButton(card);
+  });
   initLineupCardTilt(scope);
 }
 
@@ -9530,12 +9581,126 @@ function lineupAgentToSlug(name) {
 
 function lineupValorantAgentLabel(slug) {
   if (LINEUP_VALORANT_AGENT_LABELS[slug]) return LINEUP_VALORANT_AGENT_LABELS[slug];
-  return slug.charAt(0).toUpperCase() + slug.slice(1);
+  return slug
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function normalizeLineupValorantAgentSlug(raw) {
+  const slug = String(raw || "")
+    .trim()
+    .toLowerCase();
+  if (!slug) return "";
+  if (LINEUP_VALORANT_AGENT_SLUG_ALIASES[slug]) return LINEUP_VALORANT_AGENT_SLUG_ALIASES[slug];
+  if (LINEUP_VALORANT_AGENT_ICONS[slug]) return slug;
+  const compact = slug.replace(/-/g, "");
+  if (LINEUP_VALORANT_AGENT_ICONS[compact]) return compact;
+  for (const agentSlug of Object.keys(LINEUP_VALORANT_AGENT_ICONS)) {
+    if (lineupValorantAgentLabel(agentSlug).toLowerCase().replace(/\s+/g, "-") === slug) return agentSlug;
+  }
+  return slug;
+}
+
+function normalizeLineupValorantAbilitySlug(raw) {
+  const slug = String(raw || "")
+    .trim()
+    .toLowerCase();
+  if (!slug) return "";
+  return LINEUP_VALORANT_ABILITY_ALIASES[slug] || slug;
+}
+
+function slugifyLineupAbilityName(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getLineupValorantAgentDropdownOptions() {
+  return Object.keys(LINEUP_VALORANT_AGENT_ICONS)
+    .sort((a, b) => lineupValorantAgentLabel(a).localeCompare(lineupValorantAgentLabel(b)))
+    .map((slug) => ({
+      slug,
+      label: lineupValorantAgentLabel(slug),
+      icon: LINEUP_VALORANT_AGENT_ICONS[slug],
+    }));
+}
+
+function renderLineupValorantAgentOptionIcon(slug) {
+  const src = LINEUP_VALORANT_AGENT_ICONS[normalizeLineupValorantAgentSlug(slug)];
+  if (!src) return "";
+  return `<img class="game-option-icon lineup-agent-option-icon" src="${src}" alt="" width="18" height="18" decoding="async" loading="lazy" />`;
+}
+
+function renderLineupValorantAbilityOptionIcon(iconSrc) {
+  if (!iconSrc) return `<i class="ri-flashlight-line pref-dropdown-option-icon" aria-hidden="true"></i>`;
+  return `<img class="game-option-icon lineup-ability-option-icon" src="${iconSrc}" alt="" width="18" height="18" decoding="async" loading="lazy" />`;
+}
+
+function getLineupValorantAgentIconSrc(slug) {
+  return LINEUP_VALORANT_AGENT_ICONS[normalizeLineupValorantAgentSlug(slug)] || "";
+}
+
+function getLineupValorantAbilityIconSrc(agentSlug, abilitySlug) {
+  const agent = normalizeLineupValorantAgentSlug(agentSlug);
+  const ability = normalizeLineupValorantAbilitySlug(abilitySlug);
+  return LINEUP_VALORANT_ABILITY_ICONS[`${agent}:${ability}`]?.src || "";
+}
+
+function getLineupValorantAbilityDropdownOptionsFromStatic(agentSlug) {
+  const normalizedAgent = normalizeLineupValorantAgentSlug(agentSlug);
+  if (!normalizedAgent) return [];
+  return Object.entries(LINEUP_VALORANT_ABILITY_ICONS)
+    .filter(([key]) => key.startsWith(`${normalizedAgent}:`))
+    .map(([key, entry]) => ({
+      slug: key.split(":")[1],
+      label: entry.label,
+      icon: entry.src,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+async function fetchLineupValorantAbilityDropdownOptions(agentSlug) {
+  const staticOptions = getLineupValorantAbilityDropdownOptionsFromStatic(agentSlug);
+  if (staticOptions.length) return staticOptions;
+
+  const normalizedAgent = normalizeLineupValorantAgentSlug(agentSlug);
+  if (!normalizedAgent) return [];
+
+  const bundle = await fetchValorantAgentBundle(normalizedAgent);
+  if (!bundle?.abilities?.length) return [];
+
+  return bundle.abilities
+    .filter((ability) => ability.displayName && ability.displayIcon)
+    .map((ability) => ({
+      slug: slugifyLineupAbilityName(ability.displayName),
+      label: ability.displayName,
+      icon: ability.displayIcon,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function getLineupValorantAgentDropdownLabel(slug) {
+  return lineupValorantAgentLabel(normalizeLineupValorantAgentSlug(slug));
+}
+
+async function getLineupValorantAbilityDropdownLabel(agentSlug, abilitySlug) {
+  const normalizedAgent = normalizeLineupValorantAgentSlug(agentSlug);
+  const normalizedAbility = normalizeLineupValorantAbilitySlug(abilitySlug);
+  if (!normalizedAgent || !normalizedAbility) return "";
+
+  const staticEntry = LINEUP_VALORANT_ABILITY_ICONS[`${normalizedAgent}:${normalizedAbility}`];
+  if (staticEntry?.label) return staticEntry.label;
+
+  const options = await fetchLineupValorantAbilityDropdownOptions(normalizedAgent);
+  return options.find((entry) => entry.slug === normalizedAbility)?.label || normalizedAbility.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
 }
 
 function getLineupValorantAgent(card) {
-  const explicit = card.dataset.lineupAgent?.trim().toLowerCase();
-  if (explicit && LINEUP_VALORANT_AGENT_ICONS[explicit]) return explicit;
+  const explicit = normalizeLineupValorantAgentSlug(card.dataset.lineupAgent);
+  if (explicit) return explicit;
 
   const haystack = [card.dataset.lineupVideoId, card.dataset.lineupSearch, getLineupVideoTitle(card)].filter(Boolean).join(" ").toLowerCase();
 
@@ -9642,11 +9807,20 @@ function getLineupValorantAbilityInfo(card) {
   let ability = card.dataset.lineupAbility?.trim().toLowerCase();
   if (!ability) return null;
 
-  ability = LINEUP_VALORANT_ABILITY_ALIASES[ability] || ability;
+  ability = normalizeLineupValorantAbilitySlug(ability);
   const entry = LINEUP_VALORANT_ABILITY_ICONS[`${agent}:${ability}`];
-  if (!entry) return null;
+  if (entry) return { agent, ability, ...entry };
 
-  return { agent, ability, ...entry };
+  return {
+    agent,
+    ability,
+    src: "",
+    label: ability
+      .split("-")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" "),
+    description: "",
+  };
 }
 
 function getValorantAgentUuid(slug) {
@@ -9797,20 +9971,34 @@ function openLineupCs2UtilityInfoPopover(card) {
   });
 }
 
-async function openLineupAgentInfoPopover(agentSlug) {
+function openLineupValorantUtilityInfoPopover(card) {
+  const utility = getLineupCardUtility(card);
+  if (!utility) return;
+
   openLineupBadgeInfoOverlay();
   setLineupBadgeInfoOverlayContent({
-    icon: LINEUP_VALORANT_AGENT_ICONS[agentSlug] || "",
-    title: lineupValorantAgentLabel(agentSlug),
+    icon: getLineupUtilityIconSrc("valorant", utility, card) || "",
+    title: getLineupUtilityLabel("valorant", utility, card),
+    meta: "Utility type",
+    body: LINEUP_VALORANT_UTILITY_DESCRIPTIONS[utility] || "Utility information is unavailable right now.",
+  });
+}
+
+async function openLineupAgentInfoPopover(agentSlug) {
+  const agent = normalizeLineupValorantAgentSlug(agentSlug);
+  openLineupBadgeInfoOverlay();
+  setLineupBadgeInfoOverlayContent({
+    icon: getLineupValorantAgentIconSrc(agent) || "",
+    title: lineupValorantAgentLabel(agent),
     meta: "Loading agent profile…",
     body: "",
   });
 
-  const info = await getValorantAgentInfo(agentSlug);
+  const info = await getValorantAgentInfo(agent);
   if (!info) {
     setLineupBadgeInfoOverlayContent({
-      icon: LINEUP_VALORANT_AGENT_ICONS[agentSlug] || "",
-      title: lineupValorantAgentLabel(agentSlug),
+      icon: getLineupValorantAgentIconSrc(agent) || "",
+      title: lineupValorantAgentLabel(agent),
       meta: "",
       body: "Agent information is unavailable right now.",
     });
@@ -9826,20 +10014,31 @@ async function openLineupAgentInfoPopover(agentSlug) {
 }
 
 async function openLineupAbilityInfoPopover(agentSlug, abilitySlug) {
-  const staticEntry = LINEUP_VALORANT_ABILITY_ICONS[`${agentSlug}:${LINEUP_VALORANT_ABILITY_ALIASES[abilitySlug] || abilitySlug}`];
+  const agent = normalizeLineupValorantAgentSlug(agentSlug);
+  const ability = normalizeLineupValorantAbilitySlug(abilitySlug);
+  const staticEntry = LINEUP_VALORANT_ABILITY_ICONS[`${agent}:${ability}`];
 
   openLineupBadgeInfoOverlay();
   setLineupBadgeInfoOverlayContent({
-    icon: staticEntry?.src || "",
+    icon: staticEntry?.src || getLineupValorantAbilityIconSrc(agent, ability) || "",
+    title: staticEntry?.label || abilitySlug,
+    meta: staticEntry?.slot || "",
+    body: staticEntry?.description || "",
+  });
+
+  if (staticEntry?.description) return;
+
+  setLineupBadgeInfoOverlayContent({
+    icon: staticEntry?.src || getLineupValorantAbilityIconSrc(agent, ability) || "",
     title: staticEntry?.label || abilitySlug,
     meta: "Loading ability details…",
     body: "",
   });
 
-  const info = await getValorantAbilityInfo(agentSlug, abilitySlug);
+  const info = await getValorantAbilityInfo(agent, ability);
   if (!info) {
     setLineupBadgeInfoOverlayContent({
-      icon: staticEntry?.src || "",
+      icon: staticEntry?.src || getLineupValorantAbilityIconSrc(agent, ability) || "",
       title: staticEntry?.label || abilitySlug,
       meta: staticEntry?.slot || "",
       body: staticEntry?.description || "Ability information is unavailable right now.",
@@ -9875,11 +10074,12 @@ function initLineupBadgeInfoPopovers() {
     }
   });
 
-  lineupTab?.addEventListener("click", (event) => {
+  const handleBadgeClick = (event) => {
     const cs2UtilityBtn = event.target.closest(".lineup-video-utility-badge[data-lineup-cs2-utility]");
+    const valorantUtilityBtn = event.target.closest(".lineup-video-utility-badge[data-lineup-valorant-utility]");
     const agentBtn = event.target.closest(".lineup-video-agent-badge[data-lineup-agent-info]");
     const abilityBtn = event.target.closest(".lineup-video-ability-badge[data-lineup-ability-agent]");
-    if (!cs2UtilityBtn && !agentBtn && !abilityBtn) return;
+    if (!cs2UtilityBtn && !valorantUtilityBtn && !agentBtn && !abilityBtn) return;
 
     event.preventDefault();
     event.stopPropagation();
@@ -9890,13 +10090,21 @@ function initLineupBadgeInfoPopovers() {
       return;
     }
 
+    if (valorantUtilityBtn) {
+      const card = valorantUtilityBtn.closest(".lineup-video-card");
+      if (card) openLineupValorantUtilityInfoPopover(card);
+      return;
+    }
+
     if (agentBtn) {
       openLineupAgentInfoPopover(agentBtn.dataset.lineupAgentInfo);
       return;
     }
 
     openLineupAbilityInfoPopover(abilityBtn.dataset.lineupAbilityAgent, abilityBtn.dataset.lineupAbilitySlug);
-  });
+  };
+
+  lineupTab?.addEventListener("click", handleBadgeClick, true);
 }
 
 function ensureLineupEmbedBadgeRow(embed) {
@@ -9918,7 +10126,7 @@ function renderLineupValorantEmbedBadges(card) {
   embed.querySelector(".lineup-video-embed-badges")?.remove();
 
   const agent = getLineupValorantAgent(card);
-  const agentSrc = agent ? LINEUP_VALORANT_AGENT_ICONS[agent] : null;
+  const agentSrc = agent ? getLineupValorantAgentIconSrc(agent) : "";
   const abilityInfo = getLineupValorantAbilityInfo(card);
   if (!agentSrc && !abilityInfo) return;
 
@@ -9941,9 +10149,49 @@ function renderLineupValorantEmbedBadges(card) {
     badge.dataset.lineupAbilityAgent = abilityInfo.agent;
     badge.dataset.lineupAbilitySlug = abilityInfo.ability;
     badge.setAttribute("aria-label", `About ${abilityInfo.label}`);
-    badge.innerHTML = `<img src="${abilityInfo.src}" alt="" loading="lazy" decoding="async" />`;
+    if (abilityInfo.src) {
+      badge.innerHTML = `<img src="${abilityInfo.src}" alt="" loading="lazy" decoding="async" />`;
+    } else {
+      badge.dataset.lineupAbilityPending = "1";
+      badge.setAttribute("aria-busy", "true");
+    }
     row.appendChild(badge);
   }
+}
+
+async function hydrateLineupValorantAbilityBadge(card) {
+  if (getLineupGameForCard(card) !== "valorant") return;
+
+  const abilityRaw = card.dataset.lineupAbility?.trim();
+  if (!abilityRaw) return;
+
+  const agent = getLineupValorantAgent(card);
+  if (!agent) return;
+
+  const embed = card.querySelector(".lineup-video-embed");
+  if (!embed) return;
+
+  const info = await getValorantAbilityInfo(agent, abilityRaw);
+  if (!info?.icon) {
+    embed.querySelector(".lineup-video-ability-badge[data-lineup-ability-pending]")?.remove();
+    return;
+  }
+
+  const row = embed.querySelector(".lineup-video-embed-badges") || ensureLineupEmbedBadgeRow(embed);
+  let badge = row.querySelector(".lineup-video-ability-badge");
+  if (!badge) {
+    badge = document.createElement("button");
+    badge.type = "button";
+    badge.className = "lineup-video-ability-badge";
+    row.appendChild(badge);
+  }
+
+  badge.dataset.lineupAbilityAgent = agent;
+  badge.dataset.lineupAbilitySlug = normalizeLineupValorantAbilitySlug(abilityRaw);
+  badge.removeAttribute("aria-busy");
+  delete badge.dataset.lineupAbilityPending;
+  badge.setAttribute("aria-label", `About ${info.name}`);
+  badge.innerHTML = `<img src="${info.icon}" alt="" loading="lazy" decoding="async" />`;
 }
 
 function renderLineupVideoAgentBadge(card) {
@@ -10046,23 +10294,24 @@ function renderLineupVideoUtilityBadge(card) {
     return;
   }
 
-  if (badge && badge.tagName !== "DIV") {
+  if (badge && badge.tagName !== "BUTTON") {
     badge.remove();
     badge = null;
   }
 
   if (!badge) {
-    badge = document.createElement("div");
+    badge = document.createElement("button");
+    badge.type = "button";
     badge.className = "lineup-video-utility-badge";
-    badge.setAttribute("aria-hidden", "true");
+    badge.setAttribute("aria-label", `About ${getLineupUtilityLabel(game, utility, card)}`);
     embed.appendChild(badge);
   }
 
   const label = getLineupUtilityLabel(game, utility, card);
   delete badge.dataset.lineupCs2Utility;
-  attachUiTooltip(badge, label);
-  badge.setAttribute("aria-hidden", "true");
-  badge.removeAttribute("aria-label");
+  badge.dataset.lineupValorantUtility = utility;
+  badge.removeAttribute("aria-hidden");
+  badge.setAttribute("aria-label", `About ${label}`);
   badge.innerHTML = `<img src="${src}" alt="" loading="lazy" decoding="async" />`;
   badge.classList.add("lineup-video-utility-badge--valorant");
   badge.classList.remove("lineup-video-utility-badge--cs2-t", "lineup-video-utility-badge--cs2-ct");
@@ -10105,11 +10354,19 @@ function ensureLineupVideoCardAuthor(card) {
   headline.appendChild(author);
 }
 
+function applyLineupVideoCardBadges(card) {
+  if (!card) return;
+  renderLineupVideoAgentBadge(card);
+  renderLineupVideoUtilityBadge(card);
+  if (getLineupGameForCard(card) === "valorant" && card.dataset.lineupAbility?.trim()) {
+    void hydrateLineupValorantAbilityBadge(card);
+  }
+}
+
 function enhanceLineupVideoCardFoots(root = document) {
   root.querySelectorAll(".lineup-video-card").forEach((card) => {
     renderLineupVideoCardMapIcon(card);
-    renderLineupVideoAgentBadge(card);
-    renderLineupVideoUtilityBadge(card);
+    applyLineupVideoCardBadges(card);
     ensureLineupVideoCardAuthor(card);
   });
 }
@@ -12166,6 +12423,7 @@ function initLineupVideoModal() {
     grid.addEventListener("click", (event) => {
       const card = event.target.closest(".lineup-video-card");
       if (!card || !grid.contains(card) || card.classList.contains("lineup-video-card--no-source")) return;
+      if (isLineupEmbedBadgeClickTarget(event.target)) return;
 
       const playTrigger = event.target.closest(".lineup-video-play-trigger");
       const embed = event.target.closest(".lineup-video-embed");
@@ -17122,3 +17380,18 @@ window.getLineupMapIconSrc = getLineupMapIconSrc;
 window.renderLineupMapOptionIcon = renderLineupMapOptionIcon;
 window.getActiveLineupGame = getActiveLineupGame;
 window.setLineupGame = setLineupGame;
+window.syncBodyScrollLock = syncBodyScrollLock;
+window.refreshLineupVideoCards = refreshLineupVideoCards;
+window.confirmBeforeReset = confirmBeforeReset;
+window.applyLineupVideoCardBadges = applyLineupVideoCardBadges;
+window.normalizeLineupValorantAgentSlug = normalizeLineupValorantAgentSlug;
+window.normalizeLineupValorantAbilitySlug = normalizeLineupValorantAbilitySlug;
+window.getLineupValorantAgentDropdownOptions = getLineupValorantAgentDropdownOptions;
+window.renderLineupValorantAgentOptionIcon = renderLineupValorantAgentOptionIcon;
+window.renderLineupValorantAbilityOptionIcon = renderLineupValorantAbilityOptionIcon;
+window.fetchLineupValorantAbilityDropdownOptions = fetchLineupValorantAbilityDropdownOptions;
+window.getLineupValorantAbilityDropdownOptionsFromStatic = getLineupValorantAbilityDropdownOptionsFromStatic;
+window.getLineupValorantAgentDropdownLabel = getLineupValorantAgentDropdownLabel;
+window.getLineupValorantAbilityDropdownLabel = getLineupValorantAbilityDropdownLabel;
+window.getLineupValorantAgentIconSrc = getLineupValorantAgentIconSrc;
+window.getLineupValorantAbilityIconSrc = getLineupValorantAbilityIconSrc;

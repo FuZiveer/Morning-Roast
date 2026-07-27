@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { readJsonFile, writeJsonFile, resolveDataFile, resolveDataRoot } = require("./safe-json-file");
 
 const VALID_GAMES = new Set(["valorant", "cs2"]);
 const VALID_SIDES = new Set(["attacker", "defender"]);
@@ -9,19 +10,15 @@ const VALID_DIFFICULTIES = new Set(["1", "2", "3", "4", "5"]);
 const CS2_UTILITIES = new Set(["smoke", "molotov", "incendiary", "he", "flashbang"]);
 
 function resolveStorePath() {
-  const configured = process.env.LINEUP_SUBMISSIONS_PATH;
-  if (configured) {
-    return path.isAbsolute(configured) ? configured : path.join(process.cwd(), configured);
-  }
-  return path.join(process.cwd(), "data", "lineup-submissions.json");
+  return resolveDataFile("lineup-submissions.json", "LINEUP_SUBMISSIONS_PATH");
 }
 
 function resolveUploadsDir() {
-  const configured = process.env.LINEUP_UPLOADS_DIR;
+  const configured = String(process.env.LINEUP_UPLOADS_DIR || "").trim();
   if (configured) {
     return path.isAbsolute(configured) ? configured : path.join(process.cwd(), configured);
   }
-  return path.join(process.cwd(), "data", "lineup-uploads");
+  return path.join(resolveDataRoot(), "lineup-uploads");
 }
 
 function slugify(value) {
@@ -150,42 +147,36 @@ function toOwnerSubmission(submission, extras = {}) {
 
 function createLineupSubmissionsStore({ filePath = resolveStorePath(), uploadsDir = resolveUploadsDir() } = {}) {
   let submissions = {};
+  let loadFailed = false;
 
   function load() {
-    try {
-      if (!fs.existsSync(filePath)) {
-        submissions = {};
-        return;
-      }
-      const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
-      const raw = parsed?.submissions && typeof parsed.submissions === "object" ? parsed.submissions : {};
-      submissions = {};
-      for (const [key, entry] of Object.entries(raw)) {
-        const normalized = normalizeSubmission(entry);
-        if (normalized) submissions[key] = normalized;
-      }
-    } catch (error) {
-      console.warn(`Failed to load lineup submissions from ${filePath}:`, error.message);
-      submissions = {};
+    const result = readJsonFile(filePath, { submissions: {} }, "lineup submissions");
+    loadFailed = result.source === "failed";
+    const raw = result.data?.submissions && typeof result.data.submissions === "object" ? result.data.submissions : {};
+    submissions = {};
+    for (const [key, entry] of Object.entries(raw)) {
+      const normalized = normalizeSubmission(entry);
+      if (normalized) submissions[key] = normalized;
     }
+    if (loadFailed && Object.keys(submissions).length) loadFailed = false;
   }
 
   function save() {
+    if (loadFailed && !Object.keys(submissions).length) {
+      console.warn("[data-persist] Skipping save of empty lineup submissions after failed load");
+      return;
+    }
     try {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(
+      writeJsonFile(
         filePath,
-        JSON.stringify(
-          {
-            version: 1,
-            updatedAt: Date.now(),
-            submissions,
-          },
-          null,
-          0,
-        ),
-        "utf8",
+        {
+          version: 1,
+          updatedAt: Date.now(),
+          submissions,
+        },
+        "lineup submissions",
       );
+      loadFailed = false;
     } catch (error) {
       console.warn(`Failed to save lineup submissions to ${filePath}:`, error.message);
     }
@@ -325,6 +316,30 @@ function createLineupSubmissionsStore({ filePath = resolveStorePath(), uploadsDi
       entry.submittedBy.name = submitterName;
     }
 
+    if (metadata.difficulty != null) {
+      const nextDifficulty = String(metadata.difficulty || "").trim();
+      if (!VALID_DIFFICULTIES.has(nextDifficulty)) return { error: "invalid_fields" };
+      entry.difficulty = nextDifficulty;
+    }
+
+    if (metadata.agent != null) {
+      const nextAgent = String(metadata.agent || "").trim().slice(0, 40);
+      if (nextAgent) entry.agent = nextAgent;
+      else delete entry.agent;
+    }
+
+    if (metadata.ability != null) {
+      const nextAbility = String(metadata.ability || "").trim().slice(0, 40);
+      if (nextAbility) entry.ability = nextAbility;
+      else delete entry.ability;
+    }
+
+    if (metadata.utility != null) {
+      const nextUtility = String(metadata.utility || "").trim().toLowerCase().slice(0, 40);
+      if (nextUtility) entry.utility = nextUtility;
+      else delete entry.utility;
+    }
+
     entry.search = buildSearchText(entry);
     entry.updatedAt = Date.now();
     return { submission: entry };
@@ -436,5 +451,6 @@ function createLineupSubmissionsStore({ filePath = resolveStorePath(), uploadsDi
 
 module.exports = {
   createLineupSubmissionsStore,
+  resolveStorePath,
   resolveUploadsDir,
 };

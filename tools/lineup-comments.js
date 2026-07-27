@@ -133,7 +133,9 @@
   function persistCommentsForLineup(lineupKey, comments, maxSize = LINEUP_COMMENTS_DEFAULT_MAX) {
     const key = String(lineupKey || "").trim();
     if (!key) return;
-    const normalized = mergeComments(comments).slice(-maxSize);
+    const existing = readLocalCommentsForLineup(key, maxSize);
+    const normalized = mergeComments(existing, comments).slice(-maxSize);
+    if (!normalized.length && existing.length) return;
     const store = readLocalCommentStore();
     if (normalized.length) store.lineups[key] = { comments: normalized };
     else delete store.lineups[key];
@@ -409,9 +411,13 @@
 
   async function loadAndMergeComments(...sources) {
     if (!state.lineupKey) return;
-    const merged = mergeComments(readLocalCommentsForLineup(state.lineupKey), ...sources);
-    if (!merged.length && !sources.some((list) => Array.isArray(list) && list.length)) return;
-    applyComments(merged);
+    const fromLocal = readLocalCommentsForLineup(state.lineupKey);
+    const merged = mergeComments(fromLocal, ...sources);
+    if (merged.length) {
+      applyComments(merged);
+      return;
+    }
+    if (fromLocal.length) applyComments(fromLocal, { persist: false });
   }
 
   function watchLineup() {

@@ -1,12 +1,7 @@
-const fs = require("fs");
-const path = require("path");
+const { readJsonFile, writeJsonFile, resolveDataFile } = require("./safe-json-file");
 
 function resolveDmHistoryPath() {
-  const configured = process.env.CHAT_DM_HISTORY_PATH;
-  if (configured) {
-    return path.isAbsolute(configured) ? configured : path.join(process.cwd(), configured);
-  }
-  return path.join(process.cwd(), "data", "chat-dm-history.json");
+  return resolveDataFile("chat-dm-history.json", "CHAT_DM_HISTORY_PATH");
 }
 
 function normalizeNameKey(name) {
@@ -38,48 +33,42 @@ function normalizeEntry(entry) {
 
 function createDmHistoryStore({ maxSize = 100, filePath = resolveDmHistoryPath() } = {}) {
   let conversations = {};
+  let loadFailed = false;
 
   function load() {
-    try {
-      if (!fs.existsSync(filePath)) {
-        conversations = {};
-        return;
-      }
-      const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
-      const raw = parsed?.conversations;
-      if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-        conversations = {};
-        return;
-      }
-      conversations = {};
-      for (const [key, list] of Object.entries(raw)) {
-        conversations[key] = (Array.isArray(list) ? list : [])
-          .map(normalizeEntry)
-          .filter(Boolean)
-          .slice(-maxSize);
-      }
-    } catch (error) {
-      console.warn(`Failed to load DM history from ${filePath}:`, error.message);
-      conversations = {};
+    const result = readJsonFile(filePath, { conversations: {} }, "DM history");
+    loadFailed = result.source === "failed";
+    const raw = result.data?.conversations;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      if (!loadFailed) conversations = {};
+      return;
     }
+    conversations = {};
+    for (const [key, list] of Object.entries(raw)) {
+      conversations[key] = (Array.isArray(list) ? list : [])
+        .map(normalizeEntry)
+        .filter(Boolean)
+        .slice(-maxSize);
+    }
+    if (loadFailed && Object.keys(conversations).length) loadFailed = false;
   }
 
   function save() {
+    if (loadFailed && !Object.keys(conversations).length) {
+      console.warn("[data-persist] Skipping save of empty DM history after failed load");
+      return;
+    }
     try {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(
+      writeJsonFile(
         filePath,
-        JSON.stringify(
-          {
-            version: 1,
-            updatedAt: Date.now(),
-            conversations,
-          },
-          null,
-          0,
-        ),
-        "utf8",
+        {
+          version: 1,
+          updatedAt: Date.now(),
+          conversations,
+        },
+        "DM history",
       );
+      loadFailed = false;
     } catch (error) {
       console.warn(`Failed to save DM history to ${filePath}:`, error.message);
     }

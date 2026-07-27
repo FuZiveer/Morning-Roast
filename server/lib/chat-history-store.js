@@ -1,17 +1,7 @@
-const fs = require("fs");
-const path = require("path");
+const { readJsonFile, writeJsonFile, resolveDataFile } = require("./safe-json-file");
 
 function resolveHistoryPath() {
-  const configured = process.env.CHAT_HISTORY_PATH;
-  if (configured) {
-    return path.isAbsolute(configured) ? configured : path.join(process.cwd(), configured);
-  }
-
-  const candidates = [
-    path.join(process.cwd(), "data", "chat-history.json"),
-    path.join(__dirname, "..", "data", "chat-history.json"),
-  ];
-  return candidates[0];
+  return resolveDataFile("chat-history.json", "CHAT_HISTORY_PATH");
 }
 
 function normalizeEntry(entry) {
@@ -27,42 +17,35 @@ function normalizeEntry(entry) {
 
 function createChatHistoryStore({ maxSize = 100, filePath = resolveHistoryPath() } = {}) {
   let messages = [];
+  let loadFailed = false;
 
   function load() {
-    try {
-      if (!fs.existsSync(filePath)) {
-        messages = [];
-        return;
-      }
-
-      const parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
-      const raw = Array.isArray(parsed) ? parsed : parsed?.messages;
-      messages = (Array.isArray(raw) ? raw : [])
-        .map(normalizeEntry)
-        .filter(Boolean)
-        .slice(-maxSize);
-    } catch (error) {
-      console.warn(`Failed to load chat history from ${filePath}:`, error.message);
-      messages = [];
-    }
+    const result = readJsonFile(filePath, { messages: [] }, "chat history");
+    loadFailed = result.source === "failed";
+    const raw = Array.isArray(result.data) ? result.data : result.data?.messages;
+    messages = (Array.isArray(raw) ? raw : [])
+      .map(normalizeEntry)
+      .filter(Boolean)
+      .slice(-maxSize);
+    if (loadFailed && messages.length) loadFailed = false;
   }
 
   function save() {
+    if (loadFailed && !messages.length) {
+      console.warn("[data-persist] Skipping save of empty chat history after failed load");
+      return;
+    }
     try {
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(
+      writeJsonFile(
         filePath,
-        JSON.stringify(
-          {
-            version: 1,
-            updatedAt: Date.now(),
-            messages,
-          },
-          null,
-          0,
-        ),
-        "utf8",
+        {
+          version: 1,
+          updatedAt: Date.now(),
+          messages,
+        },
+        "chat history",
       );
+      loadFailed = false;
     } catch (error) {
       console.warn(`Failed to save chat history to ${filePath}:`, error.message);
     }
