@@ -3636,29 +3636,27 @@
                     </button>
                   </div>
 
-                  <div class="community-chat-sidebar-group">
-                    <div class="community-chat-friends" id="community-chat-friends">
-                      <button type="button" id="community-chat-friends-toggle" class="community-chat-sidebar-item community-chat-friends-toggle" aria-expanded="false" aria-haspopup="menu" aria-controls="community-chat-friends-menu" aria-label="Friends">
-                        <i class="ri-group-line" aria-hidden="true"></i>
-                        <span class="community-chat-sidebar-label">Friends</span>
-                      </button>
-                      <div id="community-chat-friends-menu" class="community-chat-friends-menu" role="menu" aria-labelledby="community-chat-friends-toggle" hidden>
-                        <div id="community-chat-friends-online-list" class="community-chat-friends-menu-list"></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="community-chat-sidebar-item community-chat-messages-heading" hidden aria-hidden="true">
-                    <i class="ri-mail-line" aria-hidden="true"></i>
+                  <button type="button" id="community-chat-messages-btn" class="community-chat-sidebar-item community-chat-messages-heading" aria-label="Cycle through messages">
+                    <span class="community-chat-sidebar-icon-wrap">
+                      <i class="ri-mail-line" aria-hidden="true"></i>
+                      <span id="community-chat-friends-badge" class="community-chat-unread-badge community-chat-friends-badge" hidden aria-hidden="true"></span>
+                    </span>
                     <span class="community-chat-sidebar-label">Messages</span>
-                    <span id="community-chat-friends-badge" class="community-chat-unread-badge community-chat-friends-badge" hidden aria-hidden="true"></span>
-                  </div>
+                  </button>
                 </nav>
-                <div id="community-chat-friends-list" class="community-chat-dm-list" hidden></div>
+                <div id="community-chat-friends-list" class="community-chat-dm-list"></div>
               </aside>
 
               <div class="community-chat-main">
-                <div id="community-chat-messages" class="site-assistant-messages" aria-live="polite" aria-relevant="additions"></div>
+                <div class="community-chat-messages-wrap">
+                  <div id="community-chat-messages-loading" class="community-chat-messages-loading" hidden role="status" aria-live="polite" aria-busy="true">
+                    <div class="community-chat-messages-loading-inner">
+                      <span class="community-chat-messages-loading-spinner" aria-hidden="true"></span>
+                      <p id="community-chat-messages-loading-text" class="community-chat-messages-loading-text">Connecting to chat…</p>
+                    </div>
+                  </div>
+                  <div id="community-chat-messages" class="site-assistant-messages" aria-live="polite" aria-relevant="additions"></div>
+                </div>
 
                 <div id="community-chat-profile-popover" class="community-chat-profile-popover" hidden role="dialog" aria-modal="true" aria-labelledby="community-chat-profile-name">
                   <div class="community-chat-profile-card">
@@ -3673,7 +3671,9 @@
                     </div>
                     <div id="community-chat-profile-tags" class="community-chat-profile-tags"></div>
                     <p id="community-chat-profile-bio" class="community-chat-profile-bio"></p>
-                    <button type="button" id="community-chat-profile-message" class="community-chat-profile-message" hidden>Message</button>
+                    <div class="community-chat-profile-actions" id="community-chat-profile-actions">
+                      <button type="button" id="community-chat-profile-message" class="community-chat-profile-message" hidden>Message</button>
+                    </div>
                   </div>
                 </div>
 
@@ -3688,9 +3688,11 @@
             </div>
           </div>
           <button type="button" id="community-chat-toggle" class="site-assistant-toggle community-chat-toggle" aria-controls="community-chat-panel" aria-expanded="false" aria-label="Open community chat">
-            <i class="ri-chat-1-line community-chat-toggle-open" aria-hidden="true"></i>
-            <i class="ri-close-line community-chat-toggle-close" aria-hidden="true"></i>
-            <span id="community-chat-toggle-badge" class="community-chat-unread-badge community-chat-toggle-badge" hidden aria-hidden="true"></span>
+            <span class="community-chat-toggle-icon-wrap" aria-hidden="true">
+              <i class="ri-chat-1-line community-chat-toggle-open" aria-hidden="true"></i>
+              <i class="ri-close-line community-chat-toggle-close" aria-hidden="true"></i>
+              <span id="community-chat-toggle-badge" class="community-chat-unread-badge community-chat-toggle-badge" hidden aria-hidden="true"></span>
+            </span>
           </button>
         </div>
 

@@ -10,6 +10,8 @@
   const CHAT_HISTORY_STORAGE_KEY = "morningRoastChatHistory";
   const CHAT_DM_STORAGE_KEY = "morningRoastChatDmHistory";
   const CHAT_CLOSED_DMS_KEY = "morningRoastChatClosedDms";
+  const CHAT_FRIENDS_STORAGE_KEY = "morningRoastChatFriends";
+  const CHAT_PROFILES_STORAGE_KEY = "morningRoastChatProfiles";
   const CHAT_HISTORY_DEFAULT_MAX = 100;
 
   const DEFAULT_CONFIG = {
@@ -27,6 +29,7 @@
       dm_title_prefix: "Chat with",
       messages_title: "Messages",
       messages_empty: "No messages yet. Open a profile to start a chat.",
+      dm_empty: "No dms open",
       public_chat_title: "Public",
       empty_state: "No messages yet. Say hi!",
       offline_message: "Chat is offline. Try again in a moment.",
@@ -34,6 +37,8 @@
       name_taken_message: "That display name is already in use. Choose another one.",
       name_blocked_message: "That display name is not allowed.",
       reconnecting_message: "Reconnecting to chat…",
+      connecting_message: "Connecting to chat…",
+      loading_message: "Loading messages…",
     },
   };
 
@@ -42,6 +47,142 @@
   let chatSelfUserId = "";
   let onlineDisplayNames = new Set();
   let userProfiles = new Map();
+  let profilesByName = new Map();
+
+  function readProfileStore() {
+    try {
+      const parsed = JSON.parse(global.localStorage?.getItem(CHAT_PROFILES_STORAGE_KEY) || "{}");
+      return parsed?.profiles && typeof parsed.profiles === "object" ? parsed.profiles : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeProfileStore(profiles) {
+    if (!global.localStorage) return;
+    try {
+      global.localStorage.setItem(
+        CHAT_PROFILES_STORAGE_KEY,
+        JSON.stringify({ version: 1, updatedAt: Date.now(), profiles: profiles || {} }),
+      );
+    } catch {
+      // Storage full or unavailable.
+    }
+  }
+
+  function normalizeSavedProfile(entry = {}, fallbackName = "") {
+    const name = String(entry.name || fallbackName || "").trim() || "Guest";
+    return {
+      name,
+      avatar: String(entry.avatar || "").trim(),
+      bio: String(entry.bio || "").trim(),
+      isOwner: Boolean(entry.isOwner),
+      updatedAt: Number(entry.updatedAt) || 0,
+    };
+  }
+
+  function loadProfilesFromStorage() {
+    profilesByName = new Map();
+    for (const [key, entry] of Object.entries(readProfileStore())) {
+      profilesByName.set(key, normalizeSavedProfile(entry, key));
+    }
+  }
+
+  function getProfileForDisplayName(name) {
+    const key = normalizeDisplayNameKey(name);
+    if (!key) return null;
+    return profilesByName.get(key) || null;
+  }
+
+  function upsertSavedProfile(profile = {}) {
+    const name = String(profile.name || "").trim();
+    const key = normalizeDisplayNameKey(name);
+    if (!key) return null;
+
+    const existing = profilesByName.get(key) || normalizeSavedProfile({}, name);
+    const avatar = String(profile.avatar ?? existing.avatar ?? "").trim();
+    const bio = String(profile.bio ?? existing.bio ?? "").trim();
+    const next = {
+      name: name || existing.name,
+      avatar,
+      bio,
+      isOwner: Boolean(profile.isOwner ?? existing.isOwner ?? isOwnerDisplayName(name)),
+      updatedAt: Date.now(),
+    };
+
+    profilesByName.set(key, next);
+    const store = readProfileStore();
+    store[key] = next;
+    writeProfileStore(store);
+    return next;
+  }
+
+  function seedSavedProfilesFromHistory() {
+    const names = new Map();
+
+    readLocalChatHistory().forEach((message) => {
+      const name = String(message?.name || "").trim();
+      if (!name) return;
+      const key = normalizeDisplayNameKey(name);
+      if (!key) return;
+      const existing = names.get(key) || { name, avatar: "", isOwner: false };
+      names.set(key, {
+        name,
+        avatar: String(message.avatar || existing.avatar || "").trim(),
+        isOwner: Boolean(message.isOwner || existing.isOwner || isOwnerDisplayName(name)),
+      });
+    });
+
+    const dmStore = readDmStore();
+    for (const list of Object.values(dmStore.threads || {})) {
+      (Array.isArray(list) ? list : []).forEach((entry) => {
+        [
+          { name: entry?.fromName, avatar: entry?.fromAvatar, isOwner: entry?.fromIsOwner },
+          { name: entry?.toName, avatar: entry?.toAvatar, isOwner: entry?.toIsOwner },
+        ].forEach((profile) => {
+          const name = String(profile.name || "").trim();
+          if (!name) return;
+          const key = normalizeDisplayNameKey(name);
+          if (!key) return;
+          const existing = names.get(key) || { name, avatar: "", isOwner: false };
+          names.set(key, {
+            name,
+            avatar: String(profile.avatar || existing.avatar || "").trim(),
+            isOwner: Boolean(profile.isOwner || existing.isOwner || isOwnerDisplayName(name)),
+          });
+        });
+      });
+    }
+
+    names.forEach((profile, key) => {
+      const saved = profilesByName.get(key);
+      upsertSavedProfile({
+        name: profile.name,
+        avatar: profile.avatar || saved?.avatar || "",
+        isOwner: profile.isOwner || saved?.isOwner,
+        bio: saved?.bio || "",
+      });
+    });
+  }
+
+  function getProfileForMessage(message = {}) {
+    const byName = getProfileForDisplayName(message.name);
+    if (byName?.avatar || byName?.bio) return byName;
+    const userId = String(message.userId || "").trim();
+    if (userId && userProfiles.has(userId)) return userProfiles.get(userId);
+    if (byName) return byName;
+    if (message.avatar) {
+      return {
+        name: String(message.name || "Guest").trim() || "Guest",
+        avatar: String(message.avatar || "").trim(),
+        bio: "",
+        isOwner: Boolean(message.isOwner),
+      };
+    }
+    return byName;
+  }
+
+  loadProfilesFromStorage();
   let pendingProfileUserId = "";
   let lastNameCheckReason = "";
   let ownerDisplayNames = parseOwnerDisplayNames(
@@ -401,6 +542,8 @@
       text,
       at,
     };
+    const avatar = String(message.avatar || "").trim();
+    if (avatar) stored.avatar = avatar;
     if (message.isOwner) stored.isOwner = true;
     return stored;
   }
@@ -454,6 +597,10 @@
     const stored = { id, fromUserId, toUserId, fromName, toName, text, at };
     if (message.fromIsOwner || message.isOwner) stored.fromIsOwner = true;
     if (message.toIsOwner) stored.toIsOwner = true;
+    const fromAvatar = String(message.fromAvatar || message.avatar || "").trim();
+    const toAvatar = String(message.toAvatar || "").trim();
+    if (fromAvatar) stored.fromAvatar = fromAvatar;
+    if (toAvatar) stored.toAvatar = toAvatar;
     return stored;
   }
 
@@ -557,6 +704,97 @@
     }
   }
 
+  function readFriendsStore() {
+    try {
+      const parsed = JSON.parse(global.localStorage?.getItem(CHAT_FRIENDS_STORAGE_KEY) || "{}");
+      return parsed?.friends && typeof parsed.friends === "object" ? parsed.friends : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeFriendsStore(friends) {
+    if (!global.localStorage) return;
+    try {
+      global.localStorage.setItem(
+        CHAT_FRIENDS_STORAGE_KEY,
+        JSON.stringify({ version: 1, updatedAt: Date.now(), friends: friends || {} }),
+      );
+    } catch {
+      // Storage full or unavailable.
+    }
+  }
+
+  function listSavedFriends() {
+    const selfKey = normalizeDisplayNameKey(readProfileIdentity().name);
+    return Object.entries(readFriendsStore())
+      .filter(([key]) => key && key !== selfKey)
+      .map(([key, entry]) => ({
+        key,
+        name: String(entry?.name || "").trim() || key,
+        avatar: String(entry?.avatar || ""),
+        isOwner: Boolean(entry?.isOwner),
+        addedAt: Number(entry?.addedAt) || 0,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function isSavedFriend(displayName) {
+    const key = normalizeDisplayNameKey(displayName);
+    return key ? Boolean(readFriendsStore()[key]) : false;
+  }
+
+  function addSavedFriend(profile = {}) {
+    const name = String(profile.name || "").trim();
+    const key = normalizeDisplayNameKey(name);
+    const selfKey = normalizeDisplayNameKey(readProfileIdentity().name);
+    if (!key || key === selfKey) return false;
+
+    const friends = readFriendsStore();
+    friends[key] = {
+      name,
+      avatar: String(profile.avatar || friends[key]?.avatar || ""),
+      isOwner: Boolean(profile.isOwner ?? friends[key]?.isOwner),
+      addedAt: friends[key]?.addedAt || Date.now(),
+    };
+    writeFriendsStore(friends);
+    global.dispatchEvent(new CustomEvent("morning-roast:chat-friends-changed"));
+    return true;
+  }
+
+  function removeSavedFriend(displayName) {
+    const key = normalizeDisplayNameKey(displayName);
+    if (!key || !readFriendsStore()[key]) return false;
+
+    const friends = readFriendsStore();
+    delete friends[key];
+    writeFriendsStore(friends);
+    global.dispatchEvent(new CustomEvent("morning-roast:chat-friends-changed"));
+    return true;
+  }
+
+  function syncSavedFriendAvatarsFromOnline(onlineUsers = []) {
+    const friends = readFriendsStore();
+    let changed = false;
+
+    onlineUsers.forEach((user) => {
+      const key = normalizeDisplayNameKey(user?.name);
+      if (!key || !friends[key]) return;
+      const avatar = String(user?.avatar || "").trim();
+      if (avatar && friends[key].avatar !== avatar) {
+        friends[key].avatar = avatar;
+        changed = true;
+      }
+      const isOwner = Boolean(user?.isOwner);
+      if (friends[key].isOwner !== isOwner) {
+        friends[key].isOwner = isOwner;
+        changed = true;
+      }
+    });
+
+    if (changed) writeFriendsStore(friends);
+  }
+
   function formatUnreadCount(count) {
     const total = Math.max(0, Number(count) || 0);
     if (!total) return "";
@@ -625,10 +863,13 @@
     const dmCloseBtn = root.querySelector("#community-chat-dm-close");
     const chatToggleBadge = document.getElementById("community-chat-toggle-badge");
     const mainEl = root.querySelector(".community-chat-main");
+    const messagesLoadingEl = root.querySelector("#community-chat-messages-loading");
+    const messagesLoadingTextEl = root.querySelector("#community-chat-messages-loading-text");
 
     if (!panel || !messagesEl || !formEl || !inputEl) return null;
 
     const closedDmKeys = readClosedDmKeys();
+    let activeProfileView = null;
 
     const session = {
       root,
@@ -651,13 +892,49 @@
       onlineUsers: [],
       recentThreads: new Map(),
       messageIds: new Set(),
+      pendingChannelLoad: true,
       api: null,
+    };
+
+    const getMessagesLoadingText = () => {
+      const ui = session.config.ui || DEFAULT_CONFIG.ui;
+      if (session.state === "offline" && session.wsUrl && !session.stopped) {
+        return ui.reconnecting_message || DEFAULT_CONFIG.ui.reconnecting_message;
+      }
+      if (session.state === "connecting") {
+        return ui.connecting_message || DEFAULT_CONFIG.ui.connecting_message;
+      }
+      return ui.loading_message || DEFAULT_CONFIG.ui.loading_message;
+    };
+
+    const refreshMessagesLoading = () => {
+      if (!messagesLoadingEl) return;
+      const reconnecting = session.state === "offline" && session.wsUrl && !session.stopped;
+      const show =
+        session.state === "connecting" ||
+        reconnecting ||
+        session.pendingChannelLoad;
+      messagesLoadingEl.hidden = !show;
+      messagesEl.toggleAttribute("aria-busy", show);
+      if (show && messagesLoadingTextEl) {
+        messagesLoadingTextEl.textContent = getMessagesLoadingText();
+      }
+    };
+
+    const finishChannelLoad = () => {
+      session.pendingChannelLoad = false;
+      refreshMessagesLoading();
+    };
+
+    const beginChannelLoad = () => {
+      session.pendingChannelLoad = true;
+      refreshMessagesLoading();
     };
 
     const upsertUserProfile = (userId, profile = {}) => {
       const id = String(userId || "").trim();
       if (!id) return;
-      userProfiles.set(id, {
+      const merged = {
         ...userProfiles.get(id),
         ...profile,
         userId: id,
@@ -665,11 +942,15 @@
         bio: String(profile.bio ?? userProfiles.get(id)?.bio ?? "").trim(),
         avatar: String(profile.avatar ?? userProfiles.get(id)?.avatar ?? "").trim(),
         isOwner: Boolean(profile.isOwner ?? userProfiles.get(id)?.isOwner),
-      });
+      };
+      userProfiles.set(id, merged);
+      if (merged.name) upsertSavedProfile(merged);
     };
 
     const resolveMessageAvatar = (message) => {
       if (message?.avatar) return message.avatar;
+      const saved = getProfileForDisplayName(message?.name);
+      if (saved?.avatar) return saved.avatar;
       if (message?.userId) return userProfiles.get(message.userId)?.avatar || "";
       return "";
     };
@@ -682,12 +963,21 @@
     };
 
     const syncMessageAvatars = () => {
-      messagesEl.querySelectorAll(".community-chat-msg[data-user-id]").forEach((item) => {
-        const profile = userProfiles.get(item.dataset.userId || "");
+      messagesEl.querySelectorAll(".community-chat-msg").forEach((item) => {
+        const userId = item.dataset.userId || "";
+        const userName = item.dataset.userName || "";
+        const profile = getProfileForMessage({ userId, name: userName });
         const avatarEl = item.querySelector(".community-chat-avatar");
-        if (!avatarEl || !profile) return;
-        applyAvatarToElement(avatarEl, profile.name, profile.avatar);
+        if (!avatarEl) return;
+        const name = profile?.name || userName || "Guest";
+        applyAvatarToElement(avatarEl, name, profile?.avatar || "");
       });
+    };
+
+    const hydrateMessageProfiles = () => {
+      loadProfilesFromStorage();
+      seedSavedProfilesFromHistory();
+      syncMessageAvatars();
     };
 
     const requestUserProfile = (userId) => {
@@ -706,6 +996,7 @@
       profilePopover.hidden = true;
       profilePopover.setAttribute("aria-hidden", "true");
       pendingProfileUserId = "";
+      activeProfileView = null;
       if (profileMessageBtn) profileMessageBtn.hidden = true;
       if (profileTagsEl) profileTagsEl.dataset.tagsExpanded = "0";
     };
@@ -739,6 +1030,22 @@
       });
     };
 
+    const getRecentDmEntries = () =>
+      [...session.recentThreads.values()].filter(
+        (thread) => thread.userId && thread.userId !== session.selfId,
+      );
+
+    const cycleDmChannel = () => {
+      const entries = getRecentDmEntries();
+      if (!entries.length) return;
+
+      const activeIndex = entries.findIndex((entry) => entry.userId === session.activeChannel);
+      const nextIndex = activeIndex === -1 ? 0 : (activeIndex + 1) % entries.length;
+      const next = entries[nextIndex];
+      if (next.userId === session.activeChannel) return;
+      void openDmChannel(next.userId, next);
+    };
+
     const reopenDmThread = (peerName) => {
       const key = dmThreadKey(peerName);
       if (!key || !closedDmKeys.has(key)) return;
@@ -766,7 +1073,7 @@
     const getTotalDmUnread = () => {
       let total = 0;
       session.dmUnread.forEach((count, userId) => {
-        if (session.activeChannel !== userId) total += count;
+        if (session.activeChannel !== userId || !session.panelOpen) total += count;
       });
       return total;
     };
@@ -791,6 +1098,17 @@
       return getPeerProfile(session.activeChannel);
     };
 
+    const resolveOnlineUser = (userId, name) => {
+      const id = String(userId || "").trim();
+      const nameKey = normalizeDisplayNameKey(name);
+      if (id) {
+        const byId = session.onlineUsers.find((user) => user.userId === id);
+        if (byId) return byId;
+      }
+      if (!nameKey) return null;
+      return session.onlineUsers.find((user) => normalizeDisplayNameKey(user.name) === nameKey) || null;
+    };
+
     const showProfilePopover = (profile = {}) => {
       if (!profilePopover || !profileNameEl || !profileBioEl || !profileAvatarEl) return;
 
@@ -799,6 +1117,8 @@
       const loading = Boolean(profile.loading);
       const userId = String(profile.userId || "").trim();
       const isSelf = Boolean(profile.isSelf) || (userId && userId === session.selfId);
+      const onlineUser = !isSelf ? resolveOnlineUser(userId, name) : null;
+      const resolvedUserId = String(onlineUser?.userId || userId || "").trim();
 
       applyAvatarToElement(profileAvatarEl, name, profile.avatar);
       profileNameEl.textContent = name;
@@ -806,18 +1126,30 @@
         profileTagsEl.dataset.tagsExpanded = "0";
         renderChatProfileTags(profileTagsEl, name);
       }
-      profileBioEl.textContent = loading ? "Loading profile…" : bio || "No bio yet.";
+      profileBioEl.textContent = loading
+        ? "Loading profile…"
+        : bio || "No bio yet.";
 
       if (profileMessageBtn) {
-        const canMessage = !isSelf && userId && session.state === "live";
+        const canMessage = !isSelf && resolvedUserId && session.state === "live";
         profileMessageBtn.hidden = !canMessage;
-        profileMessageBtn.dataset.userId = canMessage ? userId : "";
+        profileMessageBtn.dataset.userId = canMessage ? resolvedUserId : "";
         profileMessageBtn.dataset.userName = canMessage ? name : "";
       }
 
       profilePopover.hidden = false;
       profilePopover.setAttribute("aria-hidden", "false");
       profileCloseBtn?.focus({ preventScroll: true });
+
+      activeProfileView = {
+        userId: resolvedUserId,
+        name,
+        bio,
+        avatar: String(profile.avatar || ""),
+        isOwner: Boolean(profile.isOwner),
+        isSelf,
+        loading,
+      };
     };
 
     const openSelfProfile = (fallback = {}) => {
@@ -865,15 +1197,30 @@
       }
 
       const cached = userProfiles.get(id);
+      const onlineUser = resolveOnlineUser(id, cached?.name || fallback.name);
+      const resolvedId = String(onlineUser?.userId || id).trim();
+      const resolvedCached = userProfiles.get(resolvedId) || cached;
+      const displayName = onlineUser?.name || resolvedCached?.name || fallback.name || "Guest";
+      const saved = getProfileForDisplayName(displayName);
+      const bio =
+        resolvedCached?.bio || onlineUser?.bio || saved?.bio || String(fallback.bio || "").trim();
+      const avatar =
+        onlineUser?.avatar ||
+        resolvedCached?.avatar ||
+        saved?.avatar ||
+        String(fallback.avatar || "").trim();
+
       showProfilePopover({
-        userId: id,
-        name: cached?.name || fallback.name || "Guest",
-        bio: cached?.bio || "",
-        avatar: cached?.avatar || "",
-        isOwner: Boolean(cached?.isOwner ?? fallback.isOwner),
-        loading: session.state === "live",
+        userId: resolvedId,
+        name: displayName,
+        bio,
+        avatar,
+        isOwner: Boolean(
+          onlineUser?.isOwner ?? resolvedCached?.isOwner ?? saved?.isOwner ?? fallback.isOwner,
+        ),
+        loading: session.state === "live" && Boolean(onlineUser) && !bio,
       });
-      if (session.state === "live") requestUserProfile(id);
+      if (session.state === "live" && onlineUser) requestUserProfile(resolvedId);
     };
 
     const requestDmHistory = (userId, userName) => {
@@ -904,12 +1251,14 @@
       });
       if (peerName) persistDmThread(peerName, history, getHistoryMaxSize(session.config));
       syncMessageAvatars();
+      finishChannelLoad();
       updateUi();
     };
 
     const switchChannel = async (channel, meta = {}) => {
       const nextChannel = channel === "lobby" ? "lobby" : String(channel || "").trim();
       if (!nextChannel) return;
+      beginChannelLoad();
       setFriendsMenuOpen(false);
       session.activeChannel = nextChannel;
       if (nextChannel === "lobby") session.lobbyUnread = 0;
@@ -923,6 +1272,7 @@
 
       if (nextChannel === "lobby") {
         await loadAndRenderHistory();
+        finishChannelLoad();
         updateUi();
         return;
       }
@@ -935,6 +1285,7 @@
           isSelf: entry.fromUserId === session.selfId,
         });
       });
+      if (local.length) finishChannelLoad();
       requestDmHistory(nextChannel, peer.name);
       updateUi();
     };
@@ -955,21 +1306,26 @@
 
       const avatar = createChatAvatar(name, user.avatar || "");
       avatar.classList.add("community-chat-dm-avatar");
-      button.appendChild(avatar);
+
+      const iconWrap = document.createElement("span");
+      iconWrap.className = "community-chat-sidebar-icon-wrap";
+      iconWrap.appendChild(avatar);
 
       const label = document.createElement("span");
       label.className = "community-chat-sidebar-label community-chat-dm-label";
       label.textContent = name;
-      button.appendChild(label);
 
       const unread = session.dmUnread.get(userId) || 0;
-      if (unread > 0 && session.activeChannel !== userId) {
+      if (unread > 0 && (session.activeChannel !== userId || !session.panelOpen)) {
         const badge = document.createElement("span");
         badge.className = "community-chat-unread-badge community-chat-dm-item-unread";
         badge.textContent = formatUnreadCount(unread);
         badge.setAttribute("data-count", String(unread));
-        button.appendChild(badge);
+        iconWrap.appendChild(badge);
       }
+
+      button.appendChild(iconWrap);
+      button.appendChild(label);
 
       button.addEventListener("click", () => {
         void openDmChannel(userId, user);
@@ -1079,7 +1435,7 @@
       const offsetTop = Math.max(0, Math.round(toggleRect.top - sidebarRect.top));
       const menuHeight = friendsMenu.scrollHeight;
       const availableBelow = viewportOffsetTop + viewportHeight - padding - viewportMenuTop;
-      const maxHeight = Math.max(Math.min(menuHeight, availableBelow), 120);
+      const maxHeight = Math.min(menuHeight, availableBelow);
       const gapStart = offsetTop;
       const gapEnd = Math.max(gapStart, offsetTop + friendsMenu.offsetHeight);
 
@@ -1344,18 +1700,23 @@
       clearTimeout(friendsMenuCloseTimer);
     };
 
-    const createFriendMenuItem = (user) => {
-      const userId = String(user.userId || user.id || "").trim();
-      const name = String(user.name || "").trim();
-      if (!userId || !name || userId === session.selfId) return null;
+    const createFriendMenuItem = (friend, onlineUser = null) => {
+      const name = String(friend?.name || onlineUser?.name || "").trim();
+      if (!name) return null;
+
+      const userId = String(onlineUser?.userId || "").trim();
+      const isOnline = Boolean(onlineUser?.userId);
+      if (isOnline && userId === session.selfId) return null;
 
       const button = document.createElement("button");
       button.type = "button";
       button.role = "menuitem";
       button.className = "community-chat-friends-menu-item";
-      button.setAttribute("aria-label", `View ${name}'s profile`);
+      button.classList.toggle("is-online", isOnline);
+      button.classList.toggle("is-offline", !isOnline);
+      button.setAttribute("aria-label", isOnline ? `${name} (online)` : `${name} (offline)`);
 
-      const avatar = createChatAvatar(name, user.avatar || "");
+      const avatar = createChatAvatar(name, friend?.avatar || onlineUser?.avatar || "");
       avatar.classList.add("community-chat-friends-menu-avatar");
       button.appendChild(avatar);
 
@@ -1364,9 +1725,27 @@
       label.textContent = name;
       button.appendChild(label);
 
+      const status = document.createElement("span");
+      status.className = "community-chat-friends-menu-status";
+      status.classList.toggle("is-online", isOnline);
+      status.classList.toggle("is-offline", !isOnline);
+      status.setAttribute("aria-hidden", "true");
+      button.appendChild(status);
+
       button.addEventListener("click", () => {
         setFriendsMenuOpen(false);
-        openUserProfile(userId, user);
+        if (isOnline) {
+          openUserProfile(userId, onlineUser || friend);
+          return;
+        }
+        showProfilePopover({
+          userId: "",
+          name: friend.name,
+          bio: getProfileForDisplayName(friend.name)?.bio || "",
+          avatar: friend.avatar || "",
+          isOwner: Boolean(friend.isOwner),
+          loading: false,
+        });
       });
 
       return button;
@@ -1376,20 +1755,31 @@
       if (!friendsOnlineListEl) return;
       friendsOnlineListEl.replaceChildren();
 
-      const users = session.onlineUsers
-        .filter((user) => user.userId && user.userId !== session.selfId)
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-      if (!users.length) {
+      const friends = listSavedFriends();
+      if (!friends.length) {
         const empty = document.createElement("p");
         empty.className = "community-chat-friends-menu-empty";
-        empty.textContent = "No one online right now.";
+        empty.textContent = "No friends yet. Open someone's profile and tap Add Friend.";
         friendsOnlineListEl.appendChild(empty);
         return;
       }
 
-      users.forEach((user) => {
-        const item = createFriendMenuItem(user);
+      const onlineByName = new Map(
+        session.onlineUsers
+          .filter((user) => user.userId && user.userId !== session.selfId)
+          .map((user) => [normalizeDisplayNameKey(user.name), user]),
+      );
+
+      const sortedFriends = [...friends].sort((a, b) => {
+        const aOnline = onlineByName.has(a.key);
+        const bOnline = onlineByName.has(b.key);
+        if (aOnline !== bOnline) return aOnline ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      sortedFriends.forEach((friend) => {
+        const onlineUser = onlineByName.get(friend.key) || null;
+        const item = createFriendMenuItem(friend, onlineUser);
         if (item) friendsOnlineListEl.appendChild(item);
       });
 
@@ -1407,17 +1797,26 @@
 
       if (dmListEl) {
         dmListEl.replaceChildren();
-        const entries = [...session.recentThreads.values()].filter(
-          (thread) => thread.userId && thread.userId !== session.selfId,
-        );
+        const entries = getRecentDmEntries();
 
-        const hasDms = entries.length > 0;
-        if (messagesHeadingEl) messagesHeadingEl.hidden = !hasDms;
-        dmListEl.hidden = !hasDms;
-        entries.forEach((user) => {
-          const item = createDmSidebarItem(user);
-          if (item) dmListEl.appendChild(item);
-        });
+        if (messagesHeadingEl) {
+          messagesHeadingEl.hidden = false;
+          messagesHeadingEl.disabled = entries.length === 0;
+        }
+        dmListEl.hidden = false;
+
+        if (!entries.length) {
+          const empty = document.createElement("p");
+          empty.className = "community-chat-dm-empty";
+          empty.textContent =
+            session.config.ui?.dm_empty || DEFAULT_CONFIG.ui.dm_empty;
+          dmListEl.appendChild(empty);
+        } else {
+          entries.forEach((user) => {
+            const item = createDmSidebarItem(user);
+            if (item) dmListEl.appendChild(item);
+          });
+        }
       }
 
       renderFriendsMenu();
@@ -1429,6 +1828,17 @@
       const peerName = dm.fromUserId === session.selfId ? dm.toName : dm.fromName;
       const peerAvatar = dm.fromUserId === session.selfId ? dm.toAvatar : dm.fromAvatar;
       const peerIsOwner = dm.fromUserId === session.selfId ? dm.toIsOwner : dm.fromIsOwner;
+
+      upsertSavedProfile({
+        name: dm.fromName,
+        avatar: dm.fromAvatar,
+        isOwner: Boolean(dm.fromIsOwner),
+      });
+      upsertSavedProfile({
+        name: dm.toName,
+        avatar: dm.toAvatar,
+        isOwner: Boolean(dm.toIsOwner),
+      });
 
       upsertUserProfile(peerUserId, {
         name: peerName,
@@ -1444,17 +1854,21 @@
         return;
       }
 
-      if (session.activeChannel === peerUserId) {
+      const onThisDm = session.activeChannel === peerUserId;
+      const shouldNotify = dm.fromUserId !== session.selfId && (!session.panelOpen || !onThisDm);
+
+      if (onThisDm) {
         syncActiveMessageIds();
         renderMessage(dmToRenderMessage(dm, session.selfId), {
           isSelf: dm.fromUserId === session.selfId,
         });
-      } else if (dm.fromUserId !== session.selfId) {
-        ids.add(dm.id);
-        session.dmUnread.set(peerUserId, (session.dmUnread.get(peerUserId) || 0) + 1);
-        playChatPingSound();
       } else {
         ids.add(dm.id);
+      }
+
+      if (shouldNotify) {
+        session.dmUnread.set(peerUserId, (session.dmUnread.get(peerUserId) || 0) + 1);
+        playChatPingSound();
       }
       renderSidebar();
     };
@@ -1462,9 +1876,13 @@
     const setState = (state) => {
       session.state = state;
       panel.dataset.chatState = state;
+      if (state === "disabled") {
+        session.pendingChannelLoad = false;
+      }
       if (state !== "live" && onlineEl) {
         onlineEl.textContent = formatChatOpenLabel(0);
       }
+      refreshMessagesLoading();
       updateUi();
     };
 
@@ -1525,10 +1943,19 @@
 
       const self = isSelf || isSelfMessage(message);
       const avatarUrl = resolveMessageAvatar(message);
+      const displayName = String(message.name || "Guest").trim() || "Guest";
+
+      if (displayName) {
+        upsertSavedProfile({
+          name: displayName,
+          avatar: avatarUrl,
+          isOwner: Boolean(message.isOwner),
+        });
+      }
 
       if (message.userId) {
         upsertUserProfile(message.userId, {
-          name: message.name,
+          name: displayName,
           avatar: avatarUrl,
           isOwner: Boolean(message.isOwner),
         });
@@ -1538,6 +1965,7 @@
       item.className = `community-chat-msg community-chat-msg--${self ? "self" : "other"}`;
       item.dataset.messageId = message.id;
       if (message.userId) item.dataset.userId = message.userId;
+      item.dataset.userName = displayName;
 
       const head = document.createElement("div");
       head.className = "community-chat-msg-head";
@@ -1595,9 +2023,16 @@
       messagesEl.querySelectorAll(".community-chat-msg").forEach((node) => node.remove());
       session.messageIds.clear();
       (history || []).forEach((message) => {
+        if (message?.name || message?.avatar) {
+          upsertSavedProfile({
+            name: message.name,
+            avatar: message.avatar,
+            isOwner: Boolean(message.isOwner),
+          });
+        }
         renderMessage(message, { isSelf: isSelfMessage(message) });
       });
-      syncMessageAvatars();
+      hydrateMessageProfiles();
       updateUi();
     };
 
@@ -1618,6 +2053,13 @@
     const persistChatMessage = (message) => {
       const normalized = normalizeStoredHistoryMessage(message);
       if (!normalized) return;
+      if (message?.name || message?.avatar) {
+        upsertSavedProfile({
+          name: message.name,
+          avatar: normalized.avatar || message.avatar,
+          isOwner: Boolean(message.isOwner),
+        });
+      }
       persistChatHistory(mergeHistoryMessages(readLocalChatHistory(), [normalized]));
     };
 
@@ -1641,13 +2083,17 @@
       session.onlineUsers.forEach((entry) => {
         if (entry.userId) upsertUserProfile(entry.userId, entry);
       });
-      syncMessageAvatars();
+      syncSavedFriendAvatarsFromOnline(session.onlineUsers);
+      hydrateMessageProfiles();
       renderSidebar();
     };
 
     const sendPanelOpenState = (open) => {
       session.panelOpen = Boolean(open);
       if (session.panelOpen && session.activeChannel === "lobby") session.lobbyUnread = 0;
+      if (session.panelOpen && session.activeChannel !== "lobby") {
+        session.dmUnread.set(session.activeChannel, 0);
+      }
       if (!session.socket || session.socket.readyState !== WebSocket.OPEN) {
         syncNotifyBadges();
         return;
@@ -1724,7 +2170,9 @@
         if (generation !== session.generation || session.socket !== socket) return;
         session.reconnectMs = RECONNECT_BASE_MS;
         setState("live");
+        hydrateMessageProfiles();
         global.dispatchEvent(new CustomEvent("morning-roast:chat-connected"));
+        beginChannelLoad();
         if (session.activeChannel === "lobby") {
           void loadAndRenderHistory();
         } else {
@@ -1755,13 +2203,14 @@
               setOwnerDisplayNames(message.config.owners.display_names);
               global.dispatchEvent(new CustomEvent("morning-roast:owners-config"));
             }
-            await (session.activeChannel === "lobby"
-              ? loadAndRenderHistory(message.history || [])
-              : Promise.resolve());
-            if (session.activeChannel !== "lobby") {
+            if (session.activeChannel === "lobby") {
+              await loadAndRenderHistory(message.history || []);
+              finishChannelLoad();
+            } else if (session.pendingChannelLoad) {
               requestDmHistory(session.activeChannel, getPeerProfile(session.activeChannel).name);
             }
             renderPresence({ online: message.online, chatOpen: message.chatOpen, users: [] });
+            hydrateMessageProfiles();
             updateUi();
             break;
           case "joined":
@@ -1813,7 +2262,15 @@
             break;
           case "profile":
             upsertUserProfile(message.userId, message);
+            syncMessageAvatars();
             if (pendingProfileUserId && pendingProfileUserId === message.userId) {
+              showProfilePopover(message);
+              pendingProfileUserId = "";
+            } else if (
+              activeProfileView &&
+              (message.userId === activeProfileView.userId ||
+                normalizeDisplayNameKey(message.name) === normalizeDisplayNameKey(activeProfileView.name))
+            ) {
               showProfilePopover(message);
               pendingProfileUserId = "";
             }
@@ -1862,6 +2319,20 @@
                 type: "error",
               });
             }
+            if (message.code === "profile_not_found" && (pendingProfileUserId || activeProfileView)) {
+              const lookupId = pendingProfileUserId || activeProfileView?.userId || "";
+              const cached = lookupId ? userProfiles.get(lookupId) : null;
+              const saved = getProfileForDisplayName(cached?.name || activeProfileView?.name);
+              showProfilePopover({
+                userId: lookupId,
+                name: cached?.name || activeProfileView?.name || saved?.name || "Guest",
+                bio: cached?.bio || saved?.bio || "",
+                avatar: cached?.avatar || saved?.avatar || activeProfileView?.avatar || "",
+                isOwner: Boolean(cached?.isOwner ?? saved?.isOwner ?? activeProfileView?.isOwner),
+                loading: false,
+              });
+              pendingProfileUserId = "";
+            }
             break;
           default:
             break;
@@ -1887,56 +2358,15 @@
 
     if (typeof global.attachUiTooltip === "function") {
       global.attachUiTooltip(lobbyBtn, "Public chat", { placement: "right" });
-      global.attachUiTooltip(friendsToggle, "Friends", { placement: "right" });
+      global.attachUiTooltip(messagesHeadingEl, "Cycle through messages", { placement: "right" });
     }
 
     lobbyBtn?.addEventListener("click", () => {
-      setFriendsMenuOpen(false);
       void switchChannel("lobby");
     });
 
-    friendsToggle?.addEventListener("click", (event) => {
-      event.stopPropagation();
-      if (friendsWrap?.classList.contains("is-closing")) return;
-      setFriendsMenuOpen(!friendsWrap?.classList.contains("is-open"));
-    });
-
-    friendsMenu?.addEventListener("click", (event) => {
-      if (event.target.closest(".community-chat-friends-menu-item")) {
-        setFriendsMenuOpen(false);
-      }
-    });
-
-    friendsMenu?.addEventListener("mouseenter", cancelFriendsMenuClose);
-    friendsMenu?.addEventListener("mouseleave", (event) => {
-      const related = event.relatedTarget;
-      if (related instanceof Node && sidebarEl?.contains(related)) return;
-      if (friendsWrap?.classList.contains("is-open")) {
-        cancelFriendsMenuClose();
-        setFriendsMenuOpen(false);
-      } else {
-        scheduleFriendsMenuClose();
-      }
-    });
-
-    friendsWrap?.addEventListener("mouseenter", cancelFriendsMenuClose);
-
-    root.addEventListener("click", (event) => {
-      if (event.target.closest("#community-chat-friends-toggle")) return;
-      if (
-        friendsWrap?.classList.contains("is-open") &&
-        !friendsWrap.contains(event.target) &&
-        !friendsMenu?.contains(event.target)
-      ) {
-        setFriendsMenuOpen(false);
-      }
-    });
-
-    root.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && friendsWrap?.classList.contains("is-open")) {
-        setFriendsMenuOpen(false);
-        friendsToggle?.focus();
-      }
+    messagesHeadingEl?.addEventListener("click", () => {
+      cycleDmChannel();
     });
 
     dmCloseBtn?.addEventListener("click", () => {
@@ -1975,6 +2405,16 @@
         sendJoin();
         updateUi();
       }
+      if (event.key === CHAT_FRIENDS_STORAGE_KEY) {
+        renderFriendsMenu();
+      }
+      if (event.key === CHAT_PROFILES_STORAGE_KEY) {
+        hydrateMessageProfiles();
+      }
+    });
+
+    global.addEventListener("morning-roast:chat-friends-changed", () => {
+      renderFriendsMenu();
     });
 
     session.api = {
@@ -2025,6 +2465,8 @@
 
     activeSession = session;
 
+    refreshMessagesLoading();
+
     (async () => {
       const provisionalUrl = resolveChatWsUrl(DEFAULT_CONFIG);
       session.config = await fetchChatConfig(provisionalUrl);
@@ -2033,8 +2475,10 @@
       }
       session.wsUrl = resolveChatWsUrl(session.config);
       hydrateRecentThreadsFromStorage(trackRecentThread, closedDmKeys);
+      hydrateMessageProfiles();
       renderSidebar();
       updateUi();
+      beginChannelLoad();
       if (session.activeChannel === "lobby") {
         const localHistory = readLocalChatHistory();
         if (localHistory.length) renderHistory(localHistory);
@@ -2184,5 +2628,10 @@
     getChatPingSound,
     setChatPingSoundId,
     playChatPingSound,
+    getFriends: listSavedFriends,
+    isFriend: isSavedFriend,
+    addFriend: addSavedFriend,
+    removeFriend: removeSavedFriend,
+    getSavedProfile: getProfileForDisplayName,
   };
 })(window);
