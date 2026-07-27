@@ -1035,6 +1035,52 @@
         (thread) => thread.userId && thread.userId !== session.selfId,
       );
 
+    const hasRecentThreadWith = (userId, name) => {
+      const id = String(userId || "").trim();
+      const nameKey = normalizeDisplayNameKey(name);
+      return getRecentDmEntries().some(
+        (thread) =>
+          (id && thread.userId === id) ||
+          (nameKey && normalizeDisplayNameKey(thread.name) === nameKey),
+      );
+    };
+
+    const resolveProfileMessageTarget = (profile = {}) => {
+      const name = String(profile.name || "Guest").trim() || "Guest";
+      const userId = String(profile.userId || "").trim();
+      const isSelf = Boolean(profile.isSelf) || (userId && userId === session.selfId);
+      if (isSelf) {
+        return { isSelf: true, canMessage: false, resolvedUserId: "", name, onlineUser: null };
+      }
+
+      const onlineUser = resolveOnlineUser(userId, name);
+      let resolvedUserId = String(onlineUser?.userId || userId || "").trim();
+      if (!resolvedUserId) {
+        const threadMatch = getRecentDmEntries().find(
+          (thread) => normalizeDisplayNameKey(thread.name) === normalizeDisplayNameKey(name),
+        );
+        resolvedUserId = String(threadMatch?.userId || "").trim();
+      }
+      if (!resolvedUserId) {
+        const cachedByName = [...userProfiles.values()].find(
+          (entry) => normalizeDisplayNameKey(entry.name) === normalizeDisplayNameKey(name),
+        );
+        resolvedUserId = String(cachedByName?.userId || "").trim();
+      }
+
+      const canMessage =
+        session.state === "live" &&
+        Boolean(resolvedUserId) &&
+        (Boolean(onlineUser) || hasRecentThreadWith(resolvedUserId, name));
+
+      return { isSelf: false, canMessage, resolvedUserId, name, onlineUser };
+    };
+
+    const refreshActiveProfileActions = () => {
+      if (!activeProfileView || activeProfileView.isSelf) return;
+      showProfilePopover(activeProfileView);
+    };
+
     const cycleDmChannel = () => {
       const entries = getRecentDmEntries();
       if (!entries.length) return;
@@ -1117,8 +1163,12 @@
       const loading = Boolean(profile.loading);
       const userId = String(profile.userId || "").trim();
       const isSelf = Boolean(profile.isSelf) || (userId && userId === session.selfId);
-      const onlineUser = !isSelf ? resolveOnlineUser(userId, name) : null;
-      const resolvedUserId = String(onlineUser?.userId || userId || "").trim();
+      const { canMessage, resolvedUserId, onlineUser } = resolveProfileMessageTarget({
+        ...profile,
+        name,
+        userId,
+        isSelf,
+      });
 
       applyAvatarToElement(profileAvatarEl, name, profile.avatar);
       profileNameEl.textContent = name;
@@ -1285,8 +1335,10 @@
           isSelf: entry.fromUserId === session.selfId,
         });
       });
-      if (local.length) finishChannelLoad();
       requestDmHistory(nextChannel, peer.name);
+      const canFetchDmHistory =
+        session.state === "live" && session.socket?.readyState === WebSocket.OPEN;
+      if (!canFetchDmHistory) finishChannelLoad();
       updateUi();
     };
 
@@ -1825,9 +1877,13 @@
 
     const handleIncomingDm = (dm) => {
       const peerUserId = dm.fromUserId === session.selfId ? dm.toUserId : dm.fromUserId;
-      const peerName = dm.fromUserId === session.selfId ? dm.toName : dm.fromName;
+      let peerName = dm.fromUserId === session.selfId ? dm.toName : dm.fromName;
       const peerAvatar = dm.fromUserId === session.selfId ? dm.toAvatar : dm.fromAvatar;
       const peerIsOwner = dm.fromUserId === session.selfId ? dm.toIsOwner : dm.fromIsOwner;
+
+      if (!String(peerName || "").trim() && peerUserId) {
+        peerName = userProfiles.get(peerUserId)?.name || "";
+      }
 
       upsertSavedProfile({
         name: dm.fromName,
@@ -1845,6 +1901,7 @@
         avatar: peerAvatar,
         isOwner: Boolean(peerIsOwner),
       });
+      reopenDmThread(peerName);
       trackRecentThread(peerUserId, { name: peerName, avatar: peerAvatar, isOwner: peerIsOwner });
       persistDmThread(peerName, [dm], getHistoryMaxSize(session.config));
 
@@ -1871,6 +1928,7 @@
         playChatPingSound();
       }
       renderSidebar();
+      refreshActiveProfileActions();
     };
 
     const setState = (state) => {
@@ -2086,6 +2144,7 @@
       syncSavedFriendAvatarsFromOnline(session.onlineUsers);
       hydrateMessageProfiles();
       renderSidebar();
+      refreshActiveProfileActions();
     };
 
     const sendPanelOpenState = (open) => {

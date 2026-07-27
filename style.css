@@ -4904,10 +4904,19 @@ body.reduce-motion .community-chat-friends-menu:not([hidden]).is-menu-revealed {
   height: 1.65rem;
 }
 
-.community-chat-sidebar-icon-wrap > .community-chat-unread-badge,
-.community-chat-toggle-icon-wrap > .community-chat-unread-badge {
+.community-chat-sidebar-icon-wrap > .community-chat-unread-badge {
   top: -0.15rem;
   right: -0.15rem;
+}
+
+.community-chat-toggle {
+  overflow: visible;
+}
+
+.community-chat-toggle-badge {
+  top: 0;
+  right: 0;
+  transform: translate(45%, -45%);
 }
 
 .community-chat-unread-badge {
@@ -5028,11 +5037,6 @@ body.reduce-motion .community-chat-friends-menu:not([hidden]).is-menu-revealed {
   color: hsl(var(--text-bright));
   background: hsl(var(--eerie-black));
   outline: none;
-}
-
-.community-chat-toggle-badge {
-  top: -0.15rem;
-  right: -0.15rem;
 }
 
 .community-chat-toggle-icon-wrap {
