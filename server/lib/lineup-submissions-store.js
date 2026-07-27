@@ -3,6 +3,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { readJsonFile, writeJsonFile, resolveDataFile, resolveDataRoot } = require("./safe-json-file");
 
+const MAX_LINEUP_VIDEO_BYTES = 100 * 1024 * 1024;
 const VALID_GAMES = new Set(["valorant", "cs2"]);
 const VALID_SIDES = new Set(["attacker", "defender"]);
 const VALID_STATUSES = new Set(["pending", "approved", "rejected"]);
@@ -36,7 +37,7 @@ function validateVideoFile(videoBuffer, { mime = "video/mp4", originalName = "li
   const safeExt = allowedExt.has(ext) ? ext : ".mp4";
   const allowedMime = /^video\/(mp4|webm|quicktime)$/i;
   if (!allowedMime.test(String(mime || ""))) return { error: "invalid_video_type" };
-  if (videoBuffer.length > 50 * 1024 * 1024) return { error: "video_too_large" };
+  if (videoBuffer.length > MAX_LINEUP_VIDEO_BYTES) return { error: "video_too_large" };
   return { safeExt };
 }
 
@@ -453,4 +454,5 @@ module.exports = {
   createLineupSubmissionsStore,
   resolveStorePath,
   resolveUploadsDir,
+  MAX_LINEUP_VIDEO_BYTES,
 };

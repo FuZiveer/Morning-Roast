@@ -2,6 +2,7 @@
 (function (global) {
   const SUBMISSIONS_EVENT = "morning-roast:lineup-submissions";
   const GAMES = ["valorant", "cs2"];
+  const MAX_LINEUP_VIDEO_BYTES = 100 * 1024 * 1024;
 
   const state = {
     pending: [],
@@ -1253,8 +1254,8 @@
 
   async function uploadSubmissionVideo(id, file) {
     if (!file) return true;
-    if (file.size > 50 * 1024 * 1024) {
-      showToast("Video must be 50 MB or smaller.", "error");
+    if (file.size > MAX_LINEUP_VIDEO_BYTES) {
+      showToast("Video must be 100 MB or smaller.", "error");
       return false;
     }
 
@@ -1515,7 +1516,7 @@
             <input type="file" class="lineup-form-file" data-field="video" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" aria-label="Replace video" />
             <span class="lineup-form-file-text" data-placeholder="Select file">Select file</span>
           </div>
-          <span class="lineup-form-hint">Optional. Upload a new MP4, WebM, or MOV (50 MB max).</span>
+          <span class="lineup-form-hint">Optional. Upload a new MP4, WebM, or MOV (100 MB max).</span>
         </div>
       </div>`;
   }
@@ -3116,8 +3117,8 @@
       if (status) status.textContent = "Attach a lineup video.";
       return;
     }
-    if (file.size > 50 * 1024 * 1024) {
-      if (status) status.textContent = "Video must be 50 MB or smaller.";
+    if (file.size > MAX_LINEUP_VIDEO_BYTES) {
+      if (status) status.textContent = "Video must be 100 MB or smaller.";
       return;
     }
 

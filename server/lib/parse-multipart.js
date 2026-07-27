@@ -104,7 +104,7 @@ function readRequestBody(req, maxBytes) {
   });
 }
 
-async function parseMultipartRequest(req, { maxBytes = 52 * 1024 * 1024 } = {}) {
+async function parseMultipartRequest(req, { maxBytes = 102 * 1024 * 1024 } = {}) {
   const { type, params } = parseContentType(req.headers["content-type"]);
   if (type !== "multipart/form-data" || !params.boundary) {
     throw new Error("invalid_content_type");

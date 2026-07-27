@@ -214,7 +214,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
         return true;
       }
       if (result.error === "video_too_large") {
-        sendJson(res, 413, { error: result.error, message: "Video must be 50 MB or smaller." }, corsOrigin);
+        sendJson(res, 413, { error: result.error, message: "Video must be 100 MB or smaller." }, corsOrigin);
         return true;
       }
 
@@ -232,7 +232,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
       return true;
     } catch (error) {
       if (error.message === "too_large") {
-        sendJson(res, 413, { error: "video_too_large", message: "Video must be 50 MB or smaller." }, corsOrigin);
+        sendJson(res, 413, { error: "video_too_large", message: "Video must be 100 MB or smaller." }, corsOrigin);
         return true;
       }
       if (error.message === "invalid_content_type") {
@@ -424,7 +424,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
         return true;
       }
       if (result.error === "video_too_large") {
-        sendJson(res, 413, { error: result.error, message: "Video must be 50 MB or smaller." }, corsOrigin);
+        sendJson(res, 413, { error: result.error, message: "Video must be 100 MB or smaller." }, corsOrigin);
         return true;
       }
       if (result.error) {
@@ -437,7 +437,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
       return true;
     } catch (error) {
       if (error.message === "too_large") {
-        sendJson(res, 413, { error: "video_too_large", message: "Video must be 50 MB or smaller." }, corsOrigin);
+        sendJson(res, 413, { error: "video_too_large", message: "Video must be 100 MB or smaller." }, corsOrigin);
         return true;
       }
       if (error.message === "invalid_content_type") {
