@@ -113,6 +113,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (pathname === "/lineups/comments") {
+    const url = new URL(req.url || "/", "http://localhost");
+    const game = url.searchParams.get("game") || "";
+    const videoId = url.searchParams.get("videoId") || "";
+    const viewerUserId = url.searchParams.get("userId") || "";
+    const comments = chatRoom ? chatRoom.getLineupComments(game, videoId, { viewerUserId }) : [];
+
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": corsOrigin,
+      "Cache-Control": "no-store",
+    });
+    res.end(JSON.stringify({ game, videoId, comments }));
+    return;
+  }
+
   res.writeHead(404);
   res.end("Not Found");
 });

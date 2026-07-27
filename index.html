@@ -47,7 +47,7 @@
           if (bgImageIds.indexOf(bgImage) === -1 && bgImage !== "none") bgImage = "magenta-fluid-waves";
           var backdropMode = localStorage.getItem("prefBgBackdropMode");
           if (backdropMode !== "pattern" && backdropMode !== "image" && backdropMode !== "none") {
-            backdropMode = pattern === "particles" || pattern === "stars" ? "pattern" : "image";
+            backdropMode = pattern === "particles" || pattern === "stars" || pattern === "flow" ? "pattern" : "image";
           }
           if (backdropMode === "image") {
             root.classList.add("glass-theme");
@@ -56,7 +56,7 @@
             }
           } else if (backdropMode === "none") {
             root.setAttribute("data-bg-pattern", "none");
-          } else if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "particles" || pattern === "stars") {
+          } else if (pattern === "grid" || pattern === "dots" || pattern === "none" || pattern === "flow" || pattern === "particles" || pattern === "stars") {
             root.setAttribute("data-bg-pattern", pattern);
           }
           var fontStacks = {
@@ -126,6 +126,7 @@
     <script defer src="tools/site-assistant.js"></script>
     <script defer src="tools/online-presence.js"></script>
     <script defer src="tools/community-chat.js"></script>
+    <script defer src="tools/lineup-comments.js"></script>
     <script defer src="tools/profile-tags.js"></script>
     <script defer src="script.js"></script>
   </head>
@@ -159,6 +160,7 @@
     </div>
     <div id="bg-stars" class="bg-stars bg-stars--fixed" aria-hidden="true"></div>
     <canvas id="bg-particles-canvas" class="bg-particles-canvas" aria-hidden="true"></canvas>
+    <canvas id="bg-flow-canvas" class="bg-flow-canvas" aria-hidden="true"></canvas>
     <aside class="app-sidebar" aria-label="Main navigation">
       <div class="app-sidebar-logo" role="img" aria-label="Morning Roast">
         <span class="logo-stack" aria-hidden="true">
@@ -3356,6 +3358,37 @@
                         </div>
                       </div>
                     </div>
+
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Chat Ping Sound</span>
+                        <p>Choose the notification sound for new chat messages.</p>
+                      </div>
+                      <div class="control-group chat-ping-sound-control" id="chat-ping-sound-control">
+                        <div class="accent-picker-nav chat-ping-sound-picker">
+                          <button type="button" class="accent-picker-arrow" id="chat-ping-sound-prev" aria-label="Previous chat ping sound">
+                            <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+                          </button>
+                          <span class="accent-picker-label" id="chat-ping-sound-label">Soft Bell</span>
+                          <button type="button" class="accent-picker-arrow" id="chat-ping-sound-next" aria-label="Next chat ping sound">
+                            <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="setting-block">
+                      <div class="setting-text">
+                        <span>Chat Ping Volume</span>
+                        <p>Adjust notification sounds for new chat messages relative to master volume.</p>
+                      </div>
+                      <div class="control-group chat-ping-audio-control" id="chat-ping-audio-control">
+                        <div class="aim-trainer-volume-row">
+                          <input type="range" id="chat-ping-volume" min="0" max="100" step="1" value="25" aria-label="Chat ping volume" />
+                          <span class="aim-trainer-volume-label" id="chat-ping-volume-label">25%</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3447,39 +3480,64 @@
             </button>
           </div>
         </div>
-        <div class="lineup-video-modal-body">
-          <video id="lineup-video-modal-player" class="lineup-video-modal-player" playsinline preload="auto" autoplay></video>
-          <video id="lineup-video-scrub-player" class="lineup-video-scrub-player" playsinline preload="auto" muted hidden aria-hidden="true"></video>
-        </div>
-        <div class="lineup-video-controls" id="lineup-video-controls">
-          <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-play" aria-label="Play">
-            <i class="ri-play-fill" aria-hidden="true"></i>
-          </button>
-          <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-skip-back" aria-label="Back 5 seconds">
-            <i class="ri-replay-5-line" aria-hidden="true"></i>
-          </button>
-          <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-skip-forward" aria-label="Forward 5 seconds">
-            <i class="ri-forward-5-line" aria-hidden="true"></i>
-          </button>
-          <span class="lineup-video-time" id="lineup-video-time-current">0:00</span>
-          <div class="lineup-video-progress-wrap" id="lineup-video-progress-wrap">
-            <div class="lineup-video-scrub-preview hidden" id="lineup-video-scrub-preview" aria-hidden="true">
-              <canvas id="lineup-video-scrub-canvas" width="160" height="90"></canvas>
-              <span class="lineup-video-scrub-time" id="lineup-video-scrub-time">0:00</span>
+        <div class="lineup-video-modal-main">
+          <div class="lineup-video-modal-media">
+            <div class="lineup-video-modal-body">
+              <video id="lineup-video-modal-player" class="lineup-video-modal-player" playsinline preload="auto" autoplay></video>
+              <video id="lineup-video-scrub-player" class="lineup-video-scrub-player" playsinline preload="auto" muted hidden aria-hidden="true"></video>
             </div>
-            <div class="lineup-video-progress-track" aria-hidden="true">
-              <div class="lineup-video-progress-played-trail" id="lineup-video-progress-played-trail"></div>
-              <div class="lineup-video-progress-played" id="lineup-video-progress-played"></div>
+            <div class="lineup-video-controls" id="lineup-video-controls">
+              <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-play" aria-label="Play">
+                <i class="ri-play-fill" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-skip-back" aria-label="Back 5 seconds">
+                <i class="ri-replay-5-line" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-skip-forward" aria-label="Forward 5 seconds">
+                <i class="ri-forward-5-line" aria-hidden="true"></i>
+              </button>
+              <span class="lineup-video-time" id="lineup-video-time-current">0:00</span>
+              <div class="lineup-video-progress-wrap" id="lineup-video-progress-wrap">
+                <div class="lineup-video-scrub-preview hidden" id="lineup-video-scrub-preview" aria-hidden="true">
+                  <canvas id="lineup-video-scrub-canvas" width="160" height="90"></canvas>
+                  <span class="lineup-video-scrub-time" id="lineup-video-scrub-time">0:00</span>
+                </div>
+                <div class="lineup-video-progress-track" aria-hidden="true">
+                  <div class="lineup-video-progress-played-trail" id="lineup-video-progress-played-trail"></div>
+                  <div class="lineup-video-progress-played" id="lineup-video-progress-played"></div>
+                </div>
+                <div class="lineup-video-progress-thumb" id="lineup-video-progress-thumb" aria-hidden="true"></div>
+                <input type="range" class="lineup-video-progress" id="lineup-video-progress" min="0" max="100" step="0.1" value="0" aria-label="Seek" />
+              </div>
+              <span class="lineup-video-time" id="lineup-video-time-duration">0:00</span>
+              <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-mute" aria-label="Mute">
+                <i class="ri-volume-up-line" aria-hidden="true"></i>
+              </button>
+              <input type="range" class="lineup-video-volume" id="lineup-video-volume" min="0" max="1" step="0.05" value="1" aria-label="Volume" />
+              <span class="lineup-video-volume-label" id="lineup-video-volume-label" aria-hidden="true">100%</span>
             </div>
-            <div class="lineup-video-progress-thumb" id="lineup-video-progress-thumb" aria-hidden="true"></div>
-            <input type="range" class="lineup-video-progress" id="lineup-video-progress" min="0" max="100" step="0.1" value="0" aria-label="Seek" />
           </div>
-          <span class="lineup-video-time" id="lineup-video-time-duration">0:00</span>
-          <button type="button" class="lineup-video-ctrl-btn" id="lineup-video-mute" aria-label="Mute">
-            <i class="ri-volume-up-line" aria-hidden="true"></i>
-          </button>
-          <input type="range" class="lineup-video-volume" id="lineup-video-volume" min="0" max="1" step="0.05" value="1" aria-label="Volume" />
-          <span class="lineup-video-volume-label" id="lineup-video-volume-label" aria-hidden="true">100%</span>
+          <aside id="lineup-video-comments" class="lineup-video-comments" aria-label="Lineup comments">
+            <div class="lineup-video-comments-head">
+              <h4 class="lineup-video-comments-title">Comments</h4>
+              <span id="lineup-video-comments-count" class="lineup-video-comments-count">No comments yet</span>
+            </div>
+            <div id="lineup-video-comments-list" class="lineup-video-comments-list" aria-live="polite"></div>
+            <p id="lineup-video-comments-hint" class="lineup-video-comments-hint" hidden></p>
+            <div id="lineup-video-comments-reply-banner" class="lineup-video-comments-reply-banner" hidden>
+              <span id="lineup-video-comments-reply-text"></span>
+              <button type="button" id="lineup-video-comments-reply-cancel" class="lineup-video-comments-reply-cancel" aria-label="Cancel reply">
+                <i class="ri-close-line" aria-hidden="true"></i>
+              </button>
+            </div>
+            <form id="lineup-video-comments-form" class="lineup-video-comments-form" autocomplete="off">
+              <label class="visually-hidden" for="lineup-video-comments-input">Comment</label>
+              <input id="lineup-video-comments-input" class="lineup-video-comments-input" type="text" maxlength="500" placeholder="Add a comment…" />
+              <button type="submit" id="lineup-video-comments-submit" class="lineup-video-comments-submit" aria-label="Post comment">
+                <i class="ri-send-plane-2-line" aria-hidden="true"></i>
+              </button>
+            </form>
+          </aside>
         </div>
       </div>
     </div>
@@ -3559,6 +3617,9 @@
                 </div>
               </div>
               <div class="site-assistant-header-actions">
+                <button type="button" id="community-chat-dm-close" class="community-chat-dm-close site-assistant-clear" aria-label="Back to public chat" hidden>
+                  <i class="ri-arrow-left-line" aria-hidden="true"></i>
+                </button>
                 <button type="button" id="community-chat-close" class="site-assistant-close" aria-label="Close community chat">
                   <i class="ri-close-line" aria-hidden="true"></i>
                 </button>
@@ -3567,21 +3628,33 @@
 
             <div class="community-chat-body">
               <aside id="community-chat-sidebar" class="community-chat-sidebar" aria-label="Chat sidebar">
-                <div class="community-chat-sidebar-section">
-                  <p class="community-chat-sidebar-label">Channels</p>
-                  <button type="button" id="community-chat-lobby-btn" class="community-chat-sidebar-item is-active" data-channel="lobby" aria-current="page">
-                    <i class="ri-group-line" aria-hidden="true"></i>
-                    <span class="community-chat-sidebar-item-label">Lobby</span>
-                  </button>
-                </div>
-                <div class="community-chat-sidebar-section">
-                  <p class="community-chat-sidebar-label">Online</p>
-                  <div id="community-chat-online-list" class="community-chat-sidebar-list" role="list"></div>
-                </div>
-                <div class="community-chat-sidebar-section" id="community-chat-recent-section" hidden>
-                  <p class="community-chat-sidebar-label">Recent</p>
-                  <div id="community-chat-recent-list" class="community-chat-sidebar-list" role="list"></div>
-                </div>
+                <nav class="community-chat-sidebar-nav" aria-label="Chat channels">
+                  <div class="community-chat-sidebar-group">
+                    <button type="button" id="community-chat-lobby-btn" class="community-chat-sidebar-item active" data-channel="lobby" aria-current="page" aria-label="Public chat">
+                      <i class="ri-megaphone-line" aria-hidden="true"></i>
+                      <span class="community-chat-sidebar-label">Public</span>
+                    </button>
+                  </div>
+
+                  <div class="community-chat-sidebar-group">
+                    <div class="community-chat-friends" id="community-chat-friends">
+                      <button type="button" id="community-chat-friends-toggle" class="community-chat-sidebar-item community-chat-friends-toggle" aria-expanded="false" aria-haspopup="menu" aria-controls="community-chat-friends-menu" aria-label="Friends">
+                        <i class="ri-group-line" aria-hidden="true"></i>
+                        <span class="community-chat-sidebar-label">Friends</span>
+                      </button>
+                      <div id="community-chat-friends-menu" class="community-chat-friends-menu" role="menu" aria-labelledby="community-chat-friends-toggle" hidden>
+                        <div id="community-chat-friends-online-list" class="community-chat-friends-menu-list"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="community-chat-sidebar-item community-chat-messages-heading" hidden aria-hidden="true">
+                    <i class="ri-mail-line" aria-hidden="true"></i>
+                    <span class="community-chat-sidebar-label">Messages</span>
+                    <span id="community-chat-friends-badge" class="community-chat-unread-badge community-chat-friends-badge" hidden aria-hidden="true"></span>
+                  </div>
+                </nav>
+                <div id="community-chat-friends-list" class="community-chat-dm-list" hidden></div>
               </aside>
 
               <div class="community-chat-main">
@@ -3606,7 +3679,7 @@
 
                 <form id="community-chat-form" class="site-assistant-form community-chat-form" autocomplete="off">
                   <label class="visually-hidden" for="community-chat-input">Chat message</label>
-                  <input id="community-chat-input" class="site-assistant-input community-chat-input" type="text" maxlength="500" placeholder="Message the lobby…" />
+                  <input id="community-chat-input" class="site-assistant-input community-chat-input" type="text" maxlength="500" placeholder="Message public chat…" />
                   <button type="submit" class="site-assistant-send community-chat-send" id="community-chat-send" aria-label="Send message" disabled>
                     <i class="ri-send-plane-2-line" aria-hidden="true"></i>
                   </button>
@@ -3617,6 +3690,7 @@
           <button type="button" id="community-chat-toggle" class="site-assistant-toggle community-chat-toggle" aria-controls="community-chat-panel" aria-expanded="false" aria-label="Open community chat">
             <i class="ri-chat-1-line community-chat-toggle-open" aria-hidden="true"></i>
             <i class="ri-close-line community-chat-toggle-close" aria-hidden="true"></i>
+            <span id="community-chat-toggle-badge" class="community-chat-unread-badge community-chat-toggle-badge" hidden aria-hidden="true"></span>
           </button>
         </div>
 

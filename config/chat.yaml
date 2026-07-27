@@ -26,10 +26,11 @@ chat:
   ui:
     title: Community Chat
     description: Talk with other Morning Roast visitors in real time.
-    placeholder: Message the lobby…
+    placeholder: Message public chat…
     dm_placeholder: Message privately…
     dm_offline_message: That user is offline.
     dm_title_prefix: "Chat with"
+    public_chat_title: Public
     empty_state: No messages yet. Say hi!
     offline_message: Chat is offline. Try again in a moment.
     name_required_message: Set a display name on your Profile before chatting.

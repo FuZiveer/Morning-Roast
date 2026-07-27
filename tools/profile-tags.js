@@ -191,6 +191,34 @@
     return tag;
   }
 
+  function getUnlockedTagsForDisplayName(displayName) {
+    const name = String(displayName || "").trim();
+    const userKey = normalizeUserKey(name);
+    const tags = [];
+
+    if (isOwnerDisplayName(name)) {
+      tags.push({ id: "owner", label: "Owner", hint: "Morning Roast site owner.", owner: true });
+    }
+
+    if (!userKey) return tags;
+
+    migrateLegacyUnlockedTags(userKey);
+    const unlocked = getUnlockedSetForUser(userKey);
+    let hasAchievementTag = false;
+
+    for (const tag of ACHIEVEMENT_TAGS) {
+      if (!unlocked.has(tag.id)) continue;
+      hasAchievementTag = true;
+      tags.push({ id: tag.id, label: tag.label, hint: tag.hint });
+    }
+
+    if (name && !hasAchievementTag && !tags.some((entry) => entry.id === "member")) {
+      tags.push({ id: "member", label: "Member", hint: "Set a display name on your profile." });
+    }
+
+    return tags;
+  }
+
   function renderProfileTags(displayName) {
     const container = document.getElementById("profile-tags");
     if (!container) return;
@@ -314,7 +342,9 @@
     ACHIEVEMENT_TAGS,
     bootstrap,
     checkUnlocks,
+    createTagElement,
     getProfileTagStats,
+    getUnlockedTagsForDisplayName,
     isOwnerDisplayName,
     onDisplayNameChanged,
     recordChatMessage,

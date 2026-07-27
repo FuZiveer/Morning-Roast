@@ -533,6 +533,39 @@ function notifyCopied(body) {
   Toast.notify({ message: plain || "Copied to clipboard", type: "success" });
 }
 
+function attachUiTooltip(element, text, { placement = "top", id = "" } = {}) {
+  if (!(element instanceof HTMLElement)) return;
+  const label = String(text ?? "").trim();
+  element.removeAttribute("title");
+  if (!label) {
+    element.classList.remove("has-ui-tooltip");
+    element.querySelector(":scope > .ui-tooltip")?.remove();
+    delete element.dataset.tooltipPlacement;
+    return;
+  }
+
+  element.classList.add("has-ui-tooltip");
+  element.dataset.tooltipPlacement = placement;
+
+  let tip = element.querySelector(":scope > .ui-tooltip");
+  if (!tip) {
+    tip = document.createElement("span");
+    tip.className = "ui-tooltip";
+    tip.setAttribute("role", "tooltip");
+    element.appendChild(tip);
+    if (element.dataset.uiTooltipBound !== "1") {
+      element.dataset.uiTooltipBound = "1";
+      element.addEventListener("mousedown", (event) => event.preventDefault());
+    }
+  }
+
+  if (id) tip.id = id;
+  else tip.removeAttribute("id");
+  tip.textContent = label;
+}
+
+window.attachUiTooltip = attachUiTooltip;
+
 function syncSiteAssistantNotifyVisibility(hasActiveToasts) {
   const assistant = document.getElementById("site-assistant");
   if (!assistant) return;
@@ -2867,7 +2900,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v240";
+const APP_CACHE_VERSION = "morning-roast-v273";
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -3694,13 +3727,38 @@ function initProfileTab() {
   });
 
   window.addEventListener("morning-roast:display-name-taken", () => {
-    setProfileDisplayNameTaken(true);
+    handleDisplayNameTakenConflict();
   });
 }
 
-function openUsernameOnboarding() {
+function clearSavedDisplayName() {
+  const previous = getSavedDisplayName();
+  if (!previous) return;
+
+  localStorage.removeItem(PROFILE_DISPLAY_NAME_KEY);
+  localStorage.removeItem(PROFILE_DISPLAY_NAME_COOLDOWN_KEY);
+  window.MorningRoastProfileTags?.onDisplayNameChanged?.(previous, "");
+
+  const nameInput = document.getElementById("profile-display-name");
+  if (nameInput) nameInput.value = "";
+
+  syncProfileAvatar("");
+  syncProfilePreview("");
+  setProfileDisplayNameTaken(false);
+  syncProfileDisplayNameUi();
+  scheduleProfileDisplayNameCooldownRefresh();
+  window.MorningRoastChat?.initCommunityChat?.()?.refreshIdentity?.();
+}
+
+function handleDisplayNameTakenConflict() {
+  clearSavedDisplayName();
+  openUsernameOnboarding({ force: true });
+}
+
+function openUsernameOnboarding({ force = false } = {}) {
   initUsernameOnboarding();
-  if (hasStoredDisplayName() || isUsernameOnboardingOpen()) return;
+  if (isUsernameOnboardingOpen()) return;
+  if (!force && hasStoredDisplayName()) return;
 
   const overlay = document.getElementById("username-onboarding-overlay");
   const input = document.getElementById("username-onboarding-input");
@@ -3736,6 +3794,10 @@ async function completeUsernameOnboarding(name) {
   const available = await checkDisplayNameAvailability(trimmed);
   if (!available) {
     Toast.notify({ message: getDisplayNameValidationMessage(), type: "error" });
+    const onboardingInput = document.getElementById("username-onboarding-input");
+    const onboardingSubmit = document.getElementById("username-onboarding-submit");
+    if (onboardingInput) onboardingInput.value = "";
+    if (onboardingSubmit) onboardingSubmit.disabled = true;
     return false;
   }
 
@@ -4309,6 +4371,7 @@ function setUiRefreshMode(mode) {
   UiFpsCap.setMode(mode);
   bgParticles.sync();
   bgStars.sync();
+  bgFlow.sync();
 }
 
 UiFpsCap.setMode(normalizeUiRefreshMode(localStorage.getItem("prefUiRefresh") || localStorage.getItem("prefHighRefresh")));
@@ -7881,18 +7944,21 @@ function updateEdpiSpectrumRecommended(bounds) {
     const maxLabel = formatRecommendedSpectrumDistance(bounds.recommendedMaxCm);
     maxMark.style.left = `${leftPct}%`;
     maxMark.setAttribute("data-label", maxLabel);
-    maxMark.title = `Recommended ${maxLabel}/360`;
+    attachUiTooltip(maxMark, `Recommended ${maxLabel}/360`);
   }
   if (minMark) {
     const minLabel = formatRecommendedSpectrumDistance(bounds.recommendedMinCm);
     minMark.style.left = `${rightPct}%`;
     minMark.setAttribute("data-label", minLabel);
-    minMark.title = `Recommended ${minLabel}/360`;
+    attachUiTooltip(minMark, `Recommended ${minLabel}/360`);
   }
   marks.style.setProperty("--rec-left", `${nextLeft}%`);
   marks.style.setProperty("--rec-width", `${nextWidth}%`);
   const rangeLabel = `${formatRecommendedSpectrumDistance(bounds.recommendedMinCm)}–${formatRecommendedSpectrumDistance(bounds.recommendedMaxCm)}`;
-  marks.title = `Recommended ${rangeLabel}/360. ${bounds.profile.why} ${bounds.profile.proExample}`;
+  attachUiTooltip(
+    marks,
+    `Recommended ${rangeLabel}/360. ${bounds.profile.why} ${bounds.profile.proExample}`,
+  );
 
   marks.hidden = false;
   if (shouldSnap) {
@@ -9523,7 +9589,7 @@ function renderLineupVideoCardMapIcon(card) {
     iconWrap.classList.remove("has-map-image");
   }
 
-  if (iconTitle) iconWrap.title = iconTitle;
+  if (iconTitle) attachUiTooltip(iconWrap, iconTitle);
 }
 
 function getLineupValorantAbilityInfo(card) {
@@ -9897,7 +9963,7 @@ function renderLineupCs2EmbedBadges(card) {
     badge.dataset.lineupSide = side;
     badge.classList.toggle("lineup-video-side-badge--t", side === "attacker");
     badge.classList.toggle("lineup-video-side-badge--ct", side === "defender");
-    badge.title = label;
+    attachUiTooltip(badge, label);
     badge.setAttribute("aria-hidden", "true");
     badge.innerHTML = `<img src="${resolveAppAssetUrl(sidePath)}" alt="" loading="lazy" decoding="async" />`;
     row.appendChild(badge);
@@ -9951,7 +10017,7 @@ function renderLineupVideoUtilityBadge(card) {
 
   const label = getLineupUtilityLabel(game, utility, card);
   delete badge.dataset.lineupCs2Utility;
-  badge.title = label;
+  attachUiTooltip(badge, label);
   badge.setAttribute("aria-hidden", "true");
   badge.removeAttribute("aria-label");
   badge.innerHTML = `<img src="${src}" alt="" loading="lazy" decoding="async" />`;
@@ -10682,9 +10748,10 @@ function toggleLineupFavoritesOnly() {
 function syncLineupFavoriteButton(btn, favorited) {
   if (!btn) return;
   btn.classList.toggle("is-favorite", favorited);
+  const label = favorited ? "Remove from favorites" : "Add to favorites";
   btn.setAttribute("aria-pressed", favorited ? "true" : "false");
-  btn.setAttribute("aria-label", favorited ? "Remove from favorites" : "Add to favorites");
-  btn.title = favorited ? "Remove from favorites" : "Add to favorites";
+  btn.setAttribute("aria-label", label);
+  attachUiTooltip(btn, label);
   const icon = btn.querySelector("i");
   if (icon) icon.className = favorited ? "ri-heart-fill" : "ri-heart-line";
 }
@@ -11830,6 +11897,8 @@ function closeLineupVideoModal() {
   const player = document.getElementById("lineup-video-modal-player");
   if (!overlay) return;
 
+  window.MorningRoastLineupComments?.close?.();
+
   syncLineupVideoModalDifficulty("");
   closeLineupVideoOptionsMenu();
   hideLineupVideoScrubPreview();
@@ -11890,7 +11959,7 @@ function syncLineupVideoModalDifficulty(level) {
   el.innerHTML = `<span class="lineup-difficulty-heading"><span class="lineup-difficulty-label">Difficulty</span><span class="lineup-difficulty-dot" aria-hidden="true"></span></span><span class="lineup-difficulty-stars" aria-hidden="true">${renderLineupDifficultyStarsHtml(n)}</span>`;
 }
 
-function openLineupVideoModal(url, title = "", difficulty = "", posterUrl = "") {
+function openLineupVideoModal(url, title = "", difficulty = "", posterUrl = "", context = {}) {
   const overlay = document.getElementById("lineup-video-overlay");
   const player = document.getElementById("lineup-video-modal-player");
   const titleEl = document.getElementById("lineup-video-modal-title");
@@ -11899,6 +11968,14 @@ function openLineupVideoModal(url, title = "", difficulty = "", posterUrl = "") 
   if (titleEl) titleEl.textContent = title;
   syncLineupVideoModalDifficulty(difficulty);
   closeLineupVideoOptionsMenu();
+
+  const game = String(context.game || "").trim().toLowerCase();
+  const videoId = String(context.videoId || "").trim();
+  if (game && videoId) {
+    window.MorningRoastLineupComments?.open?.({ game, videoId });
+  } else {
+    window.MorningRoastLineupComments?.close?.();
+  }
 
   lineupVideoModalState.baseUrl = url;
   lineupVideoModalState.posterUrl = posterUrl;
@@ -11971,7 +12048,10 @@ function initLineupVideoModal() {
       if (!src) return;
 
       event.preventDefault();
-      openLineupVideoModal(src, getLineupVideoTitle(card), card.dataset.lineupDifficulty || "", getLineupVideoPosterAssetPath(card));
+      openLineupVideoModal(src, getLineupVideoTitle(card), card.dataset.lineupDifficulty || "", getLineupVideoPosterAssetPath(card), {
+        game: getLineupGameForCard(card),
+        videoId: getLineupVideoId(card),
+      });
     });
   });
 
@@ -12284,6 +12364,7 @@ function initLineupTab() {
   initLineupGameDropdown();
   initLineupMapDropdown();
   initLineupVideoModal();
+  window.MorningRoastLineupComments?.init?.();
   initLineupBadgeInfoPopovers();
   initLineupCardTilt();
   syncLineupGameSelectorUi();
@@ -13999,7 +14080,7 @@ const BG_STAR_COUNT = 80;
 const BG_STAR_SPAWN_EDGES = ["top", "left", "bottom"];
 
 function normalizeBgPattern(stored) {
-  if (stored === "none" || stored === "grid" || stored === "dots" || stored === "particles" || stored === "stars") {
+  if (stored === "none" || stored === "grid" || stored === "dots" || stored === "flow" || stored === "particles" || stored === "stars") {
     return stored;
   }
   return "waves";
@@ -14009,6 +14090,7 @@ const BG_PATTERN_LABELS = {
   waves: "Waves",
   grid: "Grid",
   dots: "Dots",
+  flow: "Flow",
   particles: "Particles",
   stars: "Stars",
   none: "None",
@@ -14018,6 +14100,7 @@ const BG_PATTERN_ICONS = {
   waves: "ri-pulse-line",
   grid: "ri-layout-grid-line",
   dots: "ri-more-2-fill",
+  flow: "ri-arrow-right-line",
   particles: "ri-sparkling-2-line",
   stars: "ri-meteor-line",
   none: "ri-prohibited-line",
@@ -14094,14 +14177,14 @@ const BG_IMAGE_ICONS = {
   "prismatic-low-poly": "ri-shapes-line",
 };
 
-const BG_BACKDROP_PATTERN_ORDER = ["waves", "grid", "dots", "particles", "stars"];
+const BG_BACKDROP_PATTERN_ORDER = ["waves", "grid", "dots", "flow", "particles", "stars"];
 const BG_BACKDROP_IMAGE_ORDER = [...BG_IMAGE_IDS];
 
 function normalizeBgBackdropMode(stored, pattern, image) {
   if (stored === "pattern" || stored === "image" || stored === "none") return stored;
   const normPattern = normalizeBgPattern(pattern);
   const normImage = normalizeBgImage(image);
-  if (normPattern === "particles" || normPattern === "stars") return "pattern";
+  if (normPattern === "particles" || normPattern === "stars" || normPattern === "flow") return "pattern";
   if (normPattern === "none" && normImage === "none") return "none";
   if (normImage !== "none") return "image";
   return "pattern";
@@ -14599,10 +14682,275 @@ const bgParticles = {
   },
 };
 
+const BG_FLOW_SPACING = 34;
+const BG_FLOW_DIRECTIONS = [
+  { x: 1, y: 0 },
+  { x: 0, y: 1 },
+  { x: -1, y: 0 },
+  { x: 0, y: -1 },
+];
+const BG_FLOW_TRAIL_POINTS = 16;
+
+const bgFlow = {
+  canvas: null,
+  ctx: null,
+  travelers: [],
+  width: 0,
+  height: 0,
+  cols: 0,
+  rows: 0,
+  _dpr: 1,
+  _dotLayer: null,
+  _active: false,
+  _rafId: null,
+  _lastTime: 0,
+
+  motionAllowed() {
+    return !document.body.classList.contains("reduce-motion");
+  },
+
+  init() {
+    this.canvas = document.getElementById("bg-flow-canvas");
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext("2d");
+    window.addEventListener("resize", () => {
+      if (document.documentElement.dataset.bgPattern !== "flow") return;
+      if (this._active) this.resize(true);
+      else if (this.canvas?.classList.contains("is-active")) this.showStatic();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) this.stopAnimation();
+      else if (this._active) this.startAnimation();
+    });
+    this.sync();
+  },
+
+  sync() {
+    const on = document.documentElement.dataset.bgPattern === "flow";
+    if (!on) {
+      this.stop();
+      return;
+    }
+    if (!this.canvas || !this.ctx) return;
+    if (this.motionAllowed()) this.start();
+    else this.showStatic();
+  },
+
+  showStatic() {
+    this._active = false;
+    this.stopAnimation();
+    if (!this.canvas || !this.ctx) return;
+    this.canvas.classList.add("is-active");
+    this.resize(true);
+    this.draw(0);
+  },
+
+  start() {
+    if (!this.canvas || !this.ctx) return;
+    this._active = true;
+    this.canvas.classList.add("is-active");
+    this.resize(true);
+    this.startAnimation();
+  },
+
+  stop() {
+    this._active = false;
+    this.stopAnimation();
+    this.canvas?.classList.remove("is-active");
+    if (this.ctx && this.canvas) {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+  },
+
+  startAnimation() {
+    if (!this._active) return;
+    this.stopAnimation();
+    this._lastTime = 0;
+    this._rafId = nativeRequestAnimationFrame((time) => this.tick(time));
+  },
+
+  stopAnimation() {
+    if (this._rafId != null) {
+      nativeCancelAnimationFrame(this._rafId);
+      this._rafId = null;
+    }
+    this._lastTime = 0;
+  },
+
+  tick(time) {
+    if (!this._active) {
+      this._rafId = null;
+      return;
+    }
+
+    if (!this._lastTime) this._lastTime = time;
+    const dt = Math.min((time - this._lastTime) / 1000, 0.05);
+    this._lastTime = time;
+
+    this.draw(dt);
+    this._rafId = nativeRequestAnimationFrame((nextTime) => this.tick(nextTime));
+  },
+
+  resize(reseed) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this._dpr = dpr;
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.canvas.width = Math.round(this.width * dpr);
+    this.canvas.height = Math.round(this.height * dpr);
+    this.canvas.style.width = `${this.width}px`;
+    this.canvas.style.height = `${this.height}px`;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.cols = Math.max(2, Math.ceil(this.width / BG_FLOW_SPACING) + 1);
+    this.rows = Math.max(2, Math.ceil(this.height / BG_FLOW_SPACING) + 1);
+    this.buildDotLayer();
+    if (reseed) this.seed();
+  },
+
+  // The lattice never moves, so it is rasterised once per resize and blitted
+  // each frame instead of re-stroking a few thousand arcs.
+  buildDotLayer() {
+    const dpr = this._dpr;
+    const layer = this._dotLayer || (this._dotLayer = document.createElement("canvas"));
+    layer.width = Math.round(this.width * dpr);
+    layer.height = Math.round(this.height * dpr);
+    const lctx = layer.getContext("2d");
+    lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    lctx.clearRect(0, 0, this.width, this.height);
+    lctx.fillStyle = "hsl(0, 0%, 100%)";
+    for (let gy = 0; gy < this.rows; gy++) {
+      for (let gx = 0; gx < this.cols; gx++) {
+        lctx.beginPath();
+        lctx.arc(gx * BG_FLOW_SPACING, gy * BG_FLOW_SPACING, 1.15, 0, Math.PI * 2);
+        lctx.fill();
+      }
+    }
+  },
+
+  seed() {
+    const count = Math.min(22, Math.max(6, Math.round((this.width * this.height) / 62000)));
+    this.travelers = Array.from({ length: count }, () => this.spawn(true));
+  },
+
+  spawn(scatterAge) {
+    const life = 7 + Math.random() * 9;
+    return {
+      gx: Math.floor(Math.random() * this.cols),
+      gy: Math.floor(Math.random() * this.rows),
+      dir: Math.floor(Math.random() * 4),
+      t: Math.random(),
+      speed: 1 + Math.random() * 1.4,
+      life,
+      age: scatterAge ? Math.random() * life * 0.7 : 0,
+      trail: [],
+    };
+  },
+
+  advance(traveler, dt) {
+    traveler.age += dt;
+    traveler.t += traveler.speed * dt;
+
+    while (traveler.t >= 1) {
+      traveler.t -= 1;
+      const dir = BG_FLOW_DIRECTIONS[traveler.dir];
+      traveler.gx += dir.x;
+      traveler.gy += dir.y;
+
+      if (traveler.gx < 0 || traveler.gx >= this.cols || traveler.gy < 0 || traveler.gy >= this.rows) {
+        return false;
+      }
+
+      // Mostly carry straight on, occasionally take a 90-degree turn. Never
+      // double back, so the path always reads as following the lattice.
+      const roll = Math.random();
+      if (roll > 0.72) traveler.dir = (traveler.dir + (roll > 0.86 ? 1 : 3)) % 4;
+    }
+
+    return traveler.age < traveler.life;
+  },
+
+  headPosition(traveler) {
+    const dir = BG_FLOW_DIRECTIONS[traveler.dir];
+    return {
+      x: (traveler.gx + dir.x * traveler.t) * BG_FLOW_SPACING,
+      y: (traveler.gy + dir.y * traveler.t) * BG_FLOW_SPACING,
+    };
+  },
+
+  draw(dt) {
+    const { ctx, width, height } = this;
+    ctx.clearRect(0, 0, width, height);
+
+    const highContrast = document.documentElement.classList.contains("high-contrast");
+
+    if (this._dotLayer) {
+      ctx.globalAlpha = highContrast ? 0.16 : 0.07;
+      ctx.drawImage(this._dotLayer, 0, 0, width, height);
+      ctx.globalAlpha = 1;
+    }
+
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent-color").trim() || "#ef0141";
+    const peakAlpha = highContrast ? 0.85 : 0.5;
+
+    ctx.strokeStyle = accent;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    for (let i = 0; i < this.travelers.length; i++) {
+      const traveler = this.travelers[i];
+
+      if (dt > 0 && !this.advance(traveler, dt)) {
+        this.travelers[i] = this.spawn(false);
+        continue;
+      }
+
+      const head = this.headPosition(traveler);
+      traveler.trail.push(head);
+      if (traveler.trail.length > BG_FLOW_TRAIL_POINTS) traveler.trail.shift();
+
+      const fadeIn = Math.min(1, traveler.age / 0.8);
+      const fadeOut = Math.min(1, Math.max(0, (traveler.life - traveler.age) / 1.2));
+      const fade = Math.min(fadeIn, fadeOut);
+      if (fade <= 0) continue;
+
+      const trail = traveler.trail;
+      ctx.lineWidth = 1.4;
+      for (let p = 1; p < trail.length; p++) {
+        const from = trail[p - 1];
+        const to = trail[p];
+        // Skip the wrap-around segment created when a traveler respawns.
+        if (Math.abs(to.x - from.x) > BG_FLOW_SPACING || Math.abs(to.y - from.y) > BG_FLOW_SPACING) continue;
+        ctx.globalAlpha = (p / trail.length) * peakAlpha * fade * 0.55;
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.lineTo(to.x, to.y);
+        ctx.stroke();
+      }
+
+      const dir = BG_FLOW_DIRECTIONS[traveler.dir];
+      const angle = Math.atan2(dir.y, dir.x);
+      ctx.globalAlpha = peakAlpha * fade;
+      ctx.lineWidth = 1.6;
+      ctx.save();
+      ctx.translate(head.x, head.y);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(-4.6, -3);
+      ctx.lineTo(0, 0);
+      ctx.lineTo(-4.6, 3);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.globalAlpha = 1;
+  },
+};
+
 function applyBgPattern(mode) {
   document.documentElement.dataset.bgPattern = normalizeBgPattern(mode);
   bgParticles.sync();
   bgStars.sync();
+  bgFlow.sync();
 }
 
 function applyBgImage(mode) {
@@ -15296,6 +15644,48 @@ function initAudioSettings() {
     aimTrainer.trainerVolume = pct / 100;
     localStorage.setItem("aimTrainerVolume", String(pct));
   });
+
+  const savedChatPingVolume = Math.max(
+    0,
+    Math.min(100, parseInt(localStorage.getItem("prefChatPingVolume") ?? "25", 10) || 0),
+  );
+  bindVolumeSlider("chat-ping-volume", "chat-ping-volume-label", savedChatPingVolume, (pct) => {
+    localStorage.setItem("prefChatPingVolume", String(pct));
+  });
+
+  initChatPingSoundSettings();
+}
+
+function initChatPingSoundSettings() {
+  const chat = window.MorningRoastChat;
+  const label = document.getElementById("chat-ping-sound-label");
+  const prev = document.getElementById("chat-ping-sound-prev");
+  const next = document.getElementById("chat-ping-sound-next");
+  if (!chat?.getChatPingSounds || !label || !prev || !next) return;
+
+  const syncLabel = () => {
+    label.textContent = chat.getChatPingSound()?.label || chat.getChatPingSounds()[0]?.label || "Soft Bell";
+  };
+
+  const selectAt = (index) => {
+    const sounds = chat.getChatPingSounds();
+    if (!sounds.length) return;
+    const normalized = ((index % sounds.length) + sounds.length) % sounds.length;
+    chat.setChatPingSoundId(sounds[normalized].id);
+    syncLabel();
+    chat.playChatPingSound?.();
+  };
+
+  const activeIndex = () => {
+    const sounds = chat.getChatPingSounds();
+    const idx = sounds.findIndex((sound) => sound.id === chat.getChatPingSoundId());
+    return idx >= 0 ? idx : 0;
+  };
+
+  syncLabel();
+
+  prev.addEventListener("click", () => selectAt(activeIndex() - 1));
+  next.addEventListener("click", () => selectAt(activeIndex() + 1));
 }
 
 function initGeneralSettingsMenu() {
@@ -15364,6 +15754,7 @@ function initPreferences() {
     body.classList.toggle("reduce-motion", on);
     bgParticles.sync();
     bgStars.sync();
+    bgFlow.sync();
   };
 
   const savedAccent = localStorage.getItem("prefAccent");
@@ -15385,6 +15776,7 @@ function initPreferences() {
   applyFontFamily(savedFontFamily);
   applyContrast(savedContrast);
   bgParticles.init();
+  bgFlow.init();
   applyMotion(savedMotion);
   applyBgBackdrop(savedBgBackdropMode, savedBgBackdropMode === "image" ? savedBgImage : savedBgBackdropMode === "pattern" ? savedBgPattern : "none");
   initBgBackdropControl(savedBgBackdropMode, savedBgPattern, savedBgImage);

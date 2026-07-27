@@ -3,6 +3,7 @@ const { WebSocket } = require("ws");
 const { createChatModeration } = require("./chat-moderation");
 const { createChatHistoryStore } = require("./chat-history-store");
 const { createDmHistoryStore } = require("./dm-history-store");
+const { createLineupCommentsStore, buildLineupKey } = require("./lineup-comments-store");
 
 function sanitizeText(value, maxLength) {
   return String(value || "")
@@ -40,6 +41,7 @@ function createChatRoom(config) {
   const MAX_MESSAGES_PER_MINUTE = Number(limits.max_messages_per_minute) || 20;
   const MAX_ONLINE_USERS_SHOWN = Number(limits.max_online_users_shown) || 24;
   const DM_HISTORY_SIZE = Number(limits.max_dm_history) || 100;
+  const LINEUP_COMMENTS_SIZE = Number(limits.max_lineup_comments) || 200;
   const ownerDisplayNames = (Array.isArray(chatConfig.owners?.display_names) ? chatConfig.owners.display_names : [])
     .map((name) => String(name || "").trim().toLowerCase())
     .filter(Boolean);
@@ -48,6 +50,7 @@ function createChatRoom(config) {
   const clients = new Set();
   const historyStore = createChatHistoryStore({ maxSize: HISTORY_SIZE });
   const dmHistoryStore = createDmHistoryStore({ maxSize: DM_HISTORY_SIZE });
+  const lineupCommentsStore = createLineupCommentsStore({ maxCommentsPerLineup: LINEUP_COMMENTS_SIZE });
 
   function isOwnerDisplayName(name) {
     const normalized = sanitizeText(name, MAX_NAME_LENGTH).toLowerCase();
@@ -409,6 +412,149 @@ function createChatRoom(config) {
     }
   }
 
+  function broadcastToLineupWatchers(lineupKey, message, except) {
+    const payload = serializeMessage(message);
+    for (const peer of clients) {
+      if (peer === except) continue;
+      if (peer.watchingLineupKey !== lineupKey) continue;
+      if (peer.readyState === WebSocket.OPEN) peer.send(payload);
+    }
+  }
+
+  function resolveLineupKey(message) {
+    return buildLineupKey(message.game, message.videoId);
+  }
+
+  function handleLineupCommentWatch(client, message) {
+    const lineupKey = resolveLineupKey(message);
+    client.watchingLineupKey = lineupKey || null;
+
+    if (!lineupKey) {
+      send(client, { type: "lineup_comments", game: message.game || "", videoId: message.videoId || "", comments: [] });
+      return;
+    }
+
+    send(client, {
+      type: "lineup_comments",
+      game: String(message.game || "").trim().toLowerCase(),
+      videoId: String(message.videoId || "").trim(),
+      lineupKey,
+      comments: lineupCommentsStore.list(lineupKey, { viewerUserId: client.userId }),
+    });
+  }
+
+  function handleLineupCommentPost(client, message) {
+    if (!client.displayName) {
+      sendError(client, "name_required", chatConfig.ui?.name_required_message || "Display name required.");
+      return;
+    }
+
+    const lineupKey = resolveLineupKey(message);
+    if (!lineupKey) {
+      sendError(client, "invalid_message", "Invalid lineup.");
+      return;
+    }
+
+    const gate = canSendMessage(client);
+    if (!gate.ok) {
+      sendError(client, gate.code, gate.message);
+      return;
+    }
+
+    const text = normalizeMessageText(message.text);
+    if (!text) {
+      sendError(client, "invalid_message", "Comment cannot be empty.");
+      return;
+    }
+
+    const parentId = message.parentId == null ? null : String(message.parentId || "").trim() || null;
+    if (parentId) {
+      const parent = lineupCommentsStore.list(lineupKey).find((entry) => entry.id === parentId);
+      if (!parent || parent.parentId) {
+        sendError(client, "invalid_message", "That comment cannot be replied to.");
+        return;
+      }
+    }
+
+    const now = Date.now();
+    client.lastMessageAt = now;
+    client.recentMessageTimes = client.recentMessageTimes || [];
+    client.recentMessageTimes.push(now);
+
+    const saved = lineupCommentsStore.pushComment(lineupKey, {
+      id: crypto.randomUUID(),
+      parentId,
+      userId: client.userId,
+      name: client.displayName,
+      text,
+      at: now,
+      avatar: client.avatar || "",
+      likes: 0,
+      dislikes: 0,
+      votes: {},
+    });
+
+    if (!saved) {
+      sendError(client, "comment_limit", "This lineup has reached the comment limit.");
+      return;
+    }
+
+    const comment =
+      lineupCommentsStore.list(lineupKey, { viewerUserId: client.userId }).find((entry) => entry.id === saved.id) ||
+      saved;
+
+    const payload = {
+      type: "lineup_comment",
+      game: String(message.game || "").trim().toLowerCase(),
+      videoId: String(message.videoId || "").trim(),
+      lineupKey,
+      comment: withOwnerFlag({ ...comment, isOwner: isOwnerDisplayName(comment.name) }),
+    };
+
+    send(client, payload);
+    broadcastToLineupWatchers(lineupKey, payload, client);
+  }
+
+  function handleLineupCommentVote(client, message) {
+    if (!client.displayName) {
+      sendError(client, "name_required", chatConfig.ui?.name_required_message || "Display name required.");
+      return;
+    }
+
+    const lineupKey = resolveLineupKey(message);
+    const commentId = String(message.commentId || "").trim();
+    const voteValue = Number(message.vote);
+    if (!lineupKey || !commentId) {
+      sendError(client, "invalid_message", "Invalid vote.");
+      return;
+    }
+    if (voteValue !== 1 && voteValue !== -1 && voteValue !== 0) {
+      sendError(client, "invalid_message", "Invalid vote.");
+      return;
+    }
+
+    const updated = lineupCommentsStore.vote(lineupKey, commentId, client.userId, voteValue);
+    if (!updated) {
+      sendError(client, "invalid_message", "Comment not found.");
+      return;
+    }
+
+    const payload = {
+      type: "lineup_comment_vote",
+      game: String(message.game || "").trim().toLowerCase(),
+      videoId: String(message.videoId || "").trim(),
+      lineupKey,
+      comment: updated,
+    };
+
+    for (const peer of clients) {
+      if (peer.watchingLineupKey !== lineupKey) continue;
+      const nextComment = lineupCommentsStore.list(lineupKey, { viewerUserId: peer.userId }).find((entry) => entry.id === commentId);
+      if (!nextComment) continue;
+      send(peer, { ...payload, comment: nextComment });
+    }
+  }
+
   function handlePanelOpen(client, message) {
     const next = Boolean(message.open);
     if (client.chatPanelOpen === next) return;
@@ -423,6 +569,7 @@ function createChatRoom(config) {
     client.bio = "";
     client.avatar = "";
     client.chatPanelOpen = false;
+    client.watchingLineupKey = null;
     client.lastMessageAt = 0;
     client.recentMessageTimes = [];
     clients.add(client);
@@ -460,6 +607,15 @@ function createChatRoom(config) {
           break;
         case "panel_open":
           handlePanelOpen(client, message);
+          break;
+        case "lineup_comment_watch":
+          handleLineupCommentWatch(client, message);
+          break;
+        case "lineup_comment":
+          handleLineupCommentPost(client, message);
+          break;
+        case "lineup_comment_vote":
+          handleLineupCommentVote(client, message);
           break;
         default:
           break;
@@ -499,6 +655,11 @@ function createChatRoom(config) {
     },
     isDisplayNameAvailable(name, options = {}) {
       return checkDisplayName(name, options).available;
+    },
+    getLineupComments(game, videoId, { viewerUserId = "" } = {}) {
+      const lineupKey = buildLineupKey(game, videoId);
+      if (!lineupKey) return [];
+      return lineupCommentsStore.list(lineupKey, { viewerUserId });
     },
   };
 }
