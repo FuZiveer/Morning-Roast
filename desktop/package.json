@@ -63,7 +63,8 @@
         }
       ],
       "icon": "../assets/logo.png",
-      "artifactName": "Morning-Roast-Setup-${version}.${ext}"
+      "artifactName": "Morning-Roast-Setup-${version}.${ext}",
+      "signAndEditExecutable": false
     },
     "portable": {
       "artifactName": "Morning-Roast-Portable-${version}.${ext}"
