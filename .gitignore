@@ -1,0 +1,12 @@
+# Desktop build output (rebuild with: cd desktop && npm run release)
+desktop/dist/
+desktop/node_modules/
+
+# Installer binaries — too large for GitHub (100 MB limit). Host via GitHub Releases instead.
+downloads/*.exe
+
+# Local env / OS noise
+.env
+.env.*
+.DS_Store
+Thumbs.db

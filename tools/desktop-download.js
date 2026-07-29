@@ -65,6 +65,14 @@
     }
   }
 
+  function resolveInstallerHref(manifest) {
+    const installerUrl = String(manifest?.installerUrl || "").trim();
+    if (installerUrl) return installerUrl;
+
+    const installerName = String(manifest?.installer || DESKTOP_INSTALLER_FALLBACK).trim();
+    return `./downloads/${installerName}`;
+  }
+
   async function syncDownloadAvailability(manifest) {
     if (isDesktopRuntime()) return;
 
@@ -72,9 +80,19 @@
     if (!primaryLink) return;
 
     const installerName = String(manifest?.installer || DESKTOP_INSTALLER_FALLBACK).trim();
-    const href = `./downloads/${installerName}`;
+    const href = resolveInstallerHref(manifest);
+    const isExternal = /^https?:\/\//i.test(href);
+
     primaryLink.href = href;
-    primaryLink.setAttribute("download", installerName);
+    if (isExternal) {
+      primaryLink.removeAttribute("download");
+      primaryLink.setAttribute("target", "_blank");
+      primaryLink.setAttribute("rel", "noopener noreferrer");
+    } else {
+      primaryLink.setAttribute("download", installerName);
+      primaryLink.removeAttribute("target");
+      primaryLink.removeAttribute("rel");
+    }
 
     const available = await probeInstallerAvailability(href);
     primaryLink.classList.toggle("is-unavailable", !available);
@@ -86,7 +104,7 @@
     }
 
     setDownloadStatus(
-      "Installer is not on the server yet. Build from the desktop folder, then run npm run release.",
+      "Installer is not available yet. Build with npm run release in the desktop folder, then publish it as a GitHub Release (the .exe is too large for the repo).",
       { tone: "warn" },
     );
   }
@@ -102,8 +120,15 @@
     });
 
     if (els.primaryLink) {
-      els.primaryLink.href = `./downloads/${installerName}`;
-      els.primaryLink.setAttribute("download", installerName);
+      const href = resolveInstallerHref(manifest);
+      els.primaryLink.href = href;
+      if (/^https?:\/\//i.test(href)) {
+        els.primaryLink.removeAttribute("download");
+        els.primaryLink.setAttribute("target", "_blank");
+        els.primaryLink.setAttribute("rel", "noopener noreferrer");
+      } else {
+        els.primaryLink.setAttribute("download", installerName);
+      }
     }
 
     if (isDesktopRuntime()) {

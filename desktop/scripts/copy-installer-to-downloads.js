@@ -39,10 +39,15 @@ console.log(`Copied ${installerName} → downloads/`);
 copyIfExists("latest.yml");
 copyIfExists(`${installerName}.blockmap`);
 
+const releaseTag = `v${version}`;
+const githubRepo = String(process.env.MORNING_ROAST_GITHUB_REPO || "FuZiveer/Morning-Roast").trim();
+
 const manifest = {
   version,
   webCacheVersion,
   installer: installerName,
+  installerUrl: `https://github.com/${githubRepo}/releases/download/${releaseTag}/${installerName}`,
+  releaseTag,
   updatedAt: new Date().toISOString(),
 };
 

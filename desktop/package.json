@@ -84,7 +84,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://morningroast.net/downloads/"
+        "url": "https://github.com/FuZiveer/Morning-Roast/releases/latest/download/"
       }
     ]
   }
