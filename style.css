@@ -2314,7 +2314,8 @@ html.logo-mask-ready .logo-mark {
     grid-template-columns: 1fr;
   }
 
-  .home-panel {
+  .home-panel,
+  .download-panel {
     padding: 1rem;
   }
 }
@@ -2463,6 +2464,15 @@ html.glass-theme .home-inline-link:focus-visible {
   flex-direction: column;
   gap: 2rem;
   padding: 1.25rem;
+}
+
+.download-web-panel,
+.download-runtime-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  min-width: 0;
 }
 
 .download-showcase {
@@ -2833,43 +2843,33 @@ html.glass-theme .home-inline-link:focus-visible {
 }
 
 .download-runtime-panel {
-  display: block;
+  display: flex;
 }
 
-.download-runtime-card {
+.download-runtime-status {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 1rem 1.25rem;
-  padding: 1.25rem;
-  border: var(--border-width) solid hsl(130 45% 35% / 0.35);
-  border-radius: 1rem;
-  background: linear-gradient(135deg, hsl(130 35% 12% / 0.55), hsl(0 0% 7%));
+  align-items: flex-start;
+  gap: 1rem 1.15rem;
+}
+
+.download-runtime-about .download-runtime-copy h2 {
+  margin: 0 0 0.35rem;
+  font-size: calc(1.15rem * var(--text-size-scale, 1));
+  font-weight: 600;
+  color: hsl(var(--white));
+}
+
+.download-runtime-about .download-runtime-copy .policy-intro {
+  margin: 0;
+  max-width: 44rem;
 }
 
 .download-runtime-icon {
+  flex-shrink: 0;
   color: hsl(130 58% 58%);
   font-size: 2rem;
   line-height: 1;
-}
-
-.download-runtime-copy h2 {
-  margin: 0 0 0.35rem;
-  font-size: calc(1.15rem * var(--text-size-scale, 1));
-}
-
-.download-runtime-copy p {
-  margin: 0;
-  max-width: 42rem;
-  color: hsl(var(--text-muted));
-  line-height: 1.5;
-}
-
-.download-runtime-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  margin-left: auto;
 }
 
 html.glass-theme .home-download-banner,
@@ -2914,9 +2914,9 @@ html.glass-theme .download-window {
     justify-content: center;
   }
 
-  .download-runtime-actions {
-    width: 100%;
-    margin-left: 0;
+  .download-web-panel,
+  .download-runtime-panel {
+    gap: 1.5rem;
   }
 
   .desktop-update-banner {

@@ -21,7 +21,21 @@ This writes into `downloads/`:
 
 ## Publish (GitHub Releases)
 
-After each build, create or update a release and attach the large files:
+### Automatic (GitHub Actions)
+
+Push a version tag to trigger `.github/workflows/desktop-release.yml`:
+
+```bash
+# Bump version in desktop/package.json first, then:
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The workflow runs `npm run release` on Windows and attaches the installer, `latest.yml`, `.blockmap`, and `desktop-version.json` to the GitHub Release.
+
+You can also run it manually: **Actions → Desktop Release → Run workflow**.
+
+### Manual upload
 
 ```bash
 gh release create v1.0.0 \

@@ -674,17 +674,70 @@
           <div class="box-container">
             <div class="box-holder download-panel">
               <div id="download-runtime-panel" class="download-runtime-panel" hidden>
-                <div class="download-runtime-card">
-                  <span class="download-runtime-icon" aria-hidden="true"><i class="ri-checkbox-circle-fill"></i></span>
-                  <div class="download-runtime-copy">
-                    <h2>You’re running the desktop app</h2>
-                    <p>Everything from the website is already installed locally. Jump into Tools from the sidebar or use the menu bar to open the converter or aim trainer.</p>
+                <fieldset class="fieldset-style download-runtime-about">
+                  <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(130, 54%, 72%)">Desktop app</legend>
+                  <div class="download-runtime-status">
+                    <span class="download-runtime-icon" aria-hidden="true"><i class="ri-checkbox-circle-fill"></i></span>
+                    <div class="download-runtime-copy">
+                      <h2>You’re running the desktop app</h2>
+                      <p class="policy-intro">Everything from the website is already installed locally. Jump into Tools from the sidebar or pick a shortcut below — the menu bar also has quick links for converter and aim trainer.</p>
+                    </div>
                   </div>
-                  <div class="download-runtime-actions">
-                    <button type="button" class="download-btn download-btn--ghost" onclick="switchTab(event, 'sensitivity-converter-tab')">Open converter</button>
-                    <button type="button" class="download-btn download-btn--ghost" onclick="switchTab(event, 'aim-training-tab')">Open aim trainer</button>
+                </fieldset>
+
+                <section class="home-features download-runtime-shortcuts" aria-labelledby="download-runtime-shortcuts-heading">
+                  <div class="home-section-head">
+                    <h2 id="download-runtime-shortcuts-heading" class="home-section-title"><i class="ri-flashlight-line" aria-hidden="true"></i> Quick launch</h2>
+                    <p class="home-section-lead">Same toolkit as the website — open any tool in one click.</p>
                   </div>
-                </div>
+
+                  <div class="home-feature-grid">
+                    <button type="button" class="home-feature-card home-feature-card--converter" onclick="switchTab(event, 'sensitivity-converter-tab')">
+                      <span class="home-feature-card-bg" aria-hidden="true"></span>
+                      <span class="home-feature-icon" aria-hidden="true"><i class="ri-swap-2-line"></i></span>
+                      <span class="home-feature-body">
+                        <span class="home-feature-title">Sensitivity Converter</span>
+                        <span class="home-feature-text">Convert mouse sensitivity between supported games with DPI on both sides.</span>
+                      </span>
+                      <span class="home-feature-cta">Open converter <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                    </button>
+
+                    <button type="button" class="home-feature-card home-feature-card--aim" onclick="switchTab(event, 'aim-training-tab')">
+                      <span class="home-feature-card-bg" aria-hidden="true"></span>
+                      <span class="home-feature-icon" aria-hidden="true"><i class="ri-focus-3-line"></i></span>
+                      <span class="home-feature-body">
+                        <span class="home-feature-title">Aim Trainer</span>
+                        <span class="home-feature-text">Warm up with flick targets, track accuracy, and sync scores to your profile.</span>
+                      </span>
+                      <span class="home-feature-cta">Start training <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                    </button>
+
+                    <button type="button" class="home-feature-card home-feature-card--crosshair" onclick="switchTab(event, 'crosshair-converter-tab')">
+                      <span class="home-feature-card-bg" aria-hidden="true"></span>
+                      <span class="home-feature-icon" aria-hidden="true"><i class="ri-crosshair-2-line"></i></span>
+                      <span class="home-feature-body">
+                        <span class="home-feature-title">Crosshair Converter</span>
+                        <span class="home-feature-text">Translate CS2 and Valorant crosshair codes with a live preview.</span>
+                      </span>
+                      <span class="home-feature-cta">Open crosshair tool <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                    </button>
+
+                    <button type="button" class="home-feature-card home-feature-card--settings" onclick="switchTab(event, 'settings-tab')">
+                      <span class="home-feature-card-bg" aria-hidden="true"></span>
+                      <span class="home-feature-icon" aria-hidden="true"><i class="ri-tools-line"></i></span>
+                      <span class="home-feature-body">
+                        <span class="home-feature-title">Settings</span>
+                        <span class="home-feature-text">Accent colors, fonts, glass theme, wallpapers, and audio levels.</span>
+                      </span>
+                      <span class="home-feature-cta">Open settings <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
+                    </button>
+                  </div>
+                </section>
+
+                <fieldset class="fieldset-style download-runtime-updates">
+                  <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(191, 54%, 82%)">Stay up to date</legend>
+                  <p class="policy-intro">When online, Morning Roast loads the latest site automatically. Website updates prompt you to reload; desktop shell updates download in the background and install on restart. Use <strong>Help → Check for updates</strong> in the menu bar anytime.</p>
+                </fieldset>
               </div>
 
               <div id="download-web-panel" class="download-web-panel">
