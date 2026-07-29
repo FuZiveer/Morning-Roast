@@ -55,8 +55,22 @@
     }
   }
 
+  function isExternalInstallerHref(href) {
+    if (!href || !/^https?:\/\//i.test(href)) return false;
+    try {
+      return new URL(href).origin !== global.location.origin;
+    } catch {
+      return true;
+    }
+  }
+
   async function probeInstallerAvailability(href) {
     if (!href) return false;
+    if (isExternalInstallerHref(href)) {
+      // GitHub Releases and other hosts block cross-origin HEAD/fetch (no CORS).
+      // Trust desktop-version.json when it points at an external installer URL.
+      return true;
+    }
     try {
       const response = await fetch(href, { method: "HEAD", cache: "no-store" });
       return response.ok;
@@ -94,7 +108,9 @@
       primaryLink.removeAttribute("rel");
     }
 
-    const available = await probeInstallerAvailability(href);
+    const available = manifest?.installerUrl
+      ? true
+      : await probeInstallerAvailability(href);
     primaryLink.classList.toggle("is-unavailable", !available);
     primaryLink.setAttribute("aria-disabled", available ? "false" : "true");
 
