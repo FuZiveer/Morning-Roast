@@ -2,6 +2,7 @@
 (function (global) {
   const DESKTOP_APP_VERSION = "1.0.0";
   const DESKTOP_INSTALLER_FALLBACK = `Morning-Roast-Setup-${DESKTOP_APP_VERSION}.exe`;
+  const GITHUB_REPO = "FuZiveer/Morning-Roast";
 
   function isDesktopRuntime() {
     return Boolean(global.MorningRoastDesktop?.isDesktop);
@@ -55,6 +56,61 @@
     }
   }
 
+  function releaseTagFromManifest(manifest) {
+    const explicit = String(manifest?.releaseTag || "").trim();
+    if (explicit) return explicit;
+    const version = String(manifest?.version || DESKTOP_APP_VERSION).trim();
+    return version ? `v${version}` : "";
+  }
+
+  async function fetchGitHubRelease(tag) {
+    const normalizedTag = String(tag || "").trim();
+    const endpoint = normalizedTag
+      ? `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${encodeURIComponent(normalizedTag)}`
+      : `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+
+    try {
+      const response = await fetch(endpoint, {
+        headers: { Accept: "application/vnd.github+json" },
+        cache: "no-store",
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data && typeof data === "object" ? data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function pickInstallerAsset(release, preferredName = "") {
+    const assets = Array.isArray(release?.assets) ? release.assets : [];
+    const preferred = String(preferredName || "").trim();
+    if (preferred) {
+      const exact = assets.find((asset) => asset?.name === preferred);
+      if (exact?.browser_download_url) return exact;
+    }
+    return assets.find(
+      (asset) =>
+        /\.exe$/i.test(String(asset?.name || "")) &&
+        /Morning-Roast-Setup/i.test(String(asset?.name || "")),
+    ) || null;
+  }
+
+  async function resolveGitHubInstaller(manifest) {
+    const release = await fetchGitHubRelease(releaseTagFromManifest(manifest));
+    if (!release) return null;
+
+    const installerName = String(manifest?.installer || DESKTOP_INSTALLER_FALLBACK).trim();
+    const asset = pickInstallerAsset(release, installerName);
+    if (!asset?.browser_download_url) return null;
+
+    return {
+      href: asset.browser_download_url,
+      version: String(release.tag_name || "").replace(/^v/i, "") || String(manifest?.version || DESKTOP_APP_VERSION),
+      installerName: asset.name || installerName,
+    };
+  }
+
   function isExternalInstallerHref(href) {
     if (!href || !/^https?:\/\//i.test(href)) return false;
     try {
@@ -64,13 +120,8 @@
     }
   }
 
-  async function probeInstallerAvailability(href) {
-    if (!href) return false;
-    if (isExternalInstallerHref(href)) {
-      // GitHub Releases and other hosts block cross-origin HEAD/fetch (no CORS).
-      // Trust desktop-version.json when it points at an external installer URL.
-      return true;
-    }
+  async function probeSameOriginInstaller(href) {
+    if (!href || isExternalInstallerHref(href)) return false;
     try {
       const response = await fetch(href, { method: "HEAD", cache: "no-store" });
       return response.ok;
@@ -79,12 +130,20 @@
     }
   }
 
-  function resolveInstallerHref(manifest) {
-    const installerUrl = String(manifest?.installerUrl || "").trim();
-    if (installerUrl) return installerUrl;
+  function applyPrimaryLink({ href, installerName, external }) {
+    const { primaryLink } = getDownloadElements();
+    if (!primaryLink || !href) return;
 
-    const installerName = String(manifest?.installer || DESKTOP_INSTALLER_FALLBACK).trim();
-    return `./downloads/${installerName}`;
+    primaryLink.href = href;
+    if (external) {
+      primaryLink.removeAttribute("download");
+      primaryLink.setAttribute("target", "_blank");
+      primaryLink.setAttribute("rel", "noopener noreferrer");
+    } else {
+      primaryLink.setAttribute("download", installerName || "");
+      primaryLink.removeAttribute("target");
+      primaryLink.removeAttribute("rel");
+    }
   }
 
   async function syncDownloadAvailability(manifest) {
@@ -93,24 +152,28 @@
     const { primaryLink } = getDownloadElements();
     if (!primaryLink) return;
 
-    const installerName = String(manifest?.installer || DESKTOP_INSTALLER_FALLBACK).trim();
-    const href = resolveInstallerHref(manifest);
-    const isExternal = /^https?:\/\//i.test(href);
-
-    primaryLink.href = href;
-    if (isExternal) {
-      primaryLink.removeAttribute("download");
-      primaryLink.setAttribute("target", "_blank");
-      primaryLink.setAttribute("rel", "noopener noreferrer");
-    } else {
-      primaryLink.setAttribute("download", installerName);
-      primaryLink.removeAttribute("target");
-      primaryLink.removeAttribute("rel");
+    const githubInstall = await resolveGitHubInstaller(manifest);
+    if (githubInstall?.href) {
+      applyPrimaryLink({
+        href: githubInstall.href,
+        installerName: githubInstall.installerName,
+        external: true,
+      });
+      primaryLink.classList.remove("is-unavailable");
+      primaryLink.setAttribute("aria-disabled", "false");
+      setDownloadStatus("");
+      return;
     }
 
-    const available = manifest?.installerUrl
-      ? true
-      : await probeInstallerAvailability(href);
+    const installerName = String(manifest?.installer || DESKTOP_INSTALLER_FALLBACK).trim();
+    const manifestUrl = String(manifest?.installerUrl || "").trim();
+    const localHref = `./downloads/${installerName}`;
+    const href = manifestUrl || localHref;
+    const external = isExternalInstallerHref(href);
+
+    applyPrimaryLink({ href, installerName, external });
+
+    const available = external ? false : await probeSameOriginInstaller(href);
     primaryLink.classList.toggle("is-unavailable", !available);
     primaryLink.setAttribute("aria-disabled", available ? "false" : "true");
 
@@ -119,8 +182,9 @@
       return;
     }
 
+    const tag = releaseTagFromManifest(manifest);
     setDownloadStatus(
-      "Installer is not available yet. Build with npm run release in the desktop folder, then publish it as a GitHub Release (the .exe is too large for the repo).",
+      `No GitHub release found for ${tag || "this version"} yet. Open Actions → Desktop Release → Run workflow, or push tag ${tag || "v1.0.0"} after merging the workflow file.`,
       { tone: "warn" },
     );
   }
@@ -128,23 +192,27 @@
   async function initDesktopDownloadPage() {
     const els = getDownloadElements();
     const manifest = await fetchPublishedDesktopManifest();
-    const version = String(manifest?.version || DESKTOP_APP_VERSION).trim();
-    const installerName = String(manifest?.installer || `Morning-Roast-Setup-${version}.exe`).trim();
+    const githubInstall = await resolveGitHubInstaller(manifest);
+    const version = String(githubInstall?.version || manifest?.version || DESKTOP_APP_VERSION).trim();
 
     els.versionEls?.forEach((node) => {
       node.textContent = version;
     });
 
-    if (els.primaryLink) {
-      const href = resolveInstallerHref(manifest);
-      els.primaryLink.href = href;
-      if (/^https?:\/\//i.test(href)) {
-        els.primaryLink.removeAttribute("download");
-        els.primaryLink.setAttribute("target", "_blank");
-        els.primaryLink.setAttribute("rel", "noopener noreferrer");
-      } else {
-        els.primaryLink.setAttribute("download", installerName);
-      }
+    if (githubInstall?.href) {
+      applyPrimaryLink({
+        href: githubInstall.href,
+        installerName: githubInstall.installerName,
+        external: true,
+      });
+    } else if (els.primaryLink) {
+      const installerName = String(manifest?.installer || `Morning-Roast-Setup-${version}.exe`).trim();
+      const href = String(manifest?.installerUrl || `./downloads/${installerName}`).trim();
+      applyPrimaryLink({
+        href,
+        installerName,
+        external: isExternalInstallerHref(href),
+      });
     }
 
     if (isDesktopRuntime()) {
@@ -165,10 +233,7 @@
     refreshAvailability: async () => {
       await syncDownloadAvailability(await fetchPublishedDesktopManifest());
     },
-    getDownloadHref: () => {
-      const installer = DESKTOP_INSTALLER_FALLBACK;
-      return `./downloads/${installer}`;
-    },
+    getDownloadHref: () => `./downloads/${DESKTOP_INSTALLER_FALLBACK}`,
     getVersion: () => DESKTOP_APP_VERSION,
     isDesktopRuntime,
   };

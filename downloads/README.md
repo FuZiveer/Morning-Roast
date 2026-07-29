@@ -23,17 +23,17 @@ This writes into `downloads/`:
 
 ### Automatic (GitHub Actions)
 
-Push a version tag to trigger `.github/workflows/desktop-release.yml`:
+**No release exists until this workflow runs once.** The download page looks up the real installer on GitHub Releases — a 404 means the release has not been published yet.
+
+Push a version tag (after merging `.github/workflows/desktop-release.yml`):
 
 ```bash
-# Bump version in desktop/package.json first, then:
+git push origin main
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The workflow runs `npm run release` on Windows and attaches the installer, `latest.yml`, `.blockmap`, and `desktop-version.json` to the GitHub Release.
-
-You can also run it manually: **Actions → Desktop Release → Run workflow**.
+Or run manually: **Actions → Desktop Release → Run workflow** (creates `v{version}` from `desktop/package.json` and uploads the installer).
 
 ### Manual upload
 
