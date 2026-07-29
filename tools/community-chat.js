@@ -680,6 +680,47 @@
       .sort((a, b) => Number(a.at || 0) - Number(b.at || 0));
   }
 
+  function resolvePeerNameFromDmStore(userId, selfName = readProfileIdentity().name) {
+    const id = String(userId || "").trim();
+    if (!id) return "";
+    const selfKey = normalizeDisplayNameKey(selfName);
+    const store = readDmStore();
+    for (const list of Object.values(store.threads || {})) {
+      for (const message of Array.isArray(list) ? list : []) {
+        const normalized = normalizeStoredDmMessage(message);
+        if (!normalized) continue;
+        if (normalized.fromUserId === id) {
+          const name = String(normalized.fromName || "").trim();
+          if (name && normalizeDisplayNameKey(name) !== selfKey) return name;
+        }
+        if (normalized.toUserId === id) {
+          const name = String(normalized.toName || "").trim();
+          if (name && normalizeDisplayNameKey(name) !== selfKey) return name;
+        }
+      }
+    }
+    return "";
+  }
+
+  function resolveUserIdFromDmStore(peerName) {
+    const nameKey = normalizeDisplayNameKey(peerName);
+    if (!nameKey) return "";
+    const store = readDmStore();
+    for (const list of Object.values(store.threads || {})) {
+      for (const message of Array.isArray(list) ? list : []) {
+        const normalized = normalizeStoredDmMessage(message);
+        if (!normalized) continue;
+        if (normalizeDisplayNameKey(normalized.fromName) === nameKey && normalized.fromUserId) {
+          return normalized.fromUserId;
+        }
+        if (normalizeDisplayNameKey(normalized.toName) === nameKey && normalized.toUserId) {
+          return normalized.toUserId;
+        }
+      }
+    }
+    return "";
+  }
+
   function persistDmThread(peerName, messages, maxSize = CHAT_HISTORY_DEFAULT_MAX) {
     const key = dmThreadKey(peerName);
     if (!key) return;
@@ -892,6 +933,7 @@
     const profileMessageBtn = root.querySelector("#community-chat-profile-message");
     const sidebarEl = root.querySelector("#community-chat-sidebar");
     const lobbyBtn = root.querySelector("#community-chat-lobby-btn");
+    const lobbyBadge = root.querySelector("#community-chat-lobby-badge");
     const friendsBadge = root.querySelector("#community-chat-friends-badge");
     const messagesHeadingEl = root.querySelector(".community-chat-messages-heading");
     const friendsWrap = root.querySelector("#community-chat-friends");
@@ -1052,7 +1094,33 @@
 
     const getPeerProfile = (userId) => {
       const id = String(userId || "").trim();
-      return userProfiles.get(id) || { userId: id, name: "Guest", avatar: "", isOwner: false };
+      const cached = userProfiles.get(id);
+      if (cached?.name && normalizeDisplayNameKey(cached.name) !== normalizeDisplayNameKey("Guest")) {
+        return cached;
+      }
+
+      const thread = getRecentDmEntries().find((entry) => entry.userId === id);
+      if (thread?.name) {
+        return {
+          userId: id,
+          name: thread.name,
+          avatar: String(thread.avatar || cached?.avatar || "").trim(),
+          isOwner: Boolean(thread.isOwner ?? cached?.isOwner),
+        };
+      }
+
+      const storedName = resolvePeerNameFromDmStore(id);
+      if (storedName) {
+        const saved = getProfileForDisplayName(storedName);
+        return {
+          userId: id,
+          name: storedName,
+          avatar: String(cached?.avatar || saved?.avatar || "").trim(),
+          isOwner: Boolean(cached?.isOwner ?? saved?.isOwner),
+        };
+      }
+
+      return cached || { userId: id, name: "", avatar: "", isOwner: false };
     };
 
     const trackRecentThread = (userId, profile = {}) => {
@@ -1171,8 +1239,14 @@
       return total;
     };
 
+    const getLobbyUnreadCount = () => {
+      if (session.panelOpen && session.activeChannel === "lobby") return 0;
+      return session.lobbyUnread;
+    };
+
     const syncNotifyBadges = () => {
       syncUnreadBadge(friendsBadge, getTotalDmUnread());
+      syncUnreadBadge(lobbyBadge, getLobbyUnreadCount());
       syncUnreadBadge(chatToggleBadge, getToggleUnreadCount());
       const chatToggle = document.getElementById("community-chat-toggle");
       chatToggle?.classList.toggle("has-unread", getToggleUnreadCount() > 0);
@@ -1331,15 +1405,24 @@
 
     const renderDmHistory = (userId, history, peerName) => {
       if (session.activeChannel !== userId) return;
+      const resolvedName =
+        String(peerName || getPeerProfile(userId).name || resolvePeerNameFromDmStore(userId) || "").trim();
+      const local = resolvedName ? getDmThread(resolvedName) : [];
+      const merged = mergeHistoryMessages(local, history || []);
+      if (!merged.length && messagesEl.querySelector(".community-chat-msg")) {
+        finishChannelLoad();
+        return;
+      }
+
       syncActiveMessageIds();
       messagesEl.querySelectorAll(".community-chat-msg").forEach((node) => node.remove());
       session.messageIds.clear();
-      (history || []).forEach((entry) => {
+      merged.forEach((entry) => {
         renderMessage(dmToRenderMessage(entry, session.selfId), {
           isSelf: entry.fromUserId === session.selfId,
         });
       });
-      if (peerName) persistDmThread(peerName, history, getHistoryMaxSize(session.config));
+      if (resolvedName) persistDmThread(resolvedName, merged, getHistoryMaxSize(session.config));
       syncMessageAvatars();
       finishChannelLoad();
       updateUi();
@@ -1367,18 +1450,26 @@
         return;
       }
 
-      const peer = userProfiles.get(nextChannel) || meta;
-      reopenDmThread(peer.name);
-      trackRecentThread(nextChannel, peer);
+      const peer = getPeerProfile(nextChannel);
+      const metaName = String(meta.name || "").trim();
+      const peerName = metaName || peer.name || resolvePeerNameFromDmStore(nextChannel);
+      if (peerName) {
+        reopenDmThread(peerName);
+        trackRecentThread(nextChannel, {
+          name: peerName,
+          avatar: meta.avatar || peer.avatar,
+          isOwner: meta.isOwner ?? peer.isOwner,
+        });
+      }
       renderSidebar();
 
-      const local = getDmThread(peer.name);
+      const local = peerName ? getDmThread(peerName) : [];
       local.forEach((entry) => {
         renderMessage(dmToRenderMessage(entry, session.selfId), {
           isSelf: entry.fromUserId === session.selfId,
         });
       });
-      requestDmHistory(nextChannel, peer.name);
+      requestDmHistory(nextChannel, peerName);
       const canFetchDmHistory =
         session.state === "live" && session.socket?.readyState === WebSocket.OPEN;
       if (!canFetchDmHistory) finishChannelLoad();
@@ -1846,6 +1937,49 @@
       return button;
     };
 
+    const resolveMemberUserId = (name, onlineUser) => {
+      const fromOnline = String(onlineUser?.userId || "").trim();
+      if (fromOnline) return fromOnline;
+
+      const nameKey = normalizeDisplayNameKey(name);
+      if (!nameKey) return "";
+
+      for (const [id, cached] of userProfiles.entries()) {
+        if (normalizeDisplayNameKey(cached?.name) === nameKey) return String(id || "").trim();
+      }
+
+      const thread = getRecentDmEntries().find(
+        (entry) => normalizeDisplayNameKey(entry.name) === nameKey,
+      );
+      if (thread?.userId) return String(thread.userId).trim();
+
+      return resolveUserIdFromDmStore(name);
+    };
+
+    const openMemberProfile = (profile, onlineUser = null) => {
+      const name = String(profile?.name || onlineUser?.name || "").trim();
+      if (!name) return;
+
+      const userId = resolveMemberUserId(name, onlineUser);
+      const saved = getProfileForDisplayName(name);
+      const payload = {
+        userId,
+        name,
+        bio: String(onlineUser?.bio || profile?.bio || saved?.bio || "").trim(),
+        avatar: String(onlineUser?.avatar || profile?.avatar || saved?.avatar || "").trim(),
+        isOwner: Boolean(onlineUser?.isOwner ?? profile?.isOwner ?? saved?.isOwner),
+      };
+
+      setMembersPopoverOpen(false);
+
+      if (userId && userId !== session.selfId) {
+        openUserProfile(userId, payload);
+        return;
+      }
+
+      showProfilePopover({ ...payload, loading: false });
+    };
+
     const createMemberItem = (profile, onlineUser = null) => {
       const name = String(profile?.name || onlineUser?.name || "").trim();
       if (!name) return null;
@@ -1860,7 +1994,7 @@
       row.className = "community-chat-members-item";
       row.classList.toggle("is-online", isOnline);
       row.classList.toggle("is-offline", !isOnline);
-      row.setAttribute("aria-label", isOnline ? `${name} (online)` : `${name} (offline)`);
+      row.setAttribute("aria-label", `${name} (${isOnline ? "online" : "offline"}) — view profile`);
 
       const label = document.createElement("span");
       label.className = "community-chat-members-name";
@@ -1874,20 +2008,10 @@
       status.textContent = isOnline ? "Online" : "Offline";
       row.appendChild(status);
 
-      row.addEventListener("click", () => {
-        setMembersPopoverOpen(false);
-        if (isOnline) {
-          openUserProfile(userId, onlineUser || profile);
-          return;
-        }
-        showProfilePopover({
-          userId: "",
-          name: profile.name,
-          bio: getProfileForDisplayName(profile.name)?.bio || "",
-          avatar: profile.avatar || "",
-          isOwner: Boolean(profile.isOwner),
-          loading: false,
-        });
+      row.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        openMemberProfile(profile, onlineUser);
       });
 
       return row;
@@ -2483,13 +2607,19 @@
             handleIncomingDm(message);
             updateUi();
             break;
-          case "dm_history":
+          case "dm_history": {
+            const peerName = String(
+              message.withUserName || getPeerProfile(message.withUserId).name || resolvePeerNameFromDmStore(message.withUserId) || "",
+            ).trim();
+            if (message.withUserId && peerName) {
+              const merged = mergeHistoryMessages(getDmThread(peerName), message.history || []);
+              persistDmThread(peerName, merged, getHistoryMaxSize(session.config));
+            }
             if (message.withUserId && session.activeChannel === message.withUserId) {
-              renderDmHistory(message.withUserId, message.history || [], message.withUserName);
-            } else if (message.withUserId && message.withUserName) {
-              persistDmThread(message.withUserName, message.history || [], getHistoryMaxSize(session.config));
+              renderDmHistory(message.withUserId, message.history || [], peerName);
             }
             break;
+          }
           case "presence":
             renderPresence(message);
             break;
@@ -2630,8 +2760,11 @@
       event.stopPropagation();
     });
 
-    document.addEventListener("click", () => {
-      if (membersPopoverOpen) setMembersPopoverOpen(false);
+    document.addEventListener("click", (event) => {
+      if (!membersPopoverOpen) return;
+      const target = event.target;
+      if (membersPopover?.contains(target) || membersToggle?.contains(target)) return;
+      setMembersPopoverOpen(false);
     });
 
     document.addEventListener("keydown", (event) => {
@@ -2685,6 +2818,19 @@
     global.addEventListener("morning-roast:chat-friends-changed", () => {
       renderFriendsMenu();
     });
+
+    const resumeChatConnection = () => {
+      if (session.stopped || !session.wsUrl) return;
+      const open = session.socket?.readyState === WebSocket.OPEN;
+      if (session.state === "live" && open) return;
+      session.reconnectMs = RECONNECT_BASE_MS;
+      connect();
+    };
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) resumeChatConnection();
+    });
+    global.addEventListener("online", resumeChatConnection);
 
     session.api = {
       destroy() {

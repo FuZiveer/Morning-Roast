@@ -1,0 +1,90 @@
+{
+  "name": "morning-roast-desktop",
+  "version": "1.0.0",
+  "description": "Morning Roast desktop app — sensitivity converter, crosshair tools, aim trainer, and more.",
+  "main": "main.js",
+  "author": "Morning Roast",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win nsis",
+    "dist:portable": "electron-builder --win portable",
+    "copy:downloads": "node scripts/copy-installer-to-downloads.js",
+    "release": "npm run dist && npm run copy:downloads"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.morningroast.desktop",
+    "productName": "Morning Roast",
+    "copyright": "Copyright © Morning Roast",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "static-server.js",
+      "updater.js",
+      "config.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "..",
+        "to": "app",
+        "filter": [
+          "index.html",
+          "style.css",
+          "script.js",
+          "sw.js",
+          "manifest.webmanifest",
+          "404.html",
+          "tools/**/*",
+          "assets/**/*",
+          "config/**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "../assets/logo.png",
+      "artifactName": "Morning-Roast-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Morning-Roast-Portable-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Morning Roast",
+      "installerLanguages": [
+        "en_US"
+      ],
+      "language": "1033",
+      "differentialPackage": true
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://morningroast.net/downloads/"
+      }
+    ]
+  }
+}

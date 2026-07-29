@@ -3260,6 +3260,10 @@
       }
     });
 
+    global.addEventListener("morning-roast:chat-connected", () => {
+      void refreshAllCommunityLineups();
+    });
+
     global.addEventListener("morning-roast:owners-config", () => {
       updateOwnerBanner();
       if (isOwner()) requestPendingList();
@@ -3344,6 +3348,7 @@
   function onChatJoined() {
     if (isOwner()) requestPendingList();
     updateOwnerBanner();
+    void refreshAllCommunityLineups();
   }
 
   global.MorningRoastLineupSubmissions = {

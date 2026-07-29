@@ -2,7 +2,7 @@
 // - Only previous static-asset cache buckets are deleted on activate.
 // - Never touches localStorage, chat history, lineup videos, or API data.
 // - Video/audio requests bypass the service worker entirely.
-const CACHE = "morning-roast-v363"; // Keep in sync with APP_CACHE_VERSION in script.js
+const CACHE = "morning-roast-v369"; // Keep in sync with APP_CACHE_VERSION in script.js
 const ASSETS = [
   "./index.html",
   "./style.css",
@@ -16,6 +16,8 @@ const ASSETS = [
   "./tools/valorant-lineup-icons.js",
   "./tools/lineup-map-posters.js",
   "./tools/profile-tags.js",
+  "./tools/desktop-download.js",
+  "./tools/desktop-update.js",
   "./script.js",
   "./assets/favicon.ico",
   "./assets/logo.png",

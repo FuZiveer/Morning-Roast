@@ -79,6 +79,26 @@ function createDmHistoryStore({ maxSize = 100, filePath = resolveDmHistoryPath()
     return (conversations[key] || []).map((entry) => ({ ...entry }));
   }
 
+  function findPeerDisplayName(selfName, peerUserId) {
+    const selfKey = normalizeNameKey(selfName);
+    const id = String(peerUserId || "").trim();
+    if (!selfKey || !id) return "";
+    for (const [key, list] of Object.entries(conversations)) {
+      if (!key.includes(selfKey)) continue;
+      for (const entry of list || []) {
+        if (entry.fromUserId === id) {
+          const name = String(entry.fromName || "").trim();
+          if (name && normalizeNameKey(name) !== selfKey) return name;
+        }
+        if (entry.toUserId === id) {
+          const name = String(entry.toName || "").trim();
+          if (name && normalizeNameKey(name) !== selfKey) return name;
+        }
+      }
+    }
+    return "";
+  }
+
   function push(key, entry) {
     const normalized = normalizeEntry(entry);
     if (!key || !normalized) return null;
@@ -95,6 +115,7 @@ function createDmHistoryStore({ maxSize = 100, filePath = resolveDmHistoryPath()
     filePath,
     conversationKey,
     list,
+    findPeerDisplayName,
     push,
     reload: load,
   };

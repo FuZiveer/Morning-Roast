@@ -131,6 +131,8 @@
     <script defer src="tools/valorant-lineup-icons.js"></script>
     <script defer src="tools/lineup-map-posters.js"></script>
     <script defer src="tools/profile-tags.js"></script>
+    <script defer src="tools/desktop-download.js"></script>
+    <script defer src="tools/desktop-update.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
@@ -231,7 +233,12 @@
           </button>
         </div>
       </nav>
-      <div class="app-sidebar-more" id="app-sidebar-more">
+      <div class="app-sidebar-footer">
+        <button type="button" class="app-sidebar-item app-sidebar-item-download" data-sidebar-tab="download-tab" onclick="switchTab(event, 'download-tab')" id="sidebar-download-button">
+          <i class="ri-download-2-line" aria-hidden="true"></i>
+          <span class="app-sidebar-label">Download</span>
+        </button>
+        <div class="app-sidebar-more" id="app-sidebar-more">
         <button type="button" class="app-sidebar-item app-sidebar-more-toggle" id="sidebar-more-button" aria-expanded="false" aria-haspopup="menu" aria-controls="sidebar-more-menu">
           <i class="ri-more-2-line" aria-hidden="true"></i>
           <span class="app-sidebar-label">More</span>
@@ -265,6 +272,7 @@
             <i class="ri-discord-line" aria-hidden="true"></i>
             <span>Discord</span>
           </a>
+        </div>
         </div>
       </div>
     </aside>
@@ -365,6 +373,15 @@
 
             <div class="nav-group-divider nav-group-divider--before-more" aria-hidden="true"></div>
 
+            <div class="button-container nav-group" data-group="Download">
+              <button type="button" class="button" onclick="switchTab(event, 'download-tab')" id="download-button">
+                <div class="icon-container">
+                  <i class="ri-download-2-line" aria-hidden="true"></i>
+                </div>
+                <span>Download</span>
+              </button>
+            </div>
+
             <div class="nav-more-dropdown" id="nav-more-dropdown">
               <button type="button" class="button nav-more-toggle" id="nav-more-toggle" aria-expanded="false" aria-controls="nav-more-menu">
                 <div class="icon-container">
@@ -437,6 +454,23 @@
             <span class="title-heading">Morning Roast</span>
           </div>
           <div class="description">Your all-in-one sensitivity toolkit for competitive shooters — convert, calculate, train, and customize in one place.</div>
+        </div>
+
+        <div class="home-download-banner" id="home-download-banner">
+          <div class="home-download-banner-glow" aria-hidden="true"></div>
+          <div class="home-download-banner-inner">
+            <div class="home-download-banner-copy">
+              <span class="home-download-banner-eyebrow"><i class="ri-windows-fill" aria-hidden="true"></i> Windows app</span>
+              <h2 class="home-download-banner-title">Train and convert without opening the browser</h2>
+              <p class="home-download-banner-text">Install Morning Roast on your PC for quick access to the sensitivity converter, crosshair tool, aim trainer, lineups, and community chat — right from your taskbar.</p>
+            </div>
+            <div class="home-download-banner-actions">
+              <button type="button" class="home-download-banner-btn" onclick="switchTab(event, 'download-tab')">
+                <i class="ri-download-2-line" aria-hidden="true"></i>
+                Get the desktop app
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="box-container-holder">
@@ -620,6 +654,161 @@
                   </a>
                 </div>
               </fieldset>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" id="download-tab">
+        <div class="title-description-container download-hero">
+          <div class="title">
+            <div class="icon-container">
+              <i class="ri-download-2-line"></i>
+            </div>
+            <span class="title-heading">Morning Roast for Windows</span>
+          </div>
+          <div class="description">Install the full toolkit on your PC — convert sensitivity, swap crosshairs, and aim train in one dedicated app.</div>
+        </div>
+
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder download-panel">
+              <div id="download-runtime-panel" class="download-runtime-panel" hidden>
+                <div class="download-runtime-card">
+                  <span class="download-runtime-icon" aria-hidden="true"><i class="ri-checkbox-circle-fill"></i></span>
+                  <div class="download-runtime-copy">
+                    <h2>You’re running the desktop app</h2>
+                    <p>Everything from the website is already installed locally. Jump into Tools from the sidebar or use the menu bar to open the converter or aim trainer.</p>
+                  </div>
+                  <div class="download-runtime-actions">
+                    <button type="button" class="download-btn download-btn--ghost" onclick="switchTab(event, 'sensitivity-converter-tab')">Open converter</button>
+                    <button type="button" class="download-btn download-btn--ghost" onclick="switchTab(event, 'aim-training-tab')">Open aim trainer</button>
+                  </div>
+                </div>
+              </div>
+
+              <div id="download-web-panel" class="download-web-panel">
+                <section class="download-showcase" aria-labelledby="download-showcase-title">
+                  <div class="download-showcase-copy">
+                    <p class="download-eyebrow"><i class="ri-windows-fill" aria-hidden="true"></i> Free for Windows 10 &amp; 11</p>
+                    <h2 id="download-showcase-title" class="download-showcase-title">Your favorite tools, one install away</h2>
+                    <p class="download-showcase-lead">Morning Roast Desktop bundles the same sensitivity converter, crosshair translator, aim trainer, lineups, profile, and community chat — optimized for quick launches from your desktop or taskbar.</p>
+
+                    <ul class="download-benefits">
+                      <li><i class="ri-flashlight-line" aria-hidden="true"></i><span><strong>Instant access</strong> — open converter or aim trainer without hunting for a browser tab.</span></li>
+                      <li><i class="ri-shield-check-line" aria-hidden="true"></i><span><strong>Local-first tools</strong> — conversions, eDPI math, and trainer scores stay on your device.</span></li>
+                      <li><i class="ri-focus-3-line" aria-hidden="true"></i><span><strong>Fullscreen aim training</strong> — pointer lock and fullscreen work natively in the app.</span></li>
+                      <li><i class="ri-chat-1-line" aria-hidden="true"></i><span><strong>Community included</strong> — chat, lineups, and online features still connect when you’re online.</span></li>
+                    </ul>
+
+                    <div class="download-actions">
+                      <a id="download-app-primary" class="download-btn download-btn--primary" href="./downloads/Morning-Roast-Setup-1.0.0.exe" download="Morning-Roast-Setup-1.0.0.exe">
+                        <span class="download-btn-icon" aria-hidden="true"><i class="ri-download-2-line"></i></span>
+                        <span class="download-btn-copy">
+                          <span class="download-btn-label">Download for Windows</span>
+                          <span class="download-btn-meta">Version <span data-desktop-app-version>1.0.0</span> · 64-bit installer</span>
+                        </span>
+                      </a>
+                      <button type="button" class="download-btn download-btn--ghost" onclick="switchTab(event, 'home-tab')">Continue in browser</button>
+                    </div>
+                    <p id="download-app-status" class="download-status" hidden role="status" aria-live="polite"></p>
+                    <p class="download-footnote">No account required. The installer adds Morning Roast to your Start Menu and optional desktop shortcut.</p>
+                  </div>
+
+                  <div class="download-showcase-visual" aria-hidden="true">
+                    <div class="download-window">
+                      <div class="download-window-chrome">
+                        <span class="download-window-dot"></span>
+                        <span class="download-window-dot"></span>
+                        <span class="download-window-dot"></span>
+                        <span class="download-window-title">Morning Roast</span>
+                      </div>
+                      <div class="download-window-body">
+                        <div class="download-window-sidebar">
+                          <span class="download-window-pill is-active"></span>
+                          <span class="download-window-pill"></span>
+                          <span class="download-window-pill"></span>
+                          <span class="download-window-pill is-accent"></span>
+                        </div>
+                        <div class="download-window-main">
+                          <div class="download-window-card download-window-card--converter"></div>
+                          <div class="download-window-card download-window-card--aim"></div>
+                          <div class="download-window-card download-window-card--wide"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="download-section" aria-labelledby="download-features-heading">
+                  <div class="home-section-head">
+                    <h2 id="download-features-heading" class="home-section-title"><i class="ri-apps-2-line" aria-hidden="true"></i> Everything in the browser, plus a proper app shell</h2>
+                    <p class="home-section-lead">Same Morning Roast you already use — wrapped for players who live on their desktop.</p>
+                  </div>
+                  <div class="download-feature-grid">
+                    <article class="download-feature-card">
+                      <span class="download-feature-icon" aria-hidden="true"><i class="ri-swap-2-line"></i></span>
+                      <h3>Sensitivity converter</h3>
+                      <p>Convert between supported titles with DPI on both sides and copy results in one click.</p>
+                    </article>
+                    <article class="download-feature-card">
+                      <span class="download-feature-icon" aria-hidden="true"><i class="ri-crosshair-2-line"></i></span>
+                      <h3>Crosshair converter</h3>
+                      <p>Translate CS2 and Valorant crosshair codes with a live preview before you paste in-game.</p>
+                    </article>
+                    <article class="download-feature-card">
+                      <span class="download-feature-icon" aria-hidden="true"><i class="ri-focus-3-line"></i></span>
+                      <h3>Aim trainer</h3>
+                      <p>Warm up with flick targets, track accuracy and reaction time, and sync scores to your profile.</p>
+                    </article>
+                    <article class="download-feature-card">
+                      <span class="download-feature-icon" aria-hidden="true"><i class="ri-palette-line"></i></span>
+                      <h3>Full customization</h3>
+                      <p>Accent colors, fonts, glass theme, wallpapers, and audio — exactly like the website.</p>
+                    </article>
+                  </div>
+                </section>
+
+                <fieldset class="fieldset-style download-install">
+                  <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(23, 74%, 62%)">Install in three steps</legend>
+                  <ol class="download-steps">
+                    <li>
+                      <strong>Download the installer</strong>
+                      <span>Click <em>Download for Windows</em> above to save <code>Morning-Roast-Setup-<span data-desktop-app-version>1.0.0</span>.exe</code>.</span>
+                    </li>
+                    <li>
+                      <strong>Run the setup</strong>
+                      <span>Open the file, choose an install folder if you want, and finish the wizard. SmartScreen may ask you to confirm — Morning Roast is unsigned until a certificate is added.</span>
+                    </li>
+                    <li>
+                      <strong>Launch and play</strong>
+                      <span>Open Morning Roast from the Start Menu or desktop shortcut. Pin it to your taskbar for one-click converter and aim trainer access.</span>
+                    </li>
+                  </ol>
+                </fieldset>
+
+                <fieldset class="fieldset-style download-requirements">
+                  <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(191, 54%, 82%)">System requirements</legend>
+                  <div class="download-requirements-grid">
+                    <div class="download-requirement">
+                      <span class="download-requirement-label">OS</span>
+                      <span class="download-requirement-value">Windows 10 or 11 (64-bit)</span>
+                    </div>
+                    <div class="download-requirement">
+                      <span class="download-requirement-label">Disk space</span>
+                      <span class="download-requirement-value">About 200 MB</span>
+                    </div>
+                    <div class="download-requirement">
+                      <span class="download-requirement-label">Internet</span>
+                      <span class="download-requirement-value">Optional — needed for community chat &amp; lineups</span>
+                    </div>
+                    <div class="download-requirement">
+                      <span class="download-requirement-label">Updates</span>
+                      <span class="download-requirement-value">Re-download the latest installer from this page</span>
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
             </div>
           </div>
         </div>
@@ -3894,7 +4083,10 @@
                 <nav class="community-chat-sidebar-nav" aria-label="Chat channels">
                   <div class="community-chat-sidebar-group">
                     <button type="button" id="community-chat-lobby-btn" class="community-chat-sidebar-item active" data-channel="lobby" aria-current="page" aria-label="Public chat">
-                      <i class="ri-megaphone-line" aria-hidden="true"></i>
+                      <span class="community-chat-sidebar-icon-wrap">
+                        <i class="ri-megaphone-line" aria-hidden="true"></i>
+                        <span id="community-chat-lobby-badge" class="community-chat-unread-badge community-chat-lobby-badge" hidden aria-hidden="true"></span>
+                      </span>
                       <span class="community-chat-sidebar-label">Public</span>
                     </button>
                   </div>

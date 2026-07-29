@@ -2941,7 +2941,14 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v363";
+const APP_CACHE_VERSION = "morning-roast-v369";
+
+if (typeof document !== "undefined") {
+  document.documentElement.dataset.appCacheVersion = APP_CACHE_VERSION;
+}
+if (typeof window !== "undefined") {
+  window.APP_CACHE_VERSION = APP_CACHE_VERSION;
+}
 
 function isConfirmResetEnabled() {
   return localStorage.getItem("prefConfirmReset") !== "false";
@@ -8699,6 +8706,7 @@ function ensureCrosshairConverterLoaded() {
 
 const TAB_SLUGS = {
   "home-tab": "home",
+  "download-tab": "download",
   "sensitivity-converter-tab": "sensitivity-converter",
   "edpi-calculator-tab": "edpi-calculator",
   "crosshair-converter-tab": "crosshair-converter",
@@ -8831,14 +8839,16 @@ const FOOTER_BUTTON_IDS = {
 
 const NAV_BUTTON_IDS = {
   "home-tab": "home-button",
+  "download-tab": "download-button",
   "profile-tab": "profile-button",
   "settings-tab": "settings-button",
 };
 
-const LOGO_CYCLE_TAB_IDS = ["home-tab", "sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "profile-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
+const LOGO_CYCLE_TAB_IDS = ["home-tab", "download-tab", "sensitivity-converter-tab", "edpi-calculator-tab", "crosshair-converter-tab", "settings-tab", "stats-tab", "profile-tab", "aim-training-tab", "lineup-tab", "keybinds-tab", "updates-tab", "privacy-policy-tab", "terms-of-service-tab", "credit-tab"];
 
 function getLogoCycleTabIds() {
   return LOGO_CYCLE_TAB_IDS.filter((id) => {
+    if (id === "download-tab" && window.MorningRoastDesktopDownload?.isDesktopRuntime?.()) return false;
     if (id === "lineup-tab" && !LINEUP_TAB_ENABLED) return false;
     if (id === "crosshair-converter-tab" && !MISC_TAB_ENABLED) return false;
     if (id === "aim-training-tab" && isMobileViewport()) return false;
@@ -16802,6 +16812,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initPresenceActivityPopup();
   reportActivityForTab(getCurrentTabId());
   initHomeFeatureCardTilt();
+  window.MorningRoastDesktopDownload?.init?.();
+  window.MorningRoastDesktopUpdate?.init?.();
   initMobileNavMoreMenu();
   syncMiscTabUi();
   if (MISC_TAB_ENABLED) initMobileNavMiscMenu();

@@ -402,6 +402,9 @@ function createChatRoom(config, deps = {}) {
     let peerName = String(message.withUserName || "").trim();
     const peer = findClientByUserId(withUserId);
     if (peer) peerName = peer.displayName;
+    if (!peerName && client.displayName) {
+      peerName = dmHistoryStore.findPeerDisplayName(client.displayName, withUserId);
+    }
 
     if (!client.displayName || !peerName) {
       send(client, { type: "dm_history", withUserId, withUserName: peerName, history: [] });
