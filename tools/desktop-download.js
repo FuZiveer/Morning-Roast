@@ -3,6 +3,10 @@
   const DESKTOP_APP_VERSION = "1.0.0";
   const DESKTOP_INSTALLER_FALLBACK = `Morning-Roast-Setup-${DESKTOP_APP_VERSION}.exe`;
   const GITHUB_REPO = "FuZiveer/Morning-Roast";
+  const GITHUB_RELEASES_URL = `https://github.com/${GITHUB_REPO}/releases`;
+  const GITHUB_RELEASE_ACTION_URL = `https://github.com/${GITHUB_REPO}/actions/workflows/desktop-release.yml`;
+
+  let cachedGitHubLookup = null;
 
   function isDesktopRuntime() {
     return Boolean(global.MorningRoastDesktop?.isDesktop);
@@ -63,23 +67,28 @@
     return version ? `v${version}` : "";
   }
 
-  async function fetchGitHubRelease(tag) {
-    const normalizedTag = String(tag || "").trim();
-    const endpoint = normalizedTag
-      ? `https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${encodeURIComponent(normalizedTag)}`
-      : `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
-
+  async function fetchGitHubReleases() {
     try {
-      const response = await fetch(endpoint, {
+      const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases`, {
         headers: { Accept: "application/vnd.github+json" },
         cache: "no-store",
       });
-      if (!response.ok) return null;
+      if (!response.ok) return [];
       const data = await response.json();
-      return data && typeof data === "object" ? data : null;
+      return Array.isArray(data) ? data : [];
     } catch {
-      return null;
+      return [];
     }
+  }
+
+  function pickRelease(releases, tag) {
+    if (!Array.isArray(releases) || !releases.length) return null;
+    const normalizedTag = String(tag || "").trim();
+    if (normalizedTag) {
+      const tagged = releases.find((release) => release?.tag_name === normalizedTag);
+      if (tagged) return tagged;
+    }
+    return releases[0] || null;
   }
 
   function pickInstallerAsset(release, preferredName = "") {
@@ -89,26 +98,42 @@
       const exact = assets.find((asset) => asset?.name === preferred);
       if (exact?.browser_download_url) return exact;
     }
-    return assets.find(
-      (asset) =>
-        /\.exe$/i.test(String(asset?.name || "")) &&
-        /Morning-Roast-Setup/i.test(String(asset?.name || "")),
-    ) || null;
+    return (
+      assets.find(
+        (asset) =>
+          /\.exe$/i.test(String(asset?.name || "")) &&
+          /Morning-Roast-Setup/i.test(String(asset?.name || "")),
+      ) || null
+    );
   }
 
   async function resolveGitHubInstaller(manifest) {
-    const release = await fetchGitHubRelease(releaseTagFromManifest(manifest));
-    if (!release) return null;
+    if (cachedGitHubLookup) return cachedGitHubLookup;
+
+    const releases = await fetchGitHubReleases();
+    const release = pickRelease(releases, releaseTagFromManifest(manifest));
+    if (!release) {
+      cachedGitHubLookup = { available: false, releases: [] };
+      return cachedGitHubLookup;
+    }
 
     const installerName = String(manifest?.installer || DESKTOP_INSTALLER_FALLBACK).trim();
     const asset = pickInstallerAsset(release, installerName);
-    if (!asset?.browser_download_url) return null;
+    if (!asset?.browser_download_url) {
+      cachedGitHubLookup = { available: false, releases };
+      return cachedGitHubLookup;
+    }
 
-    return {
+    cachedGitHubLookup = {
+      available: true,
       href: asset.browser_download_url,
-      version: String(release.tag_name || "").replace(/^v/i, "") || String(manifest?.version || DESKTOP_APP_VERSION),
+      version:
+        String(release.tag_name || "").replace(/^v/i, "") ||
+        String(manifest?.version || DESKTOP_APP_VERSION),
       installerName: asset.name || installerName,
+      tag: release.tag_name || releaseTagFromManifest(manifest),
     };
+    return cachedGitHubLookup;
   }
 
   function isExternalInstallerHref(href) {
@@ -130,90 +155,89 @@
     }
   }
 
-  function applyPrimaryLink({ href, installerName, external }) {
-    const { primaryLink } = getDownloadElements();
-    if (!primaryLink || !href) return;
-
-    primaryLink.href = href;
-    if (external) {
-      primaryLink.removeAttribute("download");
-      primaryLink.setAttribute("target", "_blank");
-      primaryLink.setAttribute("rel", "noopener noreferrer");
-    } else {
-      primaryLink.setAttribute("download", installerName || "");
-      primaryLink.removeAttribute("target");
-      primaryLink.removeAttribute("rel");
-    }
-  }
-
-  async function syncDownloadAvailability(manifest) {
-    if (isDesktopRuntime()) return;
-
+  function setPrimaryLinkState({ href, installerName, external, available }) {
     const { primaryLink } = getDownloadElements();
     if (!primaryLink) return;
 
-    const githubInstall = await resolveGitHubInstaller(manifest);
-    if (githubInstall?.href) {
-      applyPrimaryLink({
-        href: githubInstall.href,
-        installerName: githubInstall.installerName,
+    if (href) primaryLink.href = href;
+    primaryLink.classList.toggle("is-unavailable", !available);
+    primaryLink.setAttribute("aria-disabled", available ? "false" : "true");
+
+    if (external && available) {
+      primaryLink.removeAttribute("download");
+      primaryLink.setAttribute("target", "_blank");
+      primaryLink.setAttribute("rel", "noopener noreferrer");
+      return;
+    }
+
+    primaryLink.removeAttribute("target");
+    primaryLink.removeAttribute("rel");
+    if (available && installerName && !external) {
+      primaryLink.setAttribute("download", installerName);
+    } else {
+      primaryLink.removeAttribute("download");
+    }
+  }
+
+  async function syncDownloadAvailability(manifest, githubInstall) {
+    if (isDesktopRuntime()) return;
+
+    const lookup = githubInstall || (await resolveGitHubInstaller(manifest));
+    const tag = releaseTagFromManifest(manifest);
+
+    if (lookup?.available && lookup.href) {
+      setPrimaryLinkState({
+        href: lookup.href,
+        installerName: lookup.installerName,
         external: true,
+        available: true,
       });
-      primaryLink.classList.remove("is-unavailable");
-      primaryLink.setAttribute("aria-disabled", "false");
       setDownloadStatus("");
       return;
     }
 
     const installerName = String(manifest?.installer || DESKTOP_INSTALLER_FALLBACK).trim();
-    const manifestUrl = String(manifest?.installerUrl || "").trim();
     const localHref = `./downloads/${installerName}`;
-    const href = manifestUrl || localHref;
-    const external = isExternalInstallerHref(href);
+    const localAvailable = await probeSameOriginInstaller(localHref);
 
-    applyPrimaryLink({ href, installerName, external });
-
-    const available = external ? false : await probeSameOriginInstaller(href);
-    primaryLink.classList.toggle("is-unavailable", !available);
-    primaryLink.setAttribute("aria-disabled", available ? "false" : "true");
-
-    if (available) {
+    if (localAvailable) {
+      setPrimaryLinkState({
+        href: localHref,
+        installerName,
+        external: false,
+        available: true,
+      });
       setDownloadStatus("");
       return;
     }
 
-    const tag = releaseTagFromManifest(manifest);
+    setPrimaryLinkState({
+      href: GITHUB_RELEASE_ACTION_URL,
+      installerName,
+      external: true,
+      available: false,
+    });
+
     setDownloadStatus(
-      `No GitHub release found for ${tag || "this version"} yet. Open Actions → Desktop Release → Run workflow, or push tag ${tag || "v1.0.0"} after merging the workflow file.`,
+      lookup?.releases?.length
+        ? `Release ${tag} is not published yet. Open GitHub Actions → Desktop Release → Run workflow to build and upload the Windows installer.`
+        : `No desktop release on GitHub yet. Open GitHub Actions → Desktop Release → Run workflow once to publish ${tag || "v1.0.0"}.`,
       { tone: "warn" },
     );
   }
 
   async function initDesktopDownloadPage() {
+    cachedGitHubLookup = null;
     const els = getDownloadElements();
     const manifest = await fetchPublishedDesktopManifest();
     const githubInstall = await resolveGitHubInstaller(manifest);
-    const version = String(githubInstall?.version || manifest?.version || DESKTOP_APP_VERSION).trim();
+    const version = String(
+      githubInstall?.version || manifest?.version || DESKTOP_APP_VERSION,
+    ).trim();
 
     els.versionEls?.forEach((node) => {
       node.textContent = version;
     });
-
-    if (githubInstall?.href) {
-      applyPrimaryLink({
-        href: githubInstall.href,
-        installerName: githubInstall.installerName,
-        external: true,
-      });
-    } else if (els.primaryLink) {
-      const installerName = String(manifest?.installer || `Morning-Roast-Setup-${version}.exe`).trim();
-      const href = String(manifest?.installerUrl || `./downloads/${installerName}`).trim();
-      applyPrimaryLink({
-        href,
-        installerName,
-        external: isExternalInstallerHref(href),
-      });
-    }
 
     if (isDesktopRuntime()) {
       setDownloadNavVisible(false);
@@ -225,16 +249,19 @@
     setDownloadNavVisible(true);
     els.runtimePanel?.setAttribute("hidden", "");
     els.webPanel?.removeAttribute("hidden");
-    await syncDownloadAvailability(manifest);
+    await syncDownloadAvailability(manifest, githubInstall);
   }
 
   global.MorningRoastDesktopDownload = {
     init: initDesktopDownloadPage,
     refreshAvailability: async () => {
-      await syncDownloadAvailability(await fetchPublishedDesktopManifest());
+      cachedGitHubLookup = null;
+      const manifest = await fetchPublishedDesktopManifest();
+      await syncDownloadAvailability(manifest);
     },
     getDownloadHref: () => `./downloads/${DESKTOP_INSTALLER_FALLBACK}`,
     getVersion: () => DESKTOP_APP_VERSION,
+    getReleasesUrl: () => GITHUB_RELEASES_URL,
     isDesktopRuntime,
   };
 })(window);
