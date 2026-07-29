@@ -118,8 +118,12 @@ function verifyOwner(chatRoom, userId, displayName) {
   return chatRoom.verifyOwnerIdentity(userId, displayName);
 }
 
-function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publicBaseUrl = "" } = {}) {
+function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin: defaultCorsOrigin = "*", getCorsOrigin, publicBaseUrl = "" } = {}) {
   const videoBaseUrl = String(publicBaseUrl || "").replace(/\/$/, "");
+
+  function corsOriginFor(req) {
+    return (typeof getCorsOrigin === "function" ? getCorsOrigin(req) : null) || defaultCorsOrigin;
+  }
 
   function notifyOwnersPending(submission) {
     chatRoom?.notifyOwners?.({
@@ -169,6 +173,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   async function handleSubmit(req, res) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method === "OPTIONS") {
       sendOptions(res, corsOrigin);
       return true;
@@ -246,6 +251,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   function handleCommunity(req, res) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method === "OPTIONS") {
       sendOptions(res, corsOrigin);
       return true;
@@ -262,6 +268,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   function handlePending(req, res) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method === "OPTIONS") {
       sendOptions(res, corsOrigin);
       return true;
@@ -284,6 +291,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   function handleManage(req, res) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method === "OPTIONS") {
       sendOptions(res, corsOrigin);
       return true;
@@ -307,6 +315,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   function handleReview(req, res, id, action) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method === "OPTIONS") {
       sendOptions(res, corsOrigin);
       return true;
@@ -353,6 +362,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   function handleEdit(req, res, id) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method === "OPTIONS") {
       sendOptions(res, corsOrigin);
       return true;
@@ -392,6 +402,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   async function handleReplaceVideo(req, res, id) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method === "OPTIONS") {
       sendOptions(res, corsOrigin);
       return true;
@@ -451,6 +462,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   function handleDelete(req, res, id) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method === "OPTIONS") {
       sendOptions(res, corsOrigin);
       return true;
@@ -490,6 +502,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   function handleVideo(req, res, id) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method !== "GET" && req.method !== "HEAD") return false;
 
     const filePath = store.getVideoPath(id);
@@ -504,6 +517,7 @@ function createLineupSubmissionsRoutes({ chatRoom, store, corsOrigin = "*", publ
   }
 
   function handlePendingPreview(req, res, id) {
+    const corsOrigin = corsOriginFor(req);
     if (req.method !== "GET" && req.method !== "HEAD") return false;
 
     const entry = store.getById(id);

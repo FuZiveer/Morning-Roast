@@ -4,13 +4,17 @@
   const RECONNECT_MAX_MS = 30000;
   let activeSession = null;
 
-  function resolveWsUrl() {
+  function isLocalDevHost() {
     const host = global.location?.hostname;
     const isLocalHost = host === "localhost" || host === "127.0.0.1";
+    if (!isLocalHost) return false;
+    if (global.MorningRoastDesktop?.isDesktop) return false;
+    return true;
+  }
 
-    // On localhost, always prefer the local presence server so dev testing
-    // doesn't depend on the deployed (meta-configured) production server.
-    if (isLocalHost) {
+  function resolveWsUrl() {
+    if (isLocalDevHost()) {
+      const host = global.location.hostname;
       const protocol = global.location?.protocol === "https:" ? "wss" : "ws";
       return `${protocol}://${host}:8080/presence`;
     }

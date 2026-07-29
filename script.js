@@ -2941,7 +2941,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v370";
+const APP_CACHE_VERSION = "morning-roast-v371";
 
 if (typeof document !== "undefined") {
   document.documentElement.dataset.appCacheVersion = APP_CACHE_VERSION;

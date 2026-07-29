@@ -33,9 +33,43 @@ const ALLOWED_ACTIVITIES = new Set([
   "Community Chat",
 ]);
 
+function normalizeOrigin(origin) {
+  return String(origin || "").trim().replace(/\/$/, "");
+}
+
 function isOriginAllowed(origin) {
   if (ALLOWED_ORIGINS.includes("*")) return true;
-  return Boolean(origin) && ALLOWED_ORIGINS.includes(origin.replace(/\/$/, ""));
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) return false;
+  if (ALLOWED_ORIGINS.includes(normalized)) return true;
+
+  try {
+    const url = new URL(normalized);
+    const host = url.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") return false;
+    return ALLOWED_ORIGINS.some((allowed) => {
+      try {
+        return new URL(allowed).hostname === host;
+      } catch {
+        return allowed === `http://${host}` || allowed === `https://${host}`;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+function resolveCorsOrigin(req) {
+  if (ALLOWED_ORIGINS.includes("*")) return "*";
+  const origin = normalizeOrigin(req.headers.origin);
+  return origin && isOriginAllowed(origin) ? origin : null;
+}
+
+function writeCorsHeaders(req, extraHeaders = {}) {
+  const origin = resolveCorsOrigin(req);
+  const headers = { ...extraHeaders };
+  if (origin) headers["Access-Control-Allow-Origin"] = origin;
+  return headers;
 }
 
 function buildActivityBreakdown() {
@@ -75,14 +109,29 @@ const lineupPublicBaseUrl = (() => {
 const lineupSubmissionsRoutes = createLineupSubmissionsRoutes({
   chatRoom,
   store: lineupSubmissionsStore,
-  corsOrigin: ALLOWED_ORIGINS.includes("*") ? "*" : ALLOWED_ORIGINS[0] || "*",
+  getCorsOrigin: (req) => resolveCorsOrigin(req) || "*",
   publicBaseUrl: lineupPublicBaseUrl,
 });
 chatDeps.lineupSubmissionsRoutes = lineupSubmissionsRoutes;
 
 const server = http.createServer((req, res) => {
   const pathname = new URL(req.url || "/", "http://localhost").pathname;
-  const corsOrigin = ALLOWED_ORIGINS.includes("*") ? "*" : ALLOWED_ORIGINS[0] || "*";
+
+  if (req.method === "OPTIONS" && (
+    pathname === "/chat/config" ||
+    pathname === "/chat/names/check" ||
+    pathname === "/chat/history" ||
+    pathname === "/lineups/comments"
+  )) {
+    const headers = writeCorsHeaders(req, {
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400",
+    });
+    res.writeHead(headers["Access-Control-Allow-Origin"] ? 204 : 403, headers);
+    res.end();
+    return;
+  }
 
   if (pathname === "/health") {
     res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" });
@@ -96,11 +145,16 @@ const server = http.createServer((req, res) => {
   }
 
   if (pathname === "/chat/config") {
-    res.writeHead(200, {
+    const headers = writeCorsHeaders(req, {
       "Content-Type": "application/json; charset=utf-8",
-      "Access-Control-Allow-Origin": corsOrigin,
       "Cache-Control": "public, max-age=60",
     });
+    if (!headers["Access-Control-Allow-Origin"]) {
+      res.writeHead(403);
+      res.end("Forbidden");
+      return;
+    }
+    res.writeHead(200, headers);
     res.end(JSON.stringify(publicChatConfig));
     return;
   }
@@ -113,11 +167,16 @@ const server = http.createServer((req, res) => {
       ? chatRoom.checkDisplayName(name, { exceptUserId: exceptUserId || null })
       : { available: true };
 
-    res.writeHead(200, {
+    const headers = writeCorsHeaders(req, {
       "Content-Type": "application/json; charset=utf-8",
-      "Access-Control-Allow-Origin": corsOrigin,
       "Cache-Control": "no-store",
     });
+    if (!headers["Access-Control-Allow-Origin"]) {
+      res.writeHead(403);
+      res.end("Forbidden");
+      return;
+    }
+    res.writeHead(200, headers);
     res.end(JSON.stringify(result));
     return;
   }
@@ -125,11 +184,16 @@ const server = http.createServer((req, res) => {
   if (pathname === "/chat/history") {
     const history = chatRoom ? chatRoom.getHistory() : [];
 
-    res.writeHead(200, {
+    const headers = writeCorsHeaders(req, {
       "Content-Type": "application/json; charset=utf-8",
-      "Access-Control-Allow-Origin": corsOrigin,
       "Cache-Control": "no-store",
     });
+    if (!headers["Access-Control-Allow-Origin"]) {
+      res.writeHead(403);
+      res.end("Forbidden");
+      return;
+    }
+    res.writeHead(200, headers);
     res.end(JSON.stringify({ history }));
     return;
   }
@@ -141,11 +205,16 @@ const server = http.createServer((req, res) => {
     const viewerUserId = url.searchParams.get("userId") || "";
     const comments = chatRoom ? chatRoom.getLineupComments(game, videoId, { viewerUserId }) : [];
 
-    res.writeHead(200, {
+    const headers = writeCorsHeaders(req, {
       "Content-Type": "application/json; charset=utf-8",
-      "Access-Control-Allow-Origin": corsOrigin,
       "Cache-Control": "no-store",
     });
+    if (!headers["Access-Control-Allow-Origin"]) {
+      res.writeHead(403);
+      res.end("Forbidden");
+      return;
+    }
+    res.writeHead(200, headers);
     res.end(JSON.stringify({ game, videoId, comments }));
     return;
   }

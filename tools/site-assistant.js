@@ -106,7 +106,7 @@
     }
 
     const host = global.location?.hostname;
-    if (host === "localhost" || host === "127.0.0.1") {
+    if ((host === "localhost" || host === "127.0.0.1") && !global.MorningRoastDesktop?.isDesktop) {
       const protocol = global.location?.protocol === "https:" ? "https:" : "http:";
       return `${protocol}//${host}:8080/assistant/chat`;
     }

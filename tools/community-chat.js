@@ -478,12 +478,19 @@
     return created;
   }
 
-  function resolveChatWsUrl(config) {
+  function isLocalDevHost() {
     const host = global.location?.hostname;
     const isLocalHost = host === "localhost" || host === "127.0.0.1";
+    if (!isLocalHost) return false;
+    if (global.MorningRoastDesktop?.isDesktop) return false;
+    return true;
+  }
+
+  function resolveChatWsUrl(config) {
     const path = config?.websocket?.path || "/chat";
 
-    if (isLocalHost) {
+    if (isLocalDevHost()) {
+      const host = global.location.hostname;
       const protocol = global.location?.protocol === "https:" ? "wss" : "ws";
       return `${protocol}://${host}:8080${path}`;
     }
