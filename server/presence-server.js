@@ -6,6 +6,8 @@ const { createChatRoom } = require("./lib/chat-room");
 const { createAssistantHandler } = require("./lib/assistant-handler");
 const { createLineupSubmissionsStore } = require("./lib/lineup-submissions-store");
 const { createLineupSubmissionsRoutes } = require("./lib/lineup-submissions-routes");
+const { createLeaderboardStore } = require("./lib/leaderboard-store");
+const { createLeaderboardRoutes } = require("./lib/leaderboard-routes");
 const { logPersistedDataPaths } = require("./lib/log-persisted-data-paths");
 
 const chatConfigRoot = loadChatConfig();
@@ -114,6 +116,12 @@ const lineupSubmissionsRoutes = createLineupSubmissionsRoutes({
 });
 chatDeps.lineupSubmissionsRoutes = lineupSubmissionsRoutes;
 
+const leaderboardStore = createLeaderboardStore();
+const leaderboardRoutes = createLeaderboardRoutes({
+  store: leaderboardStore,
+  getCorsOrigin: (req) => resolveCorsOrigin(req) || "*",
+});
+
 const server = http.createServer((req, res) => {
   const pathname = new URL(req.url || "/", "http://localhost").pathname;
 
@@ -121,7 +129,9 @@ const server = http.createServer((req, res) => {
     pathname === "/chat/config" ||
     pathname === "/chat/names/check" ||
     pathname === "/chat/history" ||
-    pathname === "/lineups/comments"
+    pathname === "/lineups/comments" ||
+    pathname === "/leaderboard" ||
+    pathname === "/leaderboard/submit"
   )) {
     const headers = writeCorsHeaders(req, {
       "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -220,6 +230,10 @@ const server = http.createServer((req, res) => {
   }
 
   if (lineupSubmissionsRoutes.handleRequest(req, res, pathname)) {
+    return;
+  }
+
+  if (leaderboardRoutes.handleRequest(req, res, pathname)) {
     return;
   }
 

@@ -4,6 +4,7 @@ const { resolveHistoryPath } = require("./chat-history-store");
 const { resolveDmHistoryPath } = require("./dm-history-store");
 const { resolveStorePath, resolveUploadsDir } = require("./lineup-submissions-store");
 const { resolveCommentsPath } = require("./lineup-comments-store");
+const { resolveStorePath: resolveLeaderboardPath } = require("./leaderboard-store");
 
 function logPersistedDataPaths() {
   const dataRoot = resolveDataRoot();
@@ -14,6 +15,7 @@ function logPersistedDataPaths() {
     ["LINEUP_SUBMISSIONS_PATH", resolveStorePath()],
     ["LINEUP_UPLOADS_DIR", resolveUploadsDir()],
     ["LINEUP_COMMENTS_PATH", resolveCommentsPath()],
+    ["LEADERBOARD_PATH", resolveLeaderboardPath()],
   ];
 
   console.info("[data-persist] User data paths:");

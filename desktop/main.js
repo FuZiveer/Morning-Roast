@@ -4,6 +4,10 @@ const pkg = require("./package.json");
 const config = require("./config");
 const { startStaticServer } = require("./static-server");
 const { initAutoUpdater, checkForAppUpdates, installPendingUpdate, disposeAutoUpdater } = require("./updater");
+const userStorage = require("./user-storage");
+
+app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
+app.commandLine.appendSwitch("disable-frame-rate-limit");
 
 const isDev = !app.isPackaged;
 let mainWindow = null;
@@ -79,9 +83,30 @@ async function resolveStartupTarget() {
   return `${origin}/index.html`;
 }
 
+async function captureRendererStorage() {
+  if (!mainWindow || mainWindow.isDestroyed()) return {};
+  try {
+    return await mainWindow.webContents.executeJavaScript(`(() => {
+      const data = {};
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key != null) data[key] = localStorage.getItem(key);
+      }
+      return data;
+    })()`, true);
+  } catch {
+    return {};
+  }
+}
+
 async function fallbackToLocalContent() {
   if (loadMode === "local-fallback" || loadMode === "local") return false;
   if (!mainWindow || mainWindow.isDestroyed()) return false;
+
+  const captured = await captureRendererStorage();
+  if (captured && typeof captured === "object" && Object.keys(captured).length) {
+    userStorage.save(captured);
+  }
 
   if (!staticServer) {
     appOrigin = await startLocalAppOrigin();
@@ -202,6 +227,25 @@ function registerIpcHandlers() {
     const url = new URL("./", normalizeRemoteUrl() || "https://morningroast.net/").href;
     shell.openExternal(`${url}download`);
   });
+
+  ipcMain.on("desktop-storage-get-sync", (event) => {
+    event.returnValue = userStorage.load();
+  });
+
+  ipcMain.handle("desktop-storage-save", (_event, data) => {
+    if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+    return userStorage.save(data);
+  });
+
+  ipcMain.handle("desktop-storage-merge", (_event, patch) => {
+    if (!patch || typeof patch !== "object" || Array.isArray(patch)) return userStorage.load();
+    return userStorage.merge(patch);
+  });
+
+  ipcMain.on("desktop-set-aim-trainer-active", () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.webContents.setBackgroundThrottling(false);
+  });
 }
 
 async function createMainWindow() {
@@ -224,8 +268,11 @@ async function createMainWindow() {
       nodeIntegration: false,
       sandbox: false,
       spellcheck: true,
+      backgroundThrottling: false,
     },
   });
+
+  mainWindow.webContents.setBackgroundThrottling(false);
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();

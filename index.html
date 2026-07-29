@@ -17,6 +17,14 @@
       (function () {
         var root = document.documentElement;
         try {
+          var stored = window.__MR_DESKTOP_STORAGE__;
+          if (stored && typeof stored === "object") {
+            for (var key in stored) {
+              if (Object.prototype.hasOwnProperty.call(stored, key) && stored[key] != null) {
+                localStorage.setItem(key, String(stored[key]));
+              }
+            }
+          }
           var accent = localStorage.getItem("prefAccent") || "330 99% 46%";
           var parts = accent.trim().split(/\s+/);
           if (parts.length >= 3) {
@@ -126,6 +134,7 @@
     <script defer src="tools/site-assistant.js"></script>
     <script defer src="tools/online-presence.js"></script>
     <script defer src="tools/community-chat.js"></script>
+    <script defer src="tools/leaderboard.js"></script>
     <script defer src="tools/lineup-comments.js"></script>
     <script defer src="tools/lineup-submissions.js"></script>
     <script defer src="tools/valorant-lineup-icons.js"></script>
@@ -133,6 +142,7 @@
     <script defer src="tools/profile-tags.js"></script>
     <script defer src="tools/desktop-download.js"></script>
     <script defer src="tools/desktop-update.js"></script>
+    <script defer src="tools/desktop-storage.js"></script>
     <script defer src="script.js"></script>
   </head>
   <body>
@@ -454,6 +464,12 @@
             <span class="title-heading">Morning Roast</span>
           </div>
           <div class="description">Your all-in-one sensitivity toolkit for competitive shooters — convert, calculate, train, and customize in one place.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-shield-check-line" aria-hidden="true"></i> Privacy-first</span>
+            <span class="app-meta-chip"><i class="ri-flashlight-line" aria-hidden="true"></i> Instant tools</span>
+            <span class="app-meta-chip"><i class="ri-user-unfollow-line" aria-hidden="true"></i> No account</span>
+            <span class="app-meta-chip"><i class="ri-windows-fill" aria-hidden="true"></i> Desktop app</span>
+          </div>
         </div>
 
         <div class="home-download-banner" id="home-download-banner">
@@ -475,7 +491,7 @@
 
         <div class="box-container-holder">
           <div class="box-container">
-            <div class="box-holder home-panel">
+            <div class="box-holder app-panel">
               <fieldset class="fieldset-style home-about">
                 <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(23, 74%, 62%)">About Morning Roast</legend>
                 <p class="policy-intro">Morning Roast is a free browser-based utility built for players who care about mouse feel. Whether you are switching from CS2 to Valorant, tuning eDPI for a new main, or warming up with aim drills, everything runs locally in your browser — fast, private, and always available.</p>
@@ -668,6 +684,11 @@
             <span class="title-heading">Morning Roast for Windows</span>
           </div>
           <div class="description">Install the full toolkit on your PC — convert sensitivity, swap crosshairs, and aim train in one dedicated app.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-windows-fill" aria-hidden="true"></i> Windows 10 &amp; 11</span>
+            <span class="app-meta-chip"><i class="ri-refresh-line" aria-hidden="true"></i> Auto-update</span>
+            <span class="app-meta-chip"><i class="ri-shield-check-line" aria-hidden="true"></i> No account</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
@@ -680,59 +701,10 @@
                     <span class="download-runtime-icon" aria-hidden="true"><i class="ri-checkbox-circle-fill"></i></span>
                     <div class="download-runtime-copy">
                       <h2>You’re running the desktop app</h2>
-                      <p class="policy-intro">Everything from the website is already installed locally. Jump into Tools from the sidebar or pick a shortcut below — the menu bar also has quick links for converter and aim trainer.</p>
+                      <p class="policy-intro">Everything from the website is already installed locally. Jump into Tools from the sidebar or use the menu bar for quick links to the converter and aim trainer.</p>
                     </div>
                   </div>
                 </fieldset>
-
-                <section class="home-features download-runtime-shortcuts" aria-labelledby="download-runtime-shortcuts-heading">
-                  <div class="home-section-head">
-                    <h2 id="download-runtime-shortcuts-heading" class="home-section-title"><i class="ri-flashlight-line" aria-hidden="true"></i> Quick launch</h2>
-                    <p class="home-section-lead">Same toolkit as the website — open any tool in one click.</p>
-                  </div>
-
-                  <div class="home-feature-grid">
-                    <button type="button" class="home-feature-card home-feature-card--converter" onclick="switchTab(event, 'sensitivity-converter-tab')">
-                      <span class="home-feature-card-bg" aria-hidden="true"></span>
-                      <span class="home-feature-icon" aria-hidden="true"><i class="ri-swap-2-line"></i></span>
-                      <span class="home-feature-body">
-                        <span class="home-feature-title">Sensitivity Converter</span>
-                        <span class="home-feature-text">Convert mouse sensitivity between supported games with DPI on both sides.</span>
-                      </span>
-                      <span class="home-feature-cta">Open converter <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
-                    </button>
-
-                    <button type="button" class="home-feature-card home-feature-card--aim" onclick="switchTab(event, 'aim-training-tab')">
-                      <span class="home-feature-card-bg" aria-hidden="true"></span>
-                      <span class="home-feature-icon" aria-hidden="true"><i class="ri-focus-3-line"></i></span>
-                      <span class="home-feature-body">
-                        <span class="home-feature-title">Aim Trainer</span>
-                        <span class="home-feature-text">Warm up with flick targets, track accuracy, and sync scores to your profile.</span>
-                      </span>
-                      <span class="home-feature-cta">Start training <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
-                    </button>
-
-                    <button type="button" class="home-feature-card home-feature-card--crosshair" onclick="switchTab(event, 'crosshair-converter-tab')">
-                      <span class="home-feature-card-bg" aria-hidden="true"></span>
-                      <span class="home-feature-icon" aria-hidden="true"><i class="ri-crosshair-2-line"></i></span>
-                      <span class="home-feature-body">
-                        <span class="home-feature-title">Crosshair Converter</span>
-                        <span class="home-feature-text">Translate CS2 and Valorant crosshair codes with a live preview.</span>
-                      </span>
-                      <span class="home-feature-cta">Open crosshair tool <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
-                    </button>
-
-                    <button type="button" class="home-feature-card home-feature-card--settings" onclick="switchTab(event, 'settings-tab')">
-                      <span class="home-feature-card-bg" aria-hidden="true"></span>
-                      <span class="home-feature-icon" aria-hidden="true"><i class="ri-tools-line"></i></span>
-                      <span class="home-feature-body">
-                        <span class="home-feature-title">Settings</span>
-                        <span class="home-feature-text">Accent colors, fonts, glass theme, wallpapers, and audio levels.</span>
-                      </span>
-                      <span class="home-feature-cta">Open settings <i class="ri-arrow-right-line" aria-hidden="true"></i></span>
-                    </button>
-                  </div>
-                </section>
 
                 <fieldset class="fieldset-style download-runtime-updates">
                   <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(191, 54%, 82%)">Stay up to date</legend>
@@ -747,11 +719,30 @@
                     <h2 id="download-showcase-title" class="download-showcase-title">Your favorite tools, one install away</h2>
                     <p class="download-showcase-lead">Morning Roast Desktop bundles the same sensitivity converter, crosshair translator, aim trainer, lineups, profile, and community chat — optimized for quick launches from your desktop or taskbar.</p>
 
+                    <div class="download-meta-row" aria-label="App details">
+                      <span class="download-meta-chip"><i class="ri-computer-line" aria-hidden="true"></i> 64-bit</span>
+                      <span class="download-meta-chip"><i class="ri-hard-drive-2-line" aria-hidden="true"></i> ~200 MB</span>
+                      <span class="download-meta-chip"><i class="ri-refresh-line" aria-hidden="true"></i> Auto-update</span>
+                      <span class="download-meta-chip"><i class="ri-shield-check-line" aria-hidden="true"></i> No account</span>
+                    </div>
+
                     <ul class="download-benefits">
-                      <li><i class="ri-flashlight-line" aria-hidden="true"></i><span><strong>Instant access</strong> — open converter or aim trainer without hunting for a browser tab.</span></li>
-                      <li><i class="ri-shield-check-line" aria-hidden="true"></i><span><strong>Local-first tools</strong> — conversions, eDPI math, and trainer scores stay on your device.</span></li>
-                      <li><i class="ri-focus-3-line" aria-hidden="true"></i><span><strong>Fullscreen aim training</strong> — pointer lock and fullscreen work natively in the app.</span></li>
-                      <li><i class="ri-chat-1-line" aria-hidden="true"></i><span><strong>Community included</strong> — chat, lineups, and online features still connect when you’re online.</span></li>
+                      <li class="download-benefit-card">
+                        <span class="download-benefit-icon" aria-hidden="true"><i class="ri-flashlight-line"></i></span>
+                        <span class="download-benefit-copy"><strong>Instant access</strong> Open converter or aim trainer without hunting for a browser tab.</span>
+                      </li>
+                      <li class="download-benefit-card">
+                        <span class="download-benefit-icon" aria-hidden="true"><i class="ri-shield-check-line"></i></span>
+                        <span class="download-benefit-copy"><strong>Local-first tools</strong> Conversions, eDPI math, and trainer scores stay on your device.</span>
+                      </li>
+                      <li class="download-benefit-card">
+                        <span class="download-benefit-icon" aria-hidden="true"><i class="ri-focus-3-line"></i></span>
+                        <span class="download-benefit-copy"><strong>Native fullscreen</strong> Pointer lock and fullscreen aim training work like a real game.</span>
+                      </li>
+                      <li class="download-benefit-card">
+                        <span class="download-benefit-icon" aria-hidden="true"><i class="ri-chat-1-line"></i></span>
+                        <span class="download-benefit-copy"><strong>Community included</strong> Chat, lineups, and online features connect when you’re online.</span>
+                      </li>
                     </ul>
 
                     <div class="download-actions">
@@ -765,10 +756,11 @@
                       <button type="button" class="download-btn download-btn--ghost" onclick="switchTab(event, 'home-tab')">Continue in browser</button>
                     </div>
                     <p id="download-app-status" class="download-status" hidden role="status" aria-live="polite"></p>
-                    <p class="download-footnote">No account required. The installer adds Morning Roast to your Start Menu and optional desktop shortcut.</p>
+                    <p class="download-footnote">Adds Morning Roast to your Start Menu with an optional desktop shortcut. SmartScreen may warn on first install until code signing is added.</p>
                   </div>
 
                   <div class="download-showcase-visual" aria-hidden="true">
+                    <div class="download-window-glow"></div>
                     <div class="download-window">
                       <div class="download-window-chrome">
                         <span class="download-window-dot"></span>
@@ -793,28 +785,55 @@
                   </div>
                 </section>
 
+                <section class="download-section download-compare" aria-labelledby="download-compare-heading">
+                  <div class="home-section-head">
+                    <h2 id="download-compare-heading" class="home-section-title"><i class="ri-contrast-2-line" aria-hidden="true"></i> Browser vs desktop</h2>
+                    <p class="home-section-lead">Same Morning Roast experience — the desktop app adds a proper shell for daily use.</p>
+                  </div>
+                  <div class="download-compare-grid">
+                    <article class="download-compare-card">
+                      <span class="download-compare-label">In the browser</span>
+                      <ul class="download-compare-list">
+                        <li><i class="ri-check-line" aria-hidden="true"></i> Full toolkit, no install</li>
+                        <li><i class="ri-check-line" aria-hidden="true"></i> Works on any device with a browser</li>
+                        <li><i class="ri-close-line" aria-hidden="true"></i> Tab can get lost among other sites</li>
+                        <li><i class="ri-close-line" aria-hidden="true"></i> Fullscreen aim training depends on the browser</li>
+                      </ul>
+                    </article>
+                    <article class="download-compare-card download-compare-card--desktop">
+                      <span class="download-compare-label"><i class="ri-windows-fill" aria-hidden="true"></i> Desktop app</span>
+                      <ul class="download-compare-list">
+                        <li><i class="ri-check-line" aria-hidden="true"></i> One-click launch from taskbar or Start Menu</li>
+                        <li><i class="ri-check-line" aria-hidden="true"></i> Native window, menu bar, and auto-update</li>
+                        <li><i class="ri-check-line" aria-hidden="true"></i> Loads latest site when online</li>
+                        <li><i class="ri-check-line" aria-hidden="true"></i> Bundled offline fallback for core tools</li>
+                      </ul>
+                    </article>
+                  </div>
+                </section>
+
                 <section class="download-section" aria-labelledby="download-features-heading">
                   <div class="home-section-head">
                     <h2 id="download-features-heading" class="home-section-title"><i class="ri-apps-2-line" aria-hidden="true"></i> Everything in the browser, plus a proper app shell</h2>
                     <p class="home-section-lead">Same Morning Roast you already use — wrapped for players who live on their desktop.</p>
                   </div>
                   <div class="download-feature-grid">
-                    <article class="download-feature-card">
+                    <article class="download-feature-card download-feature-card--converter">
                       <span class="download-feature-icon" aria-hidden="true"><i class="ri-swap-2-line"></i></span>
                       <h3>Sensitivity converter</h3>
                       <p>Convert between supported titles with DPI on both sides and copy results in one click.</p>
                     </article>
-                    <article class="download-feature-card">
+                    <article class="download-feature-card download-feature-card--crosshair">
                       <span class="download-feature-icon" aria-hidden="true"><i class="ri-crosshair-2-line"></i></span>
                       <h3>Crosshair converter</h3>
                       <p>Translate CS2 and Valorant crosshair codes with a live preview before you paste in-game.</p>
                     </article>
-                    <article class="download-feature-card">
+                    <article class="download-feature-card download-feature-card--aim">
                       <span class="download-feature-icon" aria-hidden="true"><i class="ri-focus-3-line"></i></span>
                       <h3>Aim trainer</h3>
                       <p>Warm up with flick targets, track accuracy and reaction time, and sync scores to your profile.</p>
                     </article>
-                    <article class="download-feature-card">
+                    <article class="download-feature-card download-feature-card--customize">
                       <span class="download-feature-icon" aria-hidden="true"><i class="ri-palette-line"></i></span>
                       <h3>Full customization</h3>
                       <p>Accent colors, fonts, glass theme, wallpapers, and audio — exactly like the website.</p>
@@ -824,18 +843,27 @@
 
                 <fieldset class="fieldset-style download-install">
                   <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(23, 74%, 62%)">Install in three steps</legend>
-                  <ol class="download-steps">
-                    <li>
-                      <strong>Download the installer</strong>
-                      <span>Click <em>Download for Windows</em> above to save <code>Morning-Roast-Setup-<span data-desktop-app-version>1.0.0</span>.exe</code>.</span>
+                  <ol class="download-step-cards">
+                    <li class="download-step-card">
+                      <span class="download-step-index" aria-hidden="true">1</span>
+                      <div class="download-step-copy">
+                        <strong>Download the installer</strong>
+                        <span>Click <em>Download for Windows</em> above to save <code>Morning-Roast-Setup-<span data-desktop-app-version>1.0.0</span>.exe</code>.</span>
+                      </div>
                     </li>
-                    <li>
-                      <strong>Run the setup</strong>
-                      <span>Open the file, choose an install folder if you want, and finish the wizard. SmartScreen may ask you to confirm — Morning Roast is unsigned until a certificate is added.</span>
+                    <li class="download-step-card">
+                      <span class="download-step-index" aria-hidden="true">2</span>
+                      <div class="download-step-copy">
+                        <strong>Run the setup</strong>
+                        <span>Open the file, choose an install folder if you want, and finish the wizard. Confirm SmartScreen if Windows prompts you.</span>
+                      </div>
                     </li>
-                    <li>
-                      <strong>Launch and play</strong>
-                      <span>Open Morning Roast from the Start Menu or desktop shortcut. Pin it to your taskbar for one-click converter and aim trainer access.</span>
+                    <li class="download-step-card">
+                      <span class="download-step-index" aria-hidden="true">3</span>
+                      <div class="download-step-copy">
+                        <strong>Launch and play</strong>
+                        <span>Open Morning Roast from the Start Menu or desktop shortcut. Pin it to your taskbar for one-click access.</span>
+                      </div>
                     </li>
                   </ol>
                 </fieldset>
@@ -844,20 +872,24 @@
                   <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(191, 54%, 82%)">System requirements</legend>
                   <div class="download-requirements-grid">
                     <div class="download-requirement">
+                      <span class="download-requirement-icon" aria-hidden="true"><i class="ri-windows-fill"></i></span>
                       <span class="download-requirement-label">OS</span>
                       <span class="download-requirement-value">Windows 10 or 11 (64-bit)</span>
                     </div>
                     <div class="download-requirement">
+                      <span class="download-requirement-icon" aria-hidden="true"><i class="ri-hard-drive-2-line"></i></span>
                       <span class="download-requirement-label">Disk space</span>
                       <span class="download-requirement-value">About 200 MB</span>
                     </div>
                     <div class="download-requirement">
+                      <span class="download-requirement-icon" aria-hidden="true"><i class="ri-wifi-line"></i></span>
                       <span class="download-requirement-label">Internet</span>
                       <span class="download-requirement-value">Optional — needed for community chat &amp; lineups</span>
                     </div>
                     <div class="download-requirement">
+                      <span class="download-requirement-icon" aria-hidden="true"><i class="ri-refresh-line"></i></span>
                       <span class="download-requirement-label">Updates</span>
-                      <span class="download-requirement-value">Re-download the latest installer from this page</span>
+                      <span class="download-requirement-value">Automatic — website reloads when online; app updates on restart</span>
                     </div>
                   </div>
                 </fieldset>
@@ -876,9 +908,58 @@
             <span>Mouse Sensitivity Converter</span>
           </div>
           <div class="description">One sensitivity. Every game. Pure consistency.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-swap-2-line" aria-hidden="true"></i> Live conversion</span>
+            <span class="app-meta-chip"><i class="ri-gamepad-line" aria-hidden="true"></i> 50+ games</span>
+            <span class="app-meta-chip"><i class="ri-share-line" aria-hidden="true"></i> Copy &amp; share</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder app-panel tool-panel">
+              <section class="download-showcase tool-showcase" aria-labelledby="sens-showcase-title">
+                <div class="download-showcase-copy">
+                  <p class="download-eyebrow"><i class="ri-swap-2-line" aria-hidden="true"></i> Sensitivity toolkit</p>
+                  <h2 id="sens-showcase-title" class="download-showcase-title">Match your feel across every game</h2>
+                  <p class="download-showcase-lead">Pick source and target titles, enter sensitivity and DPI on both sides, and get an instant conversion you can copy or share.</p>
+                  <ul class="download-benefits">
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-gamepad-line"></i></span>
+                      <span class="download-benefit-copy"><strong>50+ supported games</strong> Searchable dropdowns with yaw and FOV accounted for per title.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-flashlight-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Live results</strong> Output updates as you type — no submit button needed.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-share-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Copy or share</strong> Send a link with your games and values pre-filled.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-keyboard-box-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Press C to copy</strong> Grab the converted sensitivity without leaving the keyboard.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="download-showcase-visual tool-showcase-visual" aria-hidden="true">
+                  <div class="tool-preview-glow"></div>
+                  <div class="tool-preview tool-preview--converter">
+                    <div class="tool-preview-row">
+                      <span class="tool-preview-pill is-active"></span>
+                      <span class="tool-preview-arrow"></span>
+                      <span class="tool-preview-pill"></span>
+                    </div>
+                    <div class="tool-preview-card"></div>
+                    <div class="tool-preview-result">0.42</div>
+                  </div>
+                </div>
+              </section>
+
+              <fieldset class="fieldset-style tool-workspace-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(23, 74%, 62%)">Convert sensitivity</legend>
+                <div class="tool-workspace">
+                  <div class="box-container-holder tool-workspace-layout">
           <div class="box-container">
             <div class="box-holder" id="from-container">
               <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> From Game</h4>
@@ -1025,6 +1106,38 @@
               </div>
             </div>
           </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="fieldset-style tool-tips-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(191, 54%, 82%)">Quick workflow</legend>
+                <ol class="download-step-cards">
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">1</span>
+                    <div class="download-step-copy">
+                      <strong>Select both games</strong>
+                      <span>Choose your current game under <em>From</em> and the title you are switching to under <em>To</em>. Use the swap button to flip them.</span>
+                    </div>
+                  </li>
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">2</span>
+                    <div class="download-step-copy">
+                      <strong>Enter sens and DPI</strong>
+                      <span>Type your in-game sensitivity and mouse DPI. Set a different target DPI if your new setup uses another value.</span>
+                    </div>
+                  </li>
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">3</span>
+                    <div class="download-step-copy">
+                      <strong>Copy or share</strong>
+                      <span>Use the result menu to copy the converted value or share a link with everything filled in.</span>
+                    </div>
+                  </li>
+                </ol>
+              </fieldset>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1037,9 +1150,53 @@
             <span>Mouse EDPI calculator</span>
           </div>
           <div class="description">Measure your true performance. Find your edge.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-calculator-line" aria-hidden="true"></i> eDPI formula</span>
+            <span class="app-meta-chip"><i class="ri-arrow-left-right-line" aria-hidden="true"></i> Compare setups</span>
+            <span class="app-meta-chip"><i class="ri-link" aria-hidden="true"></i> Share link</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder app-panel tool-panel">
+              <section class="download-showcase tool-showcase" aria-labelledby="edpi-showcase-title">
+                <div class="download-showcase-copy">
+                  <p class="download-eyebrow"><i class="ri-calculator-line" aria-hidden="true"></i> Effective DPI</p>
+                  <h2 id="edpi-showcase-title" class="download-showcase-title">Know your true mouse performance</h2>
+                  <p class="download-showcase-lead">Calculate eDPI, see where you sit on the sensitivity spectrum, compare two setups side by side, and share your numbers.</p>
+                  <ul class="download-benefits">
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-speed-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Instant eDPI</strong> Sensitivity × DPI calculated live with cm/360° travel shown.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-contrast-2-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Compare mode</strong> Put two setups head-to-head on the same spectrum bar.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-star-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Pro ranges</strong> See recommended eDPI bands for your selected game.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-link"></i></span>
+                      <span class="download-benefit-copy"><strong>Shareable links</strong> Send your setup to friends or coaches in one click.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="download-showcase-visual tool-showcase-visual" aria-hidden="true">
+                  <div class="tool-preview-glow"></div>
+                  <div class="tool-preview tool-preview--edpi">
+                    <div class="tool-preview-card"></div>
+                    <div class="tool-preview-result">320 eDPI</div>
+                  </div>
+                </div>
+              </section>
+
+              <fieldset class="fieldset-style tool-workspace-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">Calculate eDPI</legend>
+                <div class="tool-workspace">
+                  <div class="box-container-holder tool-workspace-layout">
           <div class="box-container">
             <div class="box-holder" id="edpi-game-container">
               <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> Game</h4>
@@ -1230,6 +1387,38 @@
               </div>
             </div>
           </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="fieldset-style tool-tips-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(121, 54%, 82%)">Reading your eDPI</legend>
+                <ol class="download-step-cards">
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">1</span>
+                    <div class="download-step-copy">
+                      <strong>Pick your game</strong>
+                      <span>Game selection adjusts recommended ranges on the spectrum for that title.</span>
+                    </div>
+                  </li>
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">2</span>
+                    <div class="download-step-copy">
+                      <strong>Single or compare</strong>
+                      <span>Use Single for one setup, or Compare to evaluate two sens/DPI combinations at once.</span>
+                    </div>
+                  </li>
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">3</span>
+                    <div class="download-step-copy">
+                      <strong>Check the spectrum</strong>
+                      <span>Drag the pointer to explore values — green recommended band shows common pro ranges.</span>
+                    </div>
+                  </li>
+                </ol>
+              </fieldset>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1245,9 +1434,53 @@
             </div>
           </div>
           <div class="description">Match your reticle across games. Play with confidence.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-crosshair-2-line" aria-hidden="true"></i> CS2 ↔ Valorant</span>
+            <span class="app-meta-chip"><i class="ri-eye-line" aria-hidden="true"></i> Live preview</span>
+            <span class="app-meta-chip"><i class="ri-file-copy-line" aria-hidden="true"></i> Copy code</span>
+          </div>
         </div>
 
-        <div class="box-container-holder crosshair-converter-layout">
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder app-panel tool-panel">
+              <section class="download-showcase tool-showcase" aria-labelledby="crosshair-showcase-title">
+                <div class="download-showcase-copy">
+                  <p class="download-eyebrow"><i class="ri-crosshair-2-line" aria-hidden="true"></i> Crosshair translator</p>
+                  <h2 id="crosshair-showcase-title" class="download-showcase-title">Same reticle, different game</h2>
+                  <p class="download-showcase-lead">Paste a Counter-Strike 2 or Valorant crosshair code and get a translated output with live preview before you jump in-game.</p>
+                  <ul class="download-benefits">
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-arrow-left-right-line"></i></span>
+                      <span class="download-benefit-copy"><strong>CS2 ↔ Valorant</strong> Switch direction with one dropdown — both ways supported.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-eye-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Live preview</strong> Zoom and cycle backgrounds to sanity-check before copying.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-file-copy-line"></i></span>
+                      <span class="download-benefit-copy"><strong>One-click copy</strong> Grab the converted code or share a pre-filled link.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-crosshair-2-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Use in aim trainer</strong> Send the preview crosshair straight to training settings.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="download-showcase-visual tool-showcase-visual" aria-hidden="true">
+                  <div class="tool-preview-glow"></div>
+                  <div class="tool-preview tool-preview--crosshair">
+                    <div class="tool-preview-card"></div>
+                    <div class="tool-preview-result">Converted</div>
+                  </div>
+                </div>
+              </section>
+
+              <fieldset class="fieldset-style tool-workspace-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(344, 54%, 72%)">Convert crosshair</legend>
+                <div class="tool-workspace">
+                  <div class="box-container-holder tool-workspace-layout crosshair-converter-layout">
           <div class="box-container">
             <div class="box-holder crosshair-converter-panel">
               <div class="crosshair-converter-direction-wrap">
@@ -1366,6 +1599,38 @@
               </div>
             </div>
           </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="fieldset-style tool-tips-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(191, 54%, 82%)">How to convert</legend>
+                <ol class="download-step-cards">
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">1</span>
+                    <div class="download-step-copy">
+                      <strong>Choose direction</strong>
+                      <span>Pick CS2 → Valorant or Valorant → CS2 from the direction dropdown.</span>
+                    </div>
+                  </li>
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">2</span>
+                    <div class="download-step-copy">
+                      <strong>Paste your code</strong>
+                      <span>Drop your in-game crosshair share code into the <em>From</em> field.</span>
+                    </div>
+                  </li>
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">3</span>
+                    <div class="download-step-copy">
+                      <strong>Preview and copy</strong>
+                      <span>Check the live preview, then copy or paste the output code in your target game.</span>
+                    </div>
+                  </li>
+                </ol>
+              </fieldset>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1378,10 +1643,58 @@
             <span>User settings</span>
           </div>
           <div class="description">Customize your setup. Find your sens. Test your reflexes.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-palette-line" aria-hidden="true"></i> Accent &amp; fonts</span>
+            <span class="app-meta-chip"><i class="ri-drop-line" aria-hidden="true"></i> Glass theme</span>
+            <span class="app-meta-chip"><i class="ri-hard-drive-2-line" aria-hidden="true"></i> Saved locally</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
           <div class="box-container">
+            <div class="box-holder app-panel tool-panel">
+              <section class="download-showcase tool-showcase" aria-labelledby="settings-showcase-title">
+                <div class="download-showcase-copy">
+                  <p class="download-eyebrow"><i class="ri-settings-4-line" aria-hidden="true"></i> Personalization</p>
+                  <h2 id="settings-showcase-title" class="download-showcase-title">Make Morning Roast yours</h2>
+                  <p class="download-showcase-lead">Tune accent colors, typography, backgrounds, audio, and behavior — everything saves locally on your device.</p>
+                  <ul class="download-benefits">
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-palette-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Theme controls</strong> Accent, fonts, glass mode, wallpapers, and background patterns.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-list-settings-line"></i></span>
+                      <span class="download-benefit-copy"><strong>General prefs</strong> UI refresh rate, confirm resets, 360° units, and backups.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-flashlight-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Reaction test</strong> Built-in reflex benchmark when you want a quick check.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-hard-drive-2-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Export &amp; import</strong> Back up profile, tags, and prefs from General → Data.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="download-showcase-visual tool-showcase-visual" aria-hidden="true">
+                  <div class="tool-preview-glow"></div>
+                  <div class="tool-preview tool-preview--settings">
+                    <div class="tool-preview-row">
+                      <span class="tool-preview-swatch"></span>
+                      <span class="tool-preview-swatch"></span>
+                      <span class="tool-preview-swatch"></span>
+                      <span class="tool-preview-swatch"></span>
+                    </div>
+                    <div class="tool-preview-card"></div>
+                    <div class="tool-preview-result">Your style</div>
+                  </div>
+                </div>
+              </section>
+
+              <fieldset class="fieldset-style tool-workspace-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">Settings hub</legend>
+                <div class="tool-workspace">
             <div class="box-holder">
               <div class="settings-sections">
                 <section class="settings-section">
@@ -1418,6 +1731,38 @@
                 </section>
               </div>
             </div>
+                </div>
+              </fieldset>
+
+              <section class="download-section" aria-labelledby="settings-features-heading">
+                <div class="home-section-head">
+                  <h2 id="settings-features-heading" class="home-section-title"><i class="ri-sparkling-2-line" aria-hidden="true"></i> What you can customize</h2>
+                  <p class="home-section-lead">Deep options live inside each settings panel — open any section above to get started.</p>
+                </div>
+                <div class="download-feature-grid">
+                  <article class="download-feature-card download-feature-card--customize">
+                    <span class="download-feature-icon" aria-hidden="true"><i class="ri-brush-line"></i></span>
+                    <h3>Theme</h3>
+                    <p>Accent color, font family, glass theme, wallpapers, and animated backgrounds.</p>
+                  </article>
+                  <article class="download-feature-card download-feature-card--converter">
+                    <span class="download-feature-icon" aria-hidden="true"><i class="ri-speed-line"></i></span>
+                    <h3>Performance</h3>
+                    <p>UI refresh rate cap and motion preferences for smoother or lighter rendering.</p>
+                  </article>
+                  <article class="download-feature-card download-feature-card--aim">
+                    <span class="download-feature-icon" aria-hidden="true"><i class="ri-volume-up-line"></i></span>
+                    <h3>Audio</h3>
+                    <p>Master volume and hit feedback levels across the aim trainer and UI.</p>
+                  </article>
+                  <article class="download-feature-card download-feature-card--crosshair">
+                    <span class="download-feature-icon" aria-hidden="true"><i class="ri-database-2-line"></i></span>
+                    <h3>Data</h3>
+                    <p>Backup, restore, and reset preferences without losing your profile progress.</p>
+                  </article>
+                </div>
+              </section>
+            </div>
           </div>
         </div>
       </div>
@@ -1431,8 +1776,52 @@
             <span>System statistics</span>
           </div>
           <div class="description">Track your progress. Review your history. Own your stats.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-trophy-line" aria-hidden="true"></i> Personal bests</span>
+            <span class="app-meta-chip"><i class="ri-line-chart-line" aria-hidden="true"></i> Charts</span>
+            <span class="app-meta-chip"><i class="ri-history-line" aria-hidden="true"></i> Local history</span>
+          </div>
         </div>
 
+        <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder app-panel tool-panel">
+              <section class="download-showcase tool-showcase" aria-labelledby="stats-showcase-title">
+                <div class="download-showcase-copy">
+                  <p class="download-eyebrow"><i class="ri-bar-chart-2-line" aria-hidden="true"></i> Performance history</p>
+                  <h2 id="stats-showcase-title" class="download-showcase-title">Everything you have measured</h2>
+                  <p class="download-showcase-lead">Review your last sensitivity conversion, eDPI calculation, and aim-trainer personal bests — all stored locally on your device.</p>
+                  <ul class="download-benefits">
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-swap-2-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Last conversion</strong> Quick recall of your most recent sens swap between games.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-calculator-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Last eDPI</strong> Your previous calculation with game context preserved.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-trophy-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Personal bests</strong> Filter aim scores by game, mode, and session length.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-line-chart-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Daily progress</strong> Chart your improvement over time with date filtering.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="download-showcase-visual tool-showcase-visual" aria-hidden="true">
+                  <div class="tool-preview-glow"></div>
+                  <div class="tool-preview tool-preview--stats">
+                    <div class="tool-preview-card"></div>
+                    <div class="tool-preview-result">PB 98%</div>
+                  </div>
+                </div>
+              </section>
+
+              <fieldset class="fieldset-style tool-workspace-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(23, 74%, 62%)">Your stats</legend>
+                <div class="tool-workspace">
         <div class="box-container-holder" style="gap: 0">
           <div class="box-container">
             <div class="box-holder result-container">
@@ -1670,6 +2059,42 @@
                     </div>
                   </div>
                 </section>
+
+                <section class="profile-stats-section">
+                  <div class="app-status-dropdown profile-stats-dropdown aim-leaderboard-dropdown">
+                    <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="stats-leaderboard-panel">
+                      <span class="preset-title app-status-title profile-stats-dropdown-title"><i class="ri-medal-line" aria-hidden="true"></i> Leaderboard</span>
+                      <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="app-status-panel" id="stats-leaderboard-panel">
+                      <div class="app-status-panel-inner aim-leaderboard-panel-inner">
+                        <div class="aim-leaderboard trainer-settings-integrated" data-leaderboard-panel data-leaderboard-context="stats">
+                          <div class="pref-row aim-leaderboard-summary">
+                            <div class="pref-text">
+                              <span class="aim-leaderboard-board-label">—</span>
+                              <p class="aim-leaderboard-lead">See how your filtered personal-best category stacks up globally.</p>
+                            </div>
+                            <button type="button" class="aim-leaderboard-refresh trainer-option settings-general-option" aria-label="Refresh leaderboard">
+                              <div class="trainer-option-label">
+                                <i class="ri-refresh-line trainer-settings-icon" aria-hidden="true"></i>
+                                <span>Refresh</span>
+                              </div>
+                            </button>
+                          </div>
+                          <div class="pref-row aim-leaderboard-standing">
+                            <div class="pref-text">
+                              <span>Your standing</span>
+                              <p class="aim-leaderboard-user-rank">Set a display name on Profile to appear on the board</p>
+                            </div>
+                            <span class="aim-leaderboard-status aim-leaderboard-status-chip">Loading leaderboard…</span>
+                          </div>
+                          <h4 class="settings-section-title"><i class="ri-list-ordered" aria-hidden="true"></i> Rankings</h4>
+                          <div class="aim-leaderboard-entries toggles-row" aria-live="polite"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </div>
 
               <div class="tab-action-bar">
@@ -1686,6 +2111,12 @@
             </div>
           </div>
         </div>
+                </div>
+              </fieldset>
+
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="section" id="profile-tab">
@@ -1697,11 +2128,56 @@
             <span>Profile</span>
           </div>
           <div class="description">Shape how you show up. Set your name and write a short bio.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-user-line" aria-hidden="true"></i> Display name</span>
+            <span class="app-meta-chip"><i class="ri-shield-check-line" aria-hidden="true"></i> Local only</span>
+            <span class="app-meta-chip"><i class="ri-user-unfollow-line" aria-hidden="true"></i> No sign-up</span>
+          </div>
         </div>
 
         <div class="box-container-holder profile-page-layout">
           <div class="box-container">
-            <div class="box-holder profile-card">
+            <div class="box-holder app-panel tool-panel profile-card">
+              <section class="download-showcase tool-showcase" aria-labelledby="profile-showcase-title">
+                <div class="download-showcase-copy">
+                  <p class="download-eyebrow"><i class="ri-user-star-line" aria-hidden="true"></i> Your identity</p>
+                  <h2 id="profile-showcase-title" class="download-showcase-title">Show up the way you want</h2>
+                  <p class="download-showcase-lead">Set a display name, write a short bio, and unlock achievement tags — all stored locally, no account required.</p>
+                  <ul class="download-benefits">
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-user-smile-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Display name</strong> Appears on your profile and in community chat.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-medal-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Achievement tags</strong> Unlock badges by converting, training, and chatting.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-camera-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Profile photo</strong> Upload an avatar — stays on your device only.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-time-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Rename cooldown</strong> Display name locks for 2 hours after saving to prevent spam.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="download-showcase-visual tool-showcase-visual" aria-hidden="true">
+                  <div class="tool-preview-glow"></div>
+                  <div class="tool-preview tool-preview--profile">
+                    <div class="tool-preview-avatar"></div>
+                    <div class="tool-preview-tags">
+                      <span>Member</span>
+                      <span>Converter</span>
+                      <span>On Target</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <fieldset class="fieldset-style tool-workspace-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">Edit profile</legend>
+                <div class="tool-workspace profile-card-body">
               <div class="profile-card-header">
                 <div class="profile-card-identity">
                   <div class="profile-avatar-wrap">
@@ -1745,6 +2221,8 @@
                   </div>
                 </div>
               </div>
+                </div>
+              </fieldset>
             </div>
           </div>
         </div>
@@ -1759,9 +2237,53 @@
             <span>Lineups</span>
           </div>
           <div class="description">Line up every utility. Land every throw. Own every round.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-video-line" aria-hidden="true"></i> Video refs</span>
+            <span class="app-meta-chip"><i class="ri-upload-2-line" aria-hidden="true"></i> Submit lineups</span>
+            <span class="app-meta-chip"><i class="ri-star-line" aria-hidden="true"></i> Difficulty tags</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder app-panel tool-panel">
+              <section class="download-showcase tool-showcase" aria-labelledby="lineup-showcase-title">
+                <div class="download-showcase-copy">
+                  <p class="download-eyebrow"><i class="ri-video-line" aria-hidden="true"></i> Utility lineups</p>
+                  <h2 id="lineup-showcase-title" class="download-showcase-title">Line up every throw with confidence</h2>
+                  <p class="download-showcase-lead">Browse reference videos with difficulty ratings, filter by map and side, favorite clips, and submit your own for review.</p>
+                  <ul class="download-benefits">
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-play-circle-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Video references</strong> In-app playback with speed controls and fullscreen.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-filter-3-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Smart filters</strong> Narrow by map, side, difficulty, and favorites.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-upload-2-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Submit lineups</strong> Share your own clips — reviewed before going live.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-star-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Difficulty stars</strong> Know how tricky a lineup is before you commit in a match.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="download-showcase-visual tool-showcase-visual" aria-hidden="true">
+                  <div class="tool-preview-glow"></div>
+                  <div class="tool-preview tool-preview--lineup">
+                    <div class="tool-preview-card"></div>
+                    <div class="tool-preview-result">5★ Smoke</div>
+                  </div>
+                </div>
+              </section>
+
+              <fieldset class="fieldset-style tool-workspace-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(191, 54%, 82%)">Browse lineups</legend>
+                <div class="tool-workspace">
+                  <div class="box-container-holder tool-workspace-layout">
           <div class="box-container">
             <div class="box-holder lineup-game-panel">
               <div class="lineup-game-panel-top">
@@ -2047,6 +2569,11 @@
               </div>
             </div>
           </div>
+                  </div>
+                </div>
+              </fieldset>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2064,9 +2591,53 @@
             <span>Aim Trainer</span>
           </div>
           <div class="description">Sharpen your aim. Build muscle memory. Never miss.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-focus-3-line" aria-hidden="true"></i> Flick targets</span>
+            <span class="app-meta-chip"><i class="ri-fullscreen-line" aria-hidden="true"></i> Fullscreen</span>
+            <span class="app-meta-chip"><i class="ri-bar-chart-2-line" aria-hidden="true"></i> Score tracking</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
+          <div class="box-container">
+            <div class="box-holder app-panel tool-panel">
+              <section class="download-showcase tool-showcase" aria-labelledby="aim-showcase-title">
+                <div class="download-showcase-copy">
+                  <p class="download-eyebrow"><i class="ri-focus-3-line" aria-hidden="true"></i> Aim training</p>
+                  <h2 id="aim-showcase-title" class="download-showcase-title">Warm up like it is match day</h2>
+                  <p class="download-showcase-lead">Flick, track, and refine with game-accurate sensitivity, fullscreen pointer lock, and scores that sync to your profile.</p>
+                  <ul class="download-benefits">
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-gamepad-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Per-game sens</strong> Train with yaw and FOV matched to your selected title.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-fullscreen-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Fullscreen mode</strong> Pointer lock for realistic flick practice.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-bar-chart-2-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Detailed scores</strong> Hits, accuracy, reaction time, and spatial analysis.</span>
+                    </li>
+                    <li class="download-benefit-card">
+                      <span class="download-benefit-icon" aria-hidden="true"><i class="ri-keyboard-box-line"></i></span>
+                      <span class="download-benefit-copy"><strong>Press R to restart</strong> Quick session reset while you are in the trainer.</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="download-showcase-visual tool-showcase-visual" aria-hidden="true">
+                  <div class="tool-preview-glow"></div>
+                  <div class="tool-preview tool-preview--aim">
+                    <div class="tool-preview-card"></div>
+                    <div class="tool-preview-result">98% ACC</div>
+                  </div>
+                </div>
+              </section>
+
+              <fieldset class="fieldset-style tool-workspace-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(344, 54%, 72%)">Train now</legend>
+                <div class="tool-workspace">
+                  <div class="box-container-holder tool-workspace-layout">
           <div class="box-container">
             <div class="box-holder" id="trainer-game-container">
               <h4 class="settings-section-title"><i class="ri-gamepad-line" aria-hidden="true"></i> Game</h4>
@@ -2153,6 +2724,75 @@
               </div>
             </div>
           </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="fieldset-style aim-leaderboard-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(46, 65%, 62%)">Leaderboard</legend>
+                <div class="app-status-dropdown aim-leaderboard-dropdown">
+                  <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-leaderboard-panel">
+                    <span class="preset-title app-status-title profile-stats-dropdown-title"><i class="ri-medal-line" aria-hidden="true"></i> Global Rankings</span>
+                    <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
+                  </button>
+                  <div class="app-status-panel" id="trainer-leaderboard-panel">
+                    <div class="app-status-panel-inner aim-leaderboard-panel-inner">
+                      <div class="aim-leaderboard trainer-settings-integrated" data-leaderboard-panel data-leaderboard-context="trainer">
+                        <div class="pref-row aim-leaderboard-summary">
+                          <div class="pref-text">
+                            <span class="aim-leaderboard-board-label">—</span>
+                            <p class="aim-leaderboard-lead">Global rankings for your current game, mode, and session time.</p>
+                          </div>
+                          <button type="button" class="aim-leaderboard-refresh trainer-option settings-general-option" aria-label="Refresh leaderboard">
+                            <div class="trainer-option-label">
+                              <i class="ri-refresh-line trainer-settings-icon" aria-hidden="true"></i>
+                              <span>Refresh</span>
+                            </div>
+                          </button>
+                        </div>
+                        <div class="pref-row aim-leaderboard-standing">
+                          <div class="pref-text">
+                            <span>Your standing</span>
+                            <p class="aim-leaderboard-user-rank">Set a display name on Profile to appear on the board</p>
+                          </div>
+                          <span class="aim-leaderboard-status aim-leaderboard-status-chip">Loading leaderboard…</span>
+                        </div>
+                        <h4 class="settings-section-title"><i class="ri-list-ordered" aria-hidden="true"></i> Rankings</h4>
+                        <div class="aim-leaderboard-entries toggles-row" aria-live="polite"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="fieldset-style tool-tips-fieldset">
+                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(121, 54%, 82%)">Training tips</legend>
+                <ol class="download-step-cards">
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">1</span>
+                    <div class="download-step-copy">
+                      <strong>Set game, sens, and DPI</strong>
+                      <span>Match your in-game settings so flicks translate directly to ranked.</span>
+                    </div>
+                  </li>
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">2</span>
+                    <div class="download-step-copy">
+                      <strong>Open Training Settings</strong>
+                      <span>Pick mode, timer, target size, spread, and crosshair before you start.</span>
+                    </div>
+                  </li>
+                  <li class="download-step-card">
+                    <span class="download-step-index" aria-hidden="true">3</span>
+                    <div class="download-step-copy">
+                      <strong>Go fullscreen</strong>
+                      <span>Click the canvas and enter fullscreen for pointer-lock training.</span>
+                    </div>
+                  </li>
+                </ol>
+              </fieldset>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2165,11 +2805,16 @@
             <span>Privacy Policy</span>
           </div>
           <div class="description">Everything you need to know about how our converter protects your information.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-user-unfollow-line" aria-hidden="true"></i> No account</span>
+            <span class="app-meta-chip"><i class="ri-cpu-line" aria-hidden="true"></i> Local processing</span>
+            <span class="app-meta-chip"><i class="ri-eye-line" aria-hidden="true"></i> Transparent</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
           <div class="box-container">
-            <div class="box-holder" style="display: flex; flex-direction: column; gap: 0.5rem">
+            <div class="box-holder app-panel">
               <fieldset class="fieldset-style">
                 <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">1. Data Collection</legend>
 
@@ -2243,11 +2888,16 @@
             <span>Terms of Service</span>
           </div>
           <div class="description">Everything you need to know about your responsibilities and the terms of using our converter.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-gift-line" aria-hidden="true"></i> Free to use</span>
+            <span class="app-meta-chip"><i class="ri-information-line" aria-hidden="true"></i> As-is</span>
+            <span class="app-meta-chip"><i class="ri-user-line" aria-hidden="true"></i> Personal use</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
           <div class="box-container">
-            <div class="box-holder">
+            <div class="box-holder app-panel">
               <fieldset class="fieldset-style">
                 <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">Terms of Service</legend>
 
@@ -2290,11 +2940,16 @@
             <span>Keybinds</span>
           </div>
           <div class="description">Know your shortcuts. Move faster. Stay in flow.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-keyboard-box-line" aria-hidden="true"></i> Keyboard-first</span>
+            <span class="app-meta-chip"><i class="ri-flashlight-line" aria-hidden="true"></i> Power users</span>
+            <span class="app-meta-chip"><i class="ri-layout-grid-line" aria-hidden="true"></i> Tab shortcuts</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
           <div class="box-container">
-            <div class="box-holder keybinds-panel">
+            <div class="box-holder keybinds-panel app-panel">
               <h4 class="settings-section-title"><i class="ri-layout-grid-line" aria-hidden="true"></i> Tabs</h4>
               <div class="keybinds-list">
                 <div class="keybind-row"><kbd>1</kbd><span>Open Home</span></div>
@@ -2323,11 +2978,16 @@
             <span>Patch Notes</span>
           </div>
           <div class="description">See what's new. Track what changed. Stay current.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-history-line" aria-hidden="true"></i> Release history</span>
+            <span class="app-meta-chip"><i class="ri-calendar-line" aria-hidden="true"></i> Date filter</span>
+            <span class="app-meta-chip"><i class="ri-sparkling-2-line" aria-hidden="true"></i> What's new</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
           <div class="box-container">
-            <div class="box-holder changelog-panel" id="changelog-panel">
+            <div class="box-holder changelog-panel app-panel" id="changelog-panel">
               <div class="aim-progress-header changelog-panel-header">
                 <div class="aim-progress-header-text">
                   <span class="changelog-panel-header-label">Filter by date</span>
@@ -2898,11 +3558,16 @@
             <span>Credit</span>
           </div>
           <div class="description">Recognizing the foundation of our work.</div>
+          <div class="app-meta-row page-meta-row" aria-label="Highlights">
+            <span class="app-meta-chip"><i class="ri-heart-line" aria-hidden="true"></i> Community built</span>
+            <span class="app-meta-chip"><i class="ri-cup-line" aria-hidden="true"></i> Morning Roast</span>
+            <span class="app-meta-chip"><i class="ri-discord-line" aria-hidden="true"></i> Join Discord</span>
+          </div>
         </div>
 
         <div class="box-container-holder">
           <div class="box-container">
-            <div class="box-holder" style="display: flex; flex-direction: column; gap: 0.5rem">
+            <div class="box-holder app-panel">
               <fieldset class="fieldset-style">
                 <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(258, 54%, 82%)">Creator</legend>
 
@@ -2916,11 +3581,6 @@
         </div>
       </div>
 
-      <div id="toast-stack"></div>
-
-      <section id="notify-toaster" class="notify-toaster" aria-label="Notifications" aria-live="polite">
-        <ol class="toaster notify-stack" data-x-position="right" data-y-position="bottom" data-expanded="false"></ol>
-      </section>
     </div>
 
     <div id="presence-activity-overlay" class="trainer-settings-overlay presence-activity-overlay">
@@ -3705,6 +4365,25 @@
                         </div>
                       </div>
                     </div>
+
+                    <div class="setting-block setting-block--stacked">
+                      <div class="setting-text">
+                        <span>Backup &amp; restore</span>
+                        <p>Export your profile, tags, aim scores, and preferences. Import a backup from the browser or another device.</p>
+                      </div>
+                      <div class="storage-backup-actions">
+                        <button type="button" class="storage-backup-btn" id="storage-backup-export-btn">
+                          <i class="ri-download-2-line" aria-hidden="true"></i>
+                          Export settings
+                        </button>
+                        <button type="button" class="storage-backup-btn storage-backup-btn--ghost" id="storage-backup-import-btn">
+                          <i class="ri-upload-2-line" aria-hidden="true"></i>
+                          Import settings
+                        </button>
+                        <input type="file" id="storage-backup-import-input" accept="application/json,.json" hidden />
+                      </div>
+                      <p class="storage-backup-status" id="storage-backup-status" hidden role="status" aria-live="polite"></p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -4070,6 +4749,12 @@
         </form>
       </div>
     </div>
+
+    <div id="toast-stack"></div>
+
+    <section id="notify-toaster" class="notify-toaster" aria-label="Notifications" aria-live="polite">
+      <ol class="toaster notify-stack" data-x-position="right" data-y-position="bottom" data-expanded="false"></ol>
+    </section>
 
     <div id="confirm-reset-overlay" class="confirm-reset-overlay trainer-settings-overlay">
       <div class="confirm-reset-modal modal-content" role="dialog" aria-modal="true" aria-labelledby="confirm-reset-title">

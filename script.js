@@ -1071,7 +1071,7 @@ function initProfileTimerDropdown() {
 }
 
 function initProfileStatsDropdowns() {
-  document.querySelectorAll("#stats-tab .profile-stats-dropdown").forEach((dropdown) => {
+  document.querySelectorAll("#stats-tab .profile-stats-dropdown:not(.aim-leaderboard-dropdown)").forEach((dropdown) => {
     const trigger = dropdown.querySelector(".app-status-trigger");
     if (!trigger || dropdown.dataset.dropdownBound) return;
     dropdown.dataset.dropdownBound = "1";
@@ -2941,7 +2941,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v375";
+const APP_CACHE_VERSION = "morning-roast-v388";
 
 if (typeof document !== "undefined") {
   document.documentElement.dataset.appCacheVersion = APP_CACHE_VERSION;
@@ -3700,6 +3700,7 @@ function persistProfileFields({ name, bio } = {}) {
     if (!value) return getSavedDisplayName() || null;
     localStorage.setItem(PROFILE_DISPLAY_NAME_KEY, value);
     window.MorningRoastProfileTags?.onDisplayNameChanged?.(previous, value);
+    window.MorningRoastLeaderboard?.refreshAll?.();
     syncProfileAvatar(value);
     syncProfilePreview(value);
     return value;
@@ -4327,11 +4328,17 @@ function runTabActivation(id) {
   closeAllTabActionMenus();
 
   if (id === "aim-training-tab") {
+    window.MorningRoastDesktop?.setAimTrainerActive?.(true);
     aimTrainer.handleResize();
     aimTrainer.updateAllGliders();
     aimTrainer.resumeLoop();
-  } else if (!aimTrainer.shouldRunLoop?.()) {
-    aimTrainer.stopLoop?.();
+    window.MorningRoastLeaderboard?.init?.();
+    window.MorningRoastLeaderboard?.refreshPanel?.(document.querySelector('[data-leaderboard-context="trainer"]'));
+  } else {
+    window.MorningRoastDesktop?.setAimTrainerActive?.(false);
+    if (!aimTrainer.shouldRunLoop?.()) {
+      aimTrainer.stopLoop?.();
+    }
   }
 
   if (id === "sensitivity-converter-tab") {
@@ -4353,6 +4360,8 @@ function runTabActivation(id) {
     aimTrainer.displayResultsOnProfile();
     updateToggleGlidersIn(document.getElementById("stats-tab"));
     toggleProfileSensConvButtons();
+    window.MorningRoastLeaderboard?.init?.();
+    window.MorningRoastLeaderboard?.refreshPanel?.(document.querySelector('[data-leaderboard-context="stats"]'));
   } else if (id === "profile-tab") {
     syncProfileTabFromStorage();
     window.MorningRoastChat?.initCommunityChat?.()?.refreshIdentity?.();
@@ -4365,6 +4374,16 @@ function runTabActivation(id) {
   }
 
   updateGameInfoPanelVisibility();
+}
+
+function refreshActiveAimLeaderboard() {
+  window.MorningRoastLeaderboard?.init?.();
+  const tabId = getCurrentTabId();
+  if (tabId === "aim-training-tab") {
+    window.MorningRoastLeaderboard?.refreshPanel?.(document.querySelector('[data-leaderboard-context="trainer"]'));
+  } else if (tabId === "stats-tab") {
+    window.MorningRoastLeaderboard?.refreshPanel?.(document.querySelector('[data-leaderboard-context="stats"]'));
+  }
 }
 
 function queueTabActivation(id) {
@@ -4473,6 +4492,10 @@ function setUiRefreshMode(mode) {
 }
 
 UiFpsCap.setMode(normalizeUiRefreshMode(localStorage.getItem("prefUiRefresh") || localStorage.getItem("prefHighRefresh")));
+if (window.MorningRoastDesktop?.isDesktop && !localStorage.getItem("prefUiRefresh")) {
+  UiFpsCap.setMode("max");
+  localStorage.setItem("prefUiRefresh", "max");
+}
 
 function parseAimSensValue(raw) {
   if (raw == null) return null;
@@ -4799,6 +4822,7 @@ const aimTrainer = {
     }
     syncGameClearButton("trainer-game-search", "trainer-game-clear");
     this.displayResultsOnProfile();
+    refreshActiveAimLeaderboard();
     this.render();
   },
 
@@ -5302,6 +5326,7 @@ const aimTrainer = {
     localStorage.setItem("aimTimer", value);
     syncTrainerTimerDropdownUi(value);
     this.syncTrainerTimerFinderLock();
+    refreshActiveAimLeaderboard();
   },
 
   applyAspectRatio(ratioId) {
@@ -7181,6 +7206,9 @@ const aimTrainer = {
       if (dateDisplay) dateDisplay.innerText = "N/A";
 
       requestProfileChartsRedraw();
+      if (typeof getCurrentTabId === "function" && getCurrentTabId() === "stats-tab") {
+        window.MorningRoastLeaderboard?.refreshPanel?.(document.querySelector('[data-leaderboard-context="stats"]'));
+      }
       return;
     }
 
@@ -7195,6 +7223,9 @@ const aimTrainer = {
     if (dateDisplay) dateDisplay.innerText = data.date || "-";
 
     requestProfileChartsRedraw();
+    if (typeof getCurrentTabId === "function" && getCurrentTabId() === "stats-tab") {
+      window.MorningRoastLeaderboard?.refreshPanel?.(document.querySelector('[data-leaderboard-context="stats"]'));
+    }
   },
 
   endGame() {
@@ -7274,6 +7305,20 @@ const aimTrainer = {
 
     this.displayResultsOnProfile();
     window.MorningRoastProfileTags?.checkUnlocks?.({ notify: true });
+
+    window.MorningRoastLeaderboard?.submitFromSession?.({
+      game: this.game.toUpperCase(),
+      mode: this.mode,
+      timer: this.sessionTimerId,
+      hits: currentHits,
+      accuracy: currentAccuracy,
+      reaction: Number(currentReaction) || 0,
+      score: isTrainerAccuracyMode(this.mode) ? currentAccuracy : currentHits,
+      sens: currentSens,
+      dpi: currentDpi,
+      finderEnabled: this.finderEnabled,
+    });
+
     this.render();
   },
 
@@ -16859,6 +16904,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initProfileDisplayNameConfirm();
   window.MorningRoastAssistant?.initSiteAssistant?.();
   initProfileTab();
+  window.MorningRoastLeaderboard?.init?.();
   initUsernameOnboarding();
   window.MorningRoastChat?.initCommunityChat?.();
   initTrainerSettingsDropdowns();

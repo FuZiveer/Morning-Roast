@@ -1,6 +1,15 @@
 const { contextBridge, ipcRenderer } = require("electron");
 const pkg = require("./package.json");
 
+let initialStorage = {};
+try {
+  initialStorage = ipcRenderer.sendSync("desktop-storage-get-sync") || {};
+} catch {
+  initialStorage = {};
+}
+
+contextBridge.exposeInMainWorld("__MR_DESKTOP_STORAGE__", initialStorage);
+
 contextBridge.exposeInMainWorld("MorningRoastDesktop", {
   isDesktop: true,
   platform: process.platform,
@@ -17,6 +26,15 @@ contextBridge.exposeInMainWorld("MorningRoastDesktop", {
   },
   getLoadInfo() {
     return ipcRenderer.invoke("desktop-get-load-mode");
+  },
+  saveStorage(data) {
+    return ipcRenderer.invoke("desktop-storage-save", data);
+  },
+  importStorage(data) {
+    return ipcRenderer.invoke("desktop-storage-merge", data);
+  },
+  setAimTrainerActive(active) {
+    ipcRenderer.send("desktop-set-aim-trainer-active", Boolean(active));
   },
   onUpdateStatus(callback) {
     if (typeof callback !== "function") return () => {};
