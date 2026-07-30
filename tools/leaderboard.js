@@ -1,5 +1,6 @@
 (function (global) {
   const PROFILE_DISPLAY_NAME_KEY = "profileDisplayName";
+  const PROFILE_AVATAR_KEY = "profileAvatarImage";
   const MODE_LABELS = {
     static: "Static",
     shrinking: "Shrink",
@@ -185,6 +186,29 @@
     }
   }
 
+  function getDisplayInitial(name) {
+    const trimmed = String(name || "").trim();
+    if (!trimmed) return "?";
+    return trimmed.charAt(0).toUpperCase();
+  }
+
+  function resolveEntryAvatar(entry, authorId) {
+    if (authorId && entry.userId === authorId) {
+      const local = String(global.localStorage?.getItem(PROFILE_AVATAR_KEY) || "").trim();
+      if (local.startsWith("data:image/")) return local;
+    }
+    return "";
+  }
+
+  function renderEntryAvatar(entry, authorId) {
+    const avatarUrl = resolveEntryAvatar(entry, authorId);
+    const name = entry.displayName;
+    if (avatarUrl) {
+      return `<span class="aim-leaderboard-entry-avatar has-image" aria-hidden="true"><img class="aim-leaderboard-entry-avatar-image" src="${avatarUrl.replace(/"/g, "&quot;")}" alt=""></span>`;
+    }
+    return `<span class="aim-leaderboard-entry-avatar" aria-hidden="true">${escapeHtml(getDisplayInitial(name))}</span>`;
+  }
+
   function renderPanel(panelEl, data, context) {
     if (!panelEl) return;
 
@@ -240,23 +264,17 @@
       .map((entry) => {
         const isSelf = authorId && entry.userId === authorId;
         const rankClass =
-          entry.rank === 1 ? " aim-leaderboard-rank--gold" :
-          entry.rank === 2 ? " aim-leaderboard-rank--silver" :
-          entry.rank === 3 ? " aim-leaderboard-rank--bronze" : "";
-        const medalIcon =
-          entry.rank === 1 ? "ri-vip-crown-fill aim-leaderboard-medal--gold" :
-          entry.rank === 2 ? "ri-medal-line aim-leaderboard-medal--silver" :
-          entry.rank === 3 ? "ri-award-line aim-leaderboard-medal--bronze" : "";
-        const medalMarkup = medalIcon
-          ? `<div class="control-group"><i class="${medalIcon} aim-leaderboard-medal" aria-hidden="true"></i></div>`
-          : "";
+          entry.rank === 1 ? " aim-leaderboard-entry-rank--gold" :
+          entry.rank === 2 ? " aim-leaderboard-entry-rank--silver" :
+          entry.rank === 3 ? " aim-leaderboard-entry-rank--bronze" : "";
         return `
           <div class="setting-block aim-leaderboard-entry${isSelf ? " aim-leaderboard-entry--self" : ""}">
-            <div class="setting-text">
-              <span><span class="aim-leaderboard-rank${rankClass}">#${entry.rank}</span> ${escapeHtml(entry.displayName)}</span>
-              <p>${escapeHtml(formatMeta(entry, scoreType))}</p>
+            ${renderEntryAvatar(entry, authorId)}
+            <div class="aim-leaderboard-entry-copy">
+              <span class="aim-leaderboard-entry-name">${escapeHtml(entry.displayName)}</span>
+              <span class="aim-leaderboard-entry-meta">${escapeHtml(formatMeta(entry, scoreType))}</span>
             </div>
-            ${medalMarkup}
+            <span class="aim-leaderboard-entry-rank${rankClass}">#${entry.rank}</span>
           </div>`;
       })
       .join("");
@@ -349,6 +367,61 @@
     return result;
   }
 
+  let trainerDockSetOpen = null;
+
+  function initTrainerDock() {
+    const dock = document.getElementById("aim-leaderboard-dock");
+    const toggle = document.getElementById("aim-leaderboard-toggle");
+    const panel = document.getElementById("aim-leaderboard-panel");
+    const closeBtn = document.getElementById("aim-leaderboard-close");
+    if (!dock || !toggle || !panel) return;
+
+    const setOpen = (next) => {
+      const open = Boolean(next);
+      dock.classList.toggle("is-open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      toggle.setAttribute("aria-label", open ? "Close leaderboard" : "Open leaderboard");
+      panel.setAttribute("aria-hidden", open ? "false" : "true");
+      if (open) refreshPanel(panel);
+      if (!open) {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && (panel.contains(active) || active === toggle)) {
+          active.blur();
+        }
+      }
+    };
+
+    trainerDockSetOpen = setOpen;
+
+    if (initTrainerDock._init) return;
+    initTrainerDock._init = true;
+
+    toggle.addEventListener("click", () => setOpen(!dock.classList.contains("is-open")));
+    closeBtn?.addEventListener("click", () => setOpen(false));
+
+    global.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && dock.classList.contains("is-open")) {
+        event.preventDefault();
+        setOpen(false);
+        toggle.blur();
+      }
+    });
+  }
+
+  function closeTrainerDock() {
+    trainerDockSetOpen?.(false);
+  }
+
+  function setTrainerDockVisible(visible) {
+    const dock = document.getElementById("aim-leaderboard-dock");
+    if (!dock) return;
+    if (visible) dock.removeAttribute("hidden");
+    else {
+      closeTrainerDock();
+      dock.setAttribute("hidden", "");
+    }
+  }
+
   function initDropdowns() {
     document.querySelectorAll(".aim-leaderboard-dropdown").forEach((dropdown) => {
       const trigger = dropdown.querySelector(".app-status-trigger");
@@ -374,12 +447,16 @@
     });
 
     initDropdowns();
+    initTrainerDock();
     global.addEventListener("profile-display-name-changed", () => refreshAll());
   }
 
   global.MorningRoastLeaderboard = {
     init,
     initDropdowns,
+    initTrainerDock,
+    closeTrainerDock,
+    setTrainerDockVisible,
     refreshAll,
     refreshPanel,
     submitFromSession,

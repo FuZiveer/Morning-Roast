@@ -18,11 +18,19 @@
         var root = document.documentElement;
         try {
           var stored = window.__MR_DESKTOP_STORAGE__;
+          var profileKeys = ["profileDisplayName", "profileBio", "profileAvatarImage", "morningRoastChatAuthorId", "profileSetupComplete"];
           if (stored && typeof stored === "object") {
+            profileKeys.forEach(function (key) {
+              var fromFile = stored[key] != null ? String(stored[key]).trim() : "";
+              var fromOrigin = localStorage.getItem(key);
+              var originVal = fromOrigin != null ? String(fromOrigin).trim() : "";
+              var chosen = originVal || fromFile;
+              if (chosen) localStorage.setItem(key, chosen);
+            });
             for (var key in stored) {
-              if (Object.prototype.hasOwnProperty.call(stored, key) && stored[key] != null) {
-                localStorage.setItem(key, String(stored[key]));
-              }
+              if (!Object.prototype.hasOwnProperty.call(stored, key) || stored[key] == null) continue;
+              if (profileKeys.indexOf(key) >= 0) continue;
+              localStorage.setItem(key, String(stored[key]));
             }
           }
           var accent = localStorage.getItem("prefAccent") || "330 99% 46%";
@@ -122,11 +130,20 @@
     </script>
 
     <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("sw.js").catch(() => {});
+      (function () {
+        if (!("serviceWorker" in navigator)) return;
+        if (window.MorningRoastDesktop?.isDesktop) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (reg) {
+              reg.unregister();
+            });
+          }).catch(function () {});
+          return;
+        }
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("sw.js").catch(function () {});
         });
-      }
+      })();
     </script>
 
     <script defer src="tools/games.js"></script>
@@ -2728,43 +2745,6 @@
                 </div>
               </fieldset>
 
-              <fieldset class="fieldset-style aim-leaderboard-fieldset">
-                <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(46, 65%, 62%)">Leaderboard</legend>
-                <div class="app-status-dropdown aim-leaderboard-dropdown">
-                  <button type="button" class="app-status-trigger" aria-expanded="false" aria-controls="trainer-leaderboard-panel">
-                    <span class="preset-title app-status-title profile-stats-dropdown-title"><i class="ri-medal-line" aria-hidden="true"></i> Global Rankings</span>
-                    <i class="ri-arrow-down-s-line app-status-chevron" aria-hidden="true"></i>
-                  </button>
-                  <div class="app-status-panel" id="trainer-leaderboard-panel">
-                    <div class="app-status-panel-inner aim-leaderboard-panel-inner">
-                      <div class="aim-leaderboard trainer-settings-integrated" data-leaderboard-panel data-leaderboard-context="trainer">
-                        <div class="pref-row aim-leaderboard-summary">
-                          <div class="pref-text">
-                            <span class="aim-leaderboard-board-label">—</span>
-                            <p class="aim-leaderboard-lead">Global rankings for your current game, mode, and session time.</p>
-                          </div>
-                          <button type="button" class="aim-leaderboard-refresh trainer-option settings-general-option" aria-label="Refresh leaderboard">
-                            <div class="trainer-option-label">
-                              <i class="ri-refresh-line trainer-settings-icon" aria-hidden="true"></i>
-                              <span>Refresh</span>
-                            </div>
-                          </button>
-                        </div>
-                        <div class="pref-row aim-leaderboard-standing">
-                          <div class="pref-text">
-                            <span>Your standing</span>
-                            <p class="aim-leaderboard-user-rank">Set a display name on Profile to appear on the board</p>
-                          </div>
-                          <span class="aim-leaderboard-status aim-leaderboard-status-chip">Loading leaderboard…</span>
-                        </div>
-                        <h4 class="settings-section-title"><i class="ri-list-ordered" aria-hidden="true"></i> Rankings</h4>
-                        <div class="aim-leaderboard-entries toggles-row" aria-live="polite"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </fieldset>
-
               <fieldset class="fieldset-style tool-tips-fieldset">
                 <legend class="fieldset-style-legend" style="--fieldset-legend-color: hsl(121, 54%, 82%)">Training tips</legend>
                 <ol class="download-step-cards">
@@ -4785,6 +4765,45 @@
         <i class="ri-arrow-up-s-line"></i>
       </span>
     </button>
+
+    <div id="aim-leaderboard-dock" class="aim-leaderboard-dock" hidden>
+      <div id="aim-leaderboard-panel" class="site-assistant-panel aim-leaderboard-panel" data-leaderboard-panel data-leaderboard-context="trainer" role="dialog" aria-modal="false" aria-labelledby="aim-leaderboard-title" aria-hidden="true">
+        <div class="site-assistant-header">
+          <div class="site-assistant-header-copy">
+            <span class="site-assistant-status" aria-hidden="true"></span>
+            <div>
+              <h3 id="aim-leaderboard-title">Leaderboard</h3>
+              <p class="aim-leaderboard-board-label site-assistant-subtitle">—</p>
+            </div>
+          </div>
+          <div class="site-assistant-header-actions">
+            <button type="button" class="aim-leaderboard-refresh site-assistant-clear" aria-label="Refresh leaderboard">
+              <i class="ri-refresh-line" aria-hidden="true"></i>
+            </button>
+            <button type="button" id="aim-leaderboard-close" class="site-assistant-close" aria-label="Close leaderboard">
+              <i class="ri-close-line" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div class="aim-leaderboard-panel-body">
+          <div class="aim-leaderboard trainer-settings-integrated">
+            <div class="pref-row aim-leaderboard-standing">
+              <div class="pref-text">
+                <span>Your standing</span>
+                <p class="aim-leaderboard-user-rank">Set a display name on Profile to appear on the board</p>
+              </div>
+              <span class="aim-leaderboard-status aim-leaderboard-status-chip">Loading leaderboard…</span>
+            </div>
+            <h4 class="settings-section-title aim-leaderboard-rankings-title"><i class="ri-list-ordered" aria-hidden="true"></i> Rankings</h4>
+            <div class="aim-leaderboard-entries toggles-row" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
+      <button type="button" id="aim-leaderboard-toggle" class="site-assistant-toggle aim-leaderboard-toggle" aria-controls="aim-leaderboard-panel" aria-expanded="false" aria-label="Open leaderboard">
+        <i class="ri-medal-line aim-leaderboard-toggle-open" aria-hidden="true"></i>
+        <i class="ri-close-line aim-leaderboard-toggle-close" aria-hidden="true"></i>
+      </button>
+    </div>
 
     <div id="site-assistant" class="site-assistant">
       <div class="site-assistant-dock">

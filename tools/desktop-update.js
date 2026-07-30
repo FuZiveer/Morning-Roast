@@ -1,12 +1,14 @@
 /** Desktop app — auto-update UI + live website version checks. */
 (function (global) {
   const WEB_VERSION_PATTERN = /APP_CACHE_VERSION\s*=\s*"([^"]+)"/;
-  const CHECK_INTERVAL_MS = 10 * 60 * 1000;
+  const CHECK_INTERVAL_MS = 2 * 60 * 1000;
+  const AUTO_RELOAD_DELAY_MS = 500;
 
   let bannerEl = null;
   let unsubscribe = null;
   let webVersionTimer = null;
   let remoteBaseUrl = "";
+  let applyingWebsiteUpdate = false;
 
   function isDesktopRuntime() {
     return Boolean(global.MorningRoastDesktop?.isDesktop);
@@ -14,6 +16,13 @@
 
   function getCurrentWebVersion() {
     return document.documentElement.dataset.appCacheVersion || global.APP_CACHE_VERSION || "";
+  }
+
+  function isBlockingUiOpen() {
+    return (
+      document.body.classList.contains("username-onboarding-open") ||
+      Boolean(document.querySelector(".trainer-settings-overlay.active"))
+    );
   }
 
   async function fetchRemoteWebVersion(baseUrl) {
@@ -28,6 +37,14 @@
       return source.match(WEB_VERSION_PATTERN)?.[1] || "";
     } catch {
       return "";
+    }
+  }
+
+  async function flushDesktopStorage() {
+    try {
+      await global.MorningRoastStorageBackup?.flushNow?.();
+    } catch {
+      /* ignore persistence errors */
     }
   }
 
@@ -76,6 +93,26 @@
 
     banner.hidden = false;
     document.body.classList.add("has-desktop-update-banner");
+  }
+
+  async function applyWebsiteUpdate({ manual = false } = {}) {
+    if (applyingWebsiteUpdate) return;
+    applyingWebsiteUpdate = true;
+    hideBanner();
+
+    if (!manual) {
+      global.Toast?.notify?.({
+        message: "Updating Morning Roast to the latest version…",
+        type: "info",
+      });
+    }
+
+    await flushDesktopStorage();
+
+    global.setTimeout(() => {
+      global.MorningRoastDesktop?.reloadApp?.();
+      applyingWebsiteUpdate = false;
+    }, manual ? 0 : AUTO_RELOAD_DELAY_MS);
   }
 
   function handleAppUpdateStatus(payload = {}) {
@@ -128,12 +165,17 @@
     }
   }
 
-  async function checkWebsiteVersion() {
+  async function checkWebsiteVersion({ autoApply = false } = {}) {
     if (!isDesktopRuntime()) return;
 
     const current = getCurrentWebVersion();
     const remote = await fetchRemoteWebVersion();
     if (!remote || !current || remote === current) return;
+
+    if (autoApply && !isBlockingUiOpen()) {
+      await applyWebsiteUpdate();
+      return;
+    }
 
     showBanner({
       title: "Website update available",
@@ -142,7 +184,9 @@
         {
           label: "Reload now",
           primary: true,
-          onClick: () => global.MorningRoastDesktop?.reloadApp?.(),
+          onClick: () => {
+            void applyWebsiteUpdate({ manual: true });
+          },
         },
         {
           label: "Later",
@@ -165,13 +209,20 @@
     document.documentElement.dataset.desktopLoadMode = String(info.mode || "");
 
     if (webVersionTimer) clearInterval(webVersionTimer);
-    void checkWebsiteVersion();
+
+    const runVersionCheck = (autoApply = false) => {
+      void checkWebsiteVersion({ autoApply });
+    };
+
+    runVersionCheck(true);
+    global.addEventListener("morning-roast:app-loaded", () => runVersionCheck(true), { once: true });
+
     webVersionTimer = setInterval(() => {
-      void checkWebsiteVersion();
+      runVersionCheck(!isBlockingUiOpen());
     }, CHECK_INTERVAL_MS);
 
     global.addEventListener("focus", () => {
-      void checkWebsiteVersion();
+      runVersionCheck(!isBlockingUiOpen());
       global.MorningRoastDesktop?.checkForUpdates?.();
     });
   }
@@ -179,5 +230,6 @@
   global.MorningRoastDesktopUpdate = {
     init: initDesktopUpdateUi,
     checkWebsiteVersion,
+    applyWebsiteUpdate,
   };
 })(window);

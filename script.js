@@ -2941,7 +2941,7 @@ function commitAccentColor(normalized, { instant = false } = {}) {
   root.style.setProperty("--accent-color", targetHex);
 }
 
-const APP_CACHE_VERSION = "morning-roast-v388";
+const APP_CACHE_VERSION = "morning-roast-v394";
 
 if (typeof document !== "undefined") {
   document.documentElement.dataset.appCacheVersion = APP_CACHE_VERSION;
@@ -3256,6 +3256,7 @@ function observeSettingsModalTabGlider(selector) {
 }
 
 const PROFILE_DISPLAY_NAME_KEY = "profileDisplayName";
+const PROFILE_SETUP_COMPLETE_KEY = "profileSetupComplete";
 const PROFILE_BIO_KEY = "profileBio";
 const PROFILE_AVATAR_KEY = "profileAvatarImage";
 const PROFILE_DISPLAY_NAME_COOLDOWN_KEY = "profileDisplayNameChangedAt";
@@ -3580,8 +3581,28 @@ function isOwnerDisplayName(name) {
   return normalized === "fuziveer";
 }
 
+function flushDesktopProfileStorage() {
+  if (!window.MorningRoastDesktop?.isDesktop) return;
+  void window.MorningRoastStorageBackup?.flushNow?.();
+}
+
+function markProfileSetupComplete() {
+  localStorage.setItem(PROFILE_SETUP_COMPLETE_KEY, "1");
+  flushDesktopProfileStorage();
+}
+
+function hasCompletedProfileSetup() {
+  return localStorage.getItem(PROFILE_SETUP_COMPLETE_KEY) === "1";
+}
+
 function hasStoredDisplayName() {
   return Boolean(String(localStorage.getItem(PROFILE_DISPLAY_NAME_KEY) || "").trim());
+}
+
+function shouldSkipUsernameOnboarding() {
+  if (hasStoredDisplayName()) return true;
+  if (window.MorningRoastDesktop?.isDesktop && hasCompletedProfileSetup()) return true;
+  return false;
 }
 
 function isUsernameOnboardingOpen() {
@@ -3699,6 +3720,7 @@ function persistProfileFields({ name, bio } = {}) {
     const value = String(name).trim().slice(0, PROFILE_DISPLAY_NAME_MAX);
     if (!value) return getSavedDisplayName() || null;
     localStorage.setItem(PROFILE_DISPLAY_NAME_KEY, value);
+    if (value) markProfileSetupComplete();
     window.MorningRoastProfileTags?.onDisplayNameChanged?.(previous, value);
     window.MorningRoastLeaderboard?.refreshAll?.();
     syncProfileAvatar(value);
@@ -3745,6 +3767,9 @@ function initProfileTab() {
   initProfileTab._init = true;
 
   syncProfileTabFromStorage();
+  if (hasStoredDisplayName() && !hasCompletedProfileSetup()) {
+    markProfileSetupComplete();
+  }
 
   avatarButton?.addEventListener("click", () => {
     avatarInput?.click();
@@ -3843,6 +3868,13 @@ function clearSavedDisplayName() {
 }
 
 function handleDisplayNameTakenConflict() {
+  if (window.MorningRoastDesktop?.isDesktop) {
+    Toast.notify({
+      message: "That display name is already in use in chat. Your saved name was kept for local tools.",
+      type: "info",
+    });
+    return;
+  }
   clearSavedDisplayName();
   openUsernameOnboarding({ force: true });
 }
@@ -3850,7 +3882,7 @@ function handleDisplayNameTakenConflict() {
 function openUsernameOnboarding({ force = false } = {}) {
   initUsernameOnboarding();
   if (isUsernameOnboardingOpen()) return;
-  if (!force && hasStoredDisplayName()) return;
+  if (!force && shouldSkipUsernameOnboarding()) return;
 
   const overlay = document.getElementById("username-onboarding-overlay");
   const input = document.getElementById("username-onboarding-input");
@@ -3884,7 +3916,7 @@ async function completeUsernameOnboarding(name) {
   if (!trimmed) return false;
 
   const available = await checkDisplayNameAvailability(trimmed);
-  if (!available) {
+  if (!available && !window.MorningRoastDesktop?.isDesktop) {
     Toast.notify({ message: getDisplayNameValidationMessage(), type: "error" });
     const onboardingInput = document.getElementById("username-onboarding-input");
     const onboardingSubmit = document.getElementById("username-onboarding-submit");
@@ -3895,6 +3927,8 @@ async function completeUsernameOnboarding(name) {
 
   const value = persistProfileFields({ name: trimmed });
   if (!value) return false;
+
+  markProfileSetupComplete();
 
   const nameInput = document.getElementById("profile-display-name");
   if (nameInput) nameInput.value = value;
@@ -3913,7 +3947,7 @@ function notifyAppLoaded() {
 
 function queueUsernameOnboardingAfterLoad() {
   notifyAppLoaded();
-  if (hasStoredDisplayName()) return;
+  if (shouldSkipUsernameOnboarding()) return;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => openUsernameOnboarding());
   });
@@ -4326,6 +4360,8 @@ function finishTabEnterAnimation(event) {
 
 function runTabActivation(id) {
   closeAllTabActionMenus();
+
+  window.MorningRoastLeaderboard?.setTrainerDockVisible?.(id === "aim-training-tab");
 
   if (id === "aim-training-tab") {
     window.MorningRoastDesktop?.setAimTrainerActive?.(true);

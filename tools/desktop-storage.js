@@ -3,6 +3,13 @@
   if (!desktop?.isDesktop) return;
 
   const FLUSH_DEBOUNCE_MS = 700;
+  const CRITICAL_STORAGE_KEYS = new Set([
+    "profileDisplayName",
+    "profileBio",
+    "profileAvatarImage",
+    "profileSetupComplete",
+    "morningRoastChatAuthorId",
+  ]);
   let flushTimer = null;
   let patching = false;
 
@@ -54,7 +61,10 @@
 
     proto.setItem = function setItem(key, value) {
       originalSetItem.call(this, key, value);
-      if (!patching) scheduleFlush();
+      if (!patching) {
+        if (CRITICAL_STORAGE_KEYS.has(String(key))) void flushNow();
+        else scheduleFlush();
+      }
     };
 
     proto.removeItem = function removeItem(key) {

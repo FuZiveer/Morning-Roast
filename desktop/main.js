@@ -219,8 +219,21 @@ function registerIpcHandlers() {
     installPendingUpdate();
   });
 
-  ipcMain.on("desktop-reload-app", () => {
-    mainWindow?.webContents?.reload();
+  ipcMain.on("desktop-reload-app", async () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    try {
+      const captured = await captureRendererStorage();
+      if (captured && typeof captured === "object" && Object.keys(captured).length) {
+        userStorage.save(captured);
+      }
+    } catch {
+      /* ignore capture errors */
+    }
+    if (typeof mainWindow.webContents.reloadIgnoringCache === "function") {
+      mainWindow.webContents.reloadIgnoringCache();
+      return;
+    }
+    mainWindow.webContents.reload();
   });
 
   ipcMain.on("desktop-open-downloads", () => {
@@ -329,6 +342,23 @@ if (!gotSingleInstanceLock) {
   app.on("before-quit", () => {
     disposeAutoUpdater();
     if (staticServer) staticServer.close();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents
+        .executeJavaScript(`(() => {
+          const data = {};
+          for (let i = 0; i < localStorage.length; i += 1) {
+            const key = localStorage.key(i);
+            if (key != null) data[key] = localStorage.getItem(key);
+          }
+          return data;
+        })()`, true)
+        .then((captured) => {
+          if (captured && typeof captured === "object" && Object.keys(captured).length) {
+            userStorage.save(captured);
+          }
+        })
+        .catch(() => {});
+    }
   });
 
   app.on("activate", async () => {
